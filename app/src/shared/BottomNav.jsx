@@ -29,8 +29,11 @@ export default function BottomNav({ activeModule, setActiveModule, unreadCount =
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-t border-slate-200 px-3 py-2 max-w-md mx-auto shadow-lg">
-      <div className="flex items-center justify-around">
+    <nav
+      aria-label="Navegación principal"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-lg"
+    >
+      <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeModule === item.id;
@@ -38,27 +41,29 @@ export default function BottomNav({ activeModule, setActiveModule, unreadCount =
             <button
               key={item.id}
               onClick={() => setActiveModule(item.id)}
-              className={`relative flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-200 ${
+              aria-label={item.label}
+              aria-current={isActive ? 'page' : undefined}
+              className={`relative flex flex-col items-center justify-center py-1 px-4 rounded-2xl transition-all duration-200 ${
                 isActive
-                  ? 'text-indigo-600 font-semibold'
+                  ? 'text-indigo-600 font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               <div
                 className={`p-1.5 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-indigo-50 text-indigo-600'
+                    ? 'bg-indigo-50 text-indigo-600 shadow-sm'
                     : 'bg-transparent'
                 }`}
               >
                 <Icon className="w-5 h-5" />
               </div>
-              <span className="text-[11px] mt-0.5">
+              <span className="text-[11px] sm:text-xs mt-0.5 tracking-tight">
                 {item.label}
               </span>
 
               {item.badge && (
-                <span className="absolute top-1 right-2 w-2 h-2 bg-rose-500 rounded-full animate-ping" />
+                <span className="absolute top-1 right-3 w-2 h-2 bg-rose-500 rounded-full animate-ping" />
               )}
             </button>
           );

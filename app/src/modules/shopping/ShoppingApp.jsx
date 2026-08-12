@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import ShoppingList from './components/ShoppingList';
 import MarketManager from './components/MarketManager';
 import PriceComparator from './components/PriceComparator';
+import Tabs from '../../shared/ui/Tabs';
 
 import {
   fetchOrCreateActiveList,
@@ -22,7 +23,7 @@ import {
 
 export default function ShoppingApp({ activeProfile, profiles, setToastMessage }) {
   const { t } = useTranslation();
-  const [shopTab, setShopTab] = useState('list'); // 'list', 'markets', 'prices'
+  const [shopTab, setShopTab] = useState('list');
 
   const [activeList, setActiveList] = useState(null);
   const [items, setItems] = useState([
@@ -128,7 +129,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     }
 
     if (setToastMessage) {
-      setToastMessage('Producto añadido');
+      setToastMessage('Producto añadido a la lista');
     }
   };
 
@@ -165,7 +166,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
       setMarkets((prev) => [...prev, local]);
     }
     if (setToastMessage) {
-      setToastMessage('Tienda guardada');
+      setToastMessage('Tienda guardada correctamente');
     }
   };
 
@@ -186,38 +187,20 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
 
     setProductPrices((prev) => [...prev.filter((p) => p.id !== priceWithRel.id), priceWithRel]);
     if (setToastMessage) {
-      setToastMessage('Precio registrado');
+      setToastMessage('Precio registrado en comparativa');
     }
   };
 
+  const tabItems = [
+    { id: 'list', label: 'Lista Activa', icon: ShoppingCart, badge: items.filter(i => !i.is_checked).length },
+    { id: 'markets', label: 'Mercados', icon: Store, badge: markets.length },
+    { id: 'prices', label: 'Comparativa', icon: Tag },
+  ];
+
   return (
     <div className="space-y-4">
-      {/* Sub-Pills in Fit-Tracker style */}
-      <div className="tab-group">
-        <button
-          onClick={() => setShopTab('list')}
-          className={`tab-item ${shopTab === 'list' ? 'active' : ''}`}
-        >
-          <ShoppingCart className="w-4 h-4" />
-          <span>Lista Activa</span>
-        </button>
-
-        <button
-          onClick={() => setShopTab('markets')}
-          className={`tab-item ${shopTab === 'markets' ? 'active' : ''}`}
-        >
-          <Store className="w-4 h-4" />
-          <span>Mercados ({markets.length})</span>
-        </button>
-
-        <button
-          onClick={() => setShopTab('prices')}
-          className={`tab-item ${shopTab === 'prices' ? 'active' : ''}`}
-        >
-          <Tag className="w-4 h-4" />
-          <span>Precios</span>
-        </button>
-      </div>
+      {/* Sub Tabs */}
+      <Tabs items={tabItems} activeTab={shopTab} onChange={setShopTab} />
 
       {/* Tab Views */}
       {shopTab === 'list' && (
@@ -235,6 +218,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
       {shopTab === 'markets' && (
         <MarketManager
           markets={markets}
+          productPrices={productPrices}
           onSaveMarket={handleSaveMarket}
           onDeleteMarket={handleDeleteMarket}
         />

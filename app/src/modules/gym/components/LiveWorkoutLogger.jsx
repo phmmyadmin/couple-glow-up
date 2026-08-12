@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Check, Plus, Trash2, Clock, Dumbbell, Trophy, X, Flame } from 'lucide-react';
+import { Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X } from 'lucide-react';
 import { calculate1RM } from '../lib/supabase-gym';
 import ExerciseLibrary from './ExerciseLibrary';
+import Card from '../../../shared/ui/Card';
+import Button from '../../../shared/ui/Button';
 
 export default function LiveWorkoutLogger({
   exercises,
@@ -103,7 +105,6 @@ export default function LiveWorkoutLogger({
     const startedAt = new Date(Date.now() - secondsElapsed * 1000).toISOString();
     const finishedAt = new Date().toISOString();
 
-    // Flatten all completed sets
     const allSets = [];
     workoutExercises.forEach((item) => {
       item.sets.forEach((set) => {
@@ -135,7 +136,8 @@ export default function LiveWorkoutLogger({
           <h3 className="text-sm font-bold text-slate-900">Seleccionar Ejercicio</h3>
           <button
             onClick={() => setIsSelectingExercise(false)}
-            className="p-1 text-slate-500 hover:text-slate-900"
+            aria-label="Cerrar selección de ejercicio"
+            className="p-1.5 text-slate-500 hover:text-slate-900 rounded-xl hover:bg-slate-100"
           >
             <X className="w-5 h-5" />
           </button>
@@ -147,70 +149,61 @@ export default function LiveWorkoutLogger({
 
   return (
     <div className="space-y-4">
-      {/* Live Timer Bar */}
-      <div className="health-card bg-slate-900 text-white p-4 flex items-center justify-between border-slate-800 shadow-md">
+      {/* Live Timer Header Card */}
+      <Card className="bg-slate-900 text-white border-slate-800 shadow-md p-4 flex items-center justify-between">
         <div>
           <input
             type="text"
             value={workoutName}
+            aria-label="Nombre del entrenamiento"
             onChange={(e) => setWorkoutName(e.target.value)}
-            className="bg-transparent text-sm font-bold text-white border-b border-slate-700 focus:outline-none focus:border-indigo-400"
+            className="bg-transparent text-sm sm:text-base font-bold text-white border-b border-slate-700 focus:outline-none focus:border-indigo-400"
           />
-          <p className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
-            <Clock className="w-3 h-3 text-indigo-400" />
+          <p className="text-xs text-slate-400 font-mono mt-1 flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-indigo-400" />
             <span>Tiempo: {formatTimer(secondsElapsed)}</span>
           </p>
         </div>
 
         <div className="flex gap-2">
-          <button
-            onClick={onCancel}
-            className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-700"
-          >
+          <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white" onClick={onCancel}>
             Cancelar
-          </button>
-          <button
-            onClick={handleFinish}
-            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-sm"
-          >
+          </Button>
+          <Button variant="primary" size="sm" onClick={handleFinish}>
             Finalizar
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Exercises List in Session */}
       {workoutExercises.length === 0 ? (
-        <div className="health-card text-center py-10 space-y-3">
+        <Card className="text-center py-10 space-y-3">
           <Dumbbell className="w-10 h-10 text-slate-300 mx-auto" />
-          <p className="text-xs text-slate-500 font-medium">Añade tu primer ejercicio para empezar el entrenamiento.</p>
-          <button
-            onClick={() => setIsSelectingExercise(true)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Añadir Ejercicio</span>
-          </button>
-        </div>
+          <p className="text-sm text-slate-500 font-medium">Añade tu primer ejercicio para empezar el entrenamiento.</p>
+          <Button icon={Plus} variant="primary" onClick={() => setIsSelectingExercise(true)}>
+            Añadir Ejercicio
+          </Button>
+        </Card>
       ) : (
         <div className="space-y-4">
           {workoutExercises.map((item) => {
             const exType = item.exercise.exercise_type;
 
             return (
-              <div key={item.id} className="health-card space-y-3 p-4">
+              <Card key={item.id} className="space-y-3 p-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
                     <span>{item.exercise.name_es || item.exercise.name}</span>
                   </h4>
-                  <span className="text-[10px] text-slate-500 font-mono capitalize">
+                  <span className="text-xs text-slate-500 font-semibold capitalize">
                     {item.exercise.muscle_group}
                   </span>
                 </div>
 
                 {/* Sets Table */}
                 <div className="space-y-2">
-                  <div className="grid grid-cols-12 gap-1 text-[10px] font-bold text-slate-400 uppercase text-center px-1">
+                  <div className="grid grid-cols-12 gap-1 text-xs font-bold text-slate-400 uppercase text-center px-1">
                     <span className="col-span-2">Serie</span>
                     <span className="col-span-3">Tipo</span>
                     <span className="col-span-3">
@@ -235,9 +228,9 @@ export default function LiveWorkoutLogger({
                     return (
                       <div
                         key={set.id}
-                        className={`grid grid-cols-12 gap-1 items-center p-1.5 rounded-xl border text-xs text-center transition-all ${
+                        className={`grid grid-cols-12 gap-1 items-center p-2 rounded-xl border text-xs sm:text-sm text-center transition-all ${
                           set.is_checked
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                            ? 'bg-emerald-50/90 border-emerald-200 text-emerald-900 font-medium'
                             : 'bg-slate-50 border-slate-200 text-slate-800'
                         }`}
                       >
@@ -248,11 +241,12 @@ export default function LiveWorkoutLogger({
 
                         {/* Indicator selector */}
                         <select
+                          aria-label="Tipo de serie"
                           value={set.indicator}
                           onChange={(e) =>
                             handleUpdateSet(item.id, set.id, 'indicator', e.target.value)
                           }
-                          className="col-span-3 edit-select p-1 text-[10px] text-center"
+                          className="col-span-3 px-2 py-1 text-xs rounded-lg border border-slate-200 bg-white font-semibold"
                         >
                           <option value="normal">Normal</option>
                           <option value="warmup">W (Calent.)</option>
@@ -266,25 +260,27 @@ export default function LiveWorkoutLogger({
                             <input
                               type="number"
                               step="any"
+                              aria-label="Peso en kg"
                               value={set.weight_kg || ''}
                               onChange={(e) =>
                                 handleUpdateSet(item.id, set.id, 'weight_kg', parseFloat(e.target.value))
                               }
-                              className="edit-input p-1 text-center font-mono text-xs"
+                              className="w-full px-2 py-1 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
                             />
                           )}
                           {exType === 'distance_duration' && (
                             <input
                               type="number"
+                              aria-label="Distancia en metros"
                               value={set.distance_meters || ''}
                               onChange={(e) =>
                                 handleUpdateSet(item.id, set.id, 'distance_meters', parseFloat(e.target.value))
                               }
-                              className="edit-input p-1 text-center font-mono text-xs"
+                              className="w-full px-2 py-1 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
                             />
                           )}
                           {(exType === 'duration_only' || exType === 'reps_only') && (
-                            <span className="text-[10px] text-slate-400 font-mono">-</span>
+                            <span className="text-xs text-slate-400 font-mono">-</span>
                           )}
                         </div>
 
@@ -293,51 +289,56 @@ export default function LiveWorkoutLogger({
                           {(exType === 'weight_reps' || exType === 'reps_only') && (
                             <input
                               type="number"
+                              aria-label="Repeticiones"
                               value={set.reps || ''}
                               onChange={(e) =>
                                 handleUpdateSet(item.id, set.id, 'reps', parseInt(e.target.value, 10))
                               }
-                              className="edit-input p-1 text-center font-mono text-xs"
+                              className="w-full px-2 py-1 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
                             />
                           )}
                           {(exType === 'distance_duration' || exType === 'duration_only') && (
                             <input
                               type="number"
+                              aria-label="Duración en segundos"
                               value={set.duration_seconds || ''}
                               onChange={(e) =>
                                 handleUpdateSet(item.id, set.id, 'duration_seconds', parseInt(e.target.value, 10))
                               }
-                              className="edit-input p-1 text-center font-mono text-xs"
+                              className="w-full px-2 py-1 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
                             />
                           )}
                         </div>
 
-                        {/* Checked checkbox */}
+                        {/* Checked checkbox & Delete */}
                         <div className="col-span-2 flex items-center justify-center gap-1">
                           <button
                             onClick={() =>
                               handleUpdateSet(item.id, set.id, 'is_checked', !set.is_checked)
                             }
-                            className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs transition-all ${
+                            aria-label="Marcar serie completada"
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold transition-all ${
                               set.is_checked
-                                ? 'bg-emerald-500 text-white'
+                                ? 'bg-emerald-500 text-white shadow-sm'
                                 : 'bg-white border border-slate-300 text-slate-400'
                             }`}
                           >
-                            <Check className="w-3.5 h-3.5" />
+                            <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteSet(item.id, set.id)}
-                            className="p-1 text-slate-400 hover:text-rose-600"
+                            aria-label="Eliminar serie"
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
 
-                        {/* Live 1RM Epley preview */}
+                        {/* Live 1RM Epley badge */}
                         {epley1RM > 0 && (
-                          <div className="col-span-12 text-[10px] text-indigo-600 font-mono text-right pr-2 pt-0.5">
-                            Est. 1RM (Epley): <strong>{epley1RM} kg</strong>
+                          <div className="col-span-12 text-xs text-indigo-700 font-mono text-right pr-2 pt-1 flex items-center justify-end gap-1 font-semibold">
+                            <Award className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>1RM Est. (Epley): <strong>{epley1RM} kg</strong></span>
                           </div>
                         )}
                       </div>
@@ -345,24 +346,27 @@ export default function LiveWorkoutLogger({
                   })}
                 </div>
 
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={Plus}
+                  className="w-full justify-center"
                   onClick={() => handleAddSet(item.id)}
-                  className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 border border-slate-200"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Añadir Serie</span>
-                </button>
-              </div>
+                  Añadir Serie
+                </Button>
+              </Card>
             );
           })}
 
-          <button
+          <Button
+            variant="outline"
+            icon={Plus}
+            className="w-full justify-center py-3 border-dashed border-indigo-300 text-indigo-700 hover:bg-indigo-50"
             onClick={() => setIsSelectingExercise(true)}
-            className="w-full py-3 bg-indigo-50 border border-dashed border-indigo-300 text-indigo-700 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-indigo-100 transition-all shadow-sm"
           >
-            <Plus className="w-4 h-4" />
-            <span>Añadir Otro Ejercicio</span>
-          </button>
+            Añadir Otro Ejercicio
+          </Button>
         </div>
       )}
     </div>

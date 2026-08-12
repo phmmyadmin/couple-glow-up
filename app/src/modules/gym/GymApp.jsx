@@ -6,6 +6,9 @@ import ExerciseLibrary from './components/ExerciseLibrary';
 import RoutineBuilder from './components/RoutineBuilder';
 import LiveWorkoutLogger from './components/LiveWorkoutLogger';
 import WorkoutHistory from './components/WorkoutHistory';
+import Tabs from '../../shared/ui/Tabs';
+import Card from '../../shared/ui/Card';
+import Button from '../../shared/ui/Button';
 
 import {
   fetchExercisesFromSupabase,
@@ -20,7 +23,7 @@ import {
 
 export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   const { t } = useTranslation();
-  const [gymTab, setGymTab] = useState('workout'); // 'workout', 'routines', 'exercises', 'history'
+  const [gymTab, setGymTab] = useState('workout');
 
   const [exercises, setExercises] = useState([]);
   const [routines, setRoutines] = useState([]);
@@ -132,67 +135,42 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     );
   }
 
+  const tabItems = [
+    { id: 'workout', label: 'Entrenar', icon: Play },
+    { id: 'routines', label: 'Rutinas', icon: List, badge: routines.length },
+    { id: 'exercises', label: 'Ejercicios', icon: Dumbbell },
+    { id: 'history', label: 'Historial', icon: History, badge: workouts.length },
+  ];
+
   return (
     <div className="space-y-4">
-      {/* Sub-Pills in Fit-Tracker style */}
-      <div className="tab-group">
-        <button
-          onClick={() => setGymTab('workout')}
-          className={`tab-item ${gymTab === 'workout' ? 'active' : ''}`}
-        >
-          <Play className="w-3.5 h-3.5" />
-          <span>Entrenar</span>
-        </button>
-
-        <button
-          onClick={() => setGymTab('routines')}
-          className={`tab-item ${gymTab === 'routines' ? 'active' : ''}`}
-        >
-          <List className="w-3.5 h-3.5" />
-          <span>Rutinas ({routines.length})</span>
-        </button>
-
-        <button
-          onClick={() => setGymTab('exercises')}
-          className={`tab-item ${gymTab === 'exercises' ? 'active' : ''}`}
-        >
-          <Dumbbell className="w-3.5 h-3.5" />
-          <span>Ejercicios</span>
-        </button>
-
-        <button
-          onClick={() => setGymTab('history')}
-          className={`tab-item ${gymTab === 'history' ? 'active' : ''}`}
-        >
-          <History className="w-3.5 h-3.5" />
-          <span>Historial</span>
-        </button>
-      </div>
+      {/* Gym Sub-Tabs */}
+      <Tabs items={tabItems} activeTab={gymTab} onChange={setGymTab} />
 
       {/* Tab Views */}
       {gymTab === 'workout' && (
         <div className="space-y-4">
-          <div className="health-card text-center space-y-4 py-8">
+          <Card className="text-center space-y-4 py-8">
             <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto border border-indigo-100 shadow-sm">
               <Play className="w-8 h-8 fill-indigo-600" />
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">Iniciar Entrenamiento Libre</h3>
-              <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1 font-medium">
+              <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto mt-1 font-medium">
                 Registra series en vivo (peso/reps, tiempo, distancia), supersets y cálculo de 1RM Epley.
               </p>
             </div>
-            <button
+            <Button
+              size="lg"
+              icon={Play}
               onClick={() => {
                 setActiveRoutine(null);
                 setIsLiveSessionActive(true);
               }}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md transition-all active:scale-95 inline-flex items-center gap-2"
             >
-              <Play className="w-4 h-4 fill-white" />
-              <span>Empezar Entrenamiento Vacío</span>
-            </button>
-          </div>
+              Empezar Entrenamiento Vacío
+            </Button>
+          </Card>
 
           <RoutineBuilder
             routines={routines}

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Sparkles, Send } from 'lucide-react';
+import { Heart, Send, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Avatar from '../../shared/Avatar';
+import Card from '../../shared/ui/Card';
+import Button from '../../shared/ui/Button';
+import { Input } from '../../shared/ui/Input';
+import Skeleton from '../../shared/ui/Skeleton';
 import {
   fetchFeedEventsFromSupabase,
   createFeedEventInSupabase,
@@ -12,6 +16,7 @@ import {
 export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
   const { t } = useTranslation();
   const [noteInput, setNoteInput] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   const [feedEvents, setFeedEvents] = useState([
     {
@@ -38,10 +43,12 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
 
   useEffect(() => {
     async function loadFeed() {
+      setIsLoading(true);
       const dbEvents = await fetchFeedEventsFromSupabase();
       if (dbEvents && dbEvents.length > 0) {
         setFeedEvents(dbEvents);
       }
+      setIsLoading(false);
     }
     loadFeed();
 
@@ -69,11 +76,11 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
 
     const saved = await createFeedEventInSupabase(newEventObj);
     if (saved) {
-      setFeedEvents((prev) => [saved, ...prev]);
+      setFeedEvents((prev) => [saved, ...prev.filter((e) => e.id !== saved.id)]);
     } else {
       const localEvent = {
         ...newEventObj,
-        id: Date.now().toString(),
+        id: `local-${Date.now()}`,
         profile: activeProfile || { name: 'Yo' },
         created_at: new Date().toISOString(),
         feed_reactions: [],
@@ -88,7 +95,6 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
   };
 
   const handleReaction = async (eventId, emoji) => {
-    // Optimistic update
     setFeedEvents((prev) =>
       prev.map((event) => {
         if (event.id === eventId) {
@@ -100,7 +106,7 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
               r.emoji === emoji ? { ...r, count: (r.count || 1) + 1 } : r
             );
           } else {
-            newReactions = [...reactions, { id: Date.now().toString(), emoji, count: 1 }];
+            newReactions = [...reactions, { id: `react-${Date.now()}`, emoji, count: 1 }];
           }
           return { ...event, feed_reactions: newReactions };
         }
@@ -119,96 +125,110 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
 
   return (
     <div className="space-y-4 pb-4">
-      {/* Feed Header */}
-      <div className="health-card bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border-indigo-100 p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      {/* Feed Header Banner Card */}
+      <Card className="bg-gradient-to-r from-indigo-50/90 via-purple-50/90 to-pink-50/90 border-indigo-100 p-5 flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
           <div className="flex -space-x-2">
             <Avatar profile={profiles[0]} size="md" />
             <Avatar profile={profiles[1]} size="md" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-              Couple Glow Up Feed <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
+              <span>Couple Glow Up Feed</span>
+              <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
             </h2>
-            <p className="text-[11px] text-slate-500 font-medium">
-              Muro compartido de entrenamientos, compras y récords
+            <p className="text-xs text-slate-500 font-semibold mt-0.5">
+              Muro compartido de entrenamientos, compras y logros en pareja
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Quick Note Post Input */}
-      <form onSubmit={handlePostNote} className="health-card p-3 flex gap-2">
-        <input
-          type="text"
-          placeholder="Escribe un mensaje o nota para la pareja..."
-          value={noteInput}
-          onChange={(e) => setNoteInput(e.target.value)}
-          className="edit-input flex-1 text-xs"
-        />
-        <button
-          type="submit"
-          className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1 active:scale-95 transition-all"
-        >
-          <Send className="w-3.5 h-3.5" />
-        </button>
-      </form>
+      <Card className="p-3.5">
+        <form onSubmit={handlePostNote} className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="Escribe una nota o mensaje para tu pareja..."
+            aria-label="Escribir nota"
+            value={noteInput}
+            onChange={(e) => setNoteInput(e.target.value)}
+            className="flex-1"
+          />
+          <Button type="submit" icon={Send} variant="primary">
+            Publicar
+          </Button>
+        </form>
+      </Card>
 
       {/* Feed Stream */}
       <div className="space-y-3">
-        {feedEvents.map((event) => {
-          const profile = event.profiles || event.profile;
-          const timeAgo = new Date(event.created_at).toLocaleTimeString('es-ES', {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+        {isLoading && feedEvents.length === 0 ? (
+          <div className="space-y-3">
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+          </div>
+        ) : feedEvents.length === 0 ? (
+          <Card className="text-center py-10 space-y-2">
+            <MessageSquare className="w-10 h-10 text-slate-300 mx-auto" />
+            <p className="text-sm text-slate-500 font-medium">Aún no hay publicaciones en el muro. ¡Escribe la primera arriba!</p>
+          </Card>
+        ) : (
+          feedEvents.map((event) => {
+            const profile = event.profiles || event.profile;
+            const timeAgo = new Date(event.created_at).toLocaleTimeString('es-ES', {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
 
-          return (
-            <div key={event.id} className="health-card p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar profile={profile} size="md" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">{event.title}</h4>
-                    <span className="text-[10px] text-slate-400 font-medium">{timeAgo}</span>
+            return (
+              <Card key={event.id} className="p-4 sm:p-5 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar profile={profile} size="md" />
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">{event.title}</h4>
+                      <span className="text-xs text-slate-400 font-medium">{timeAgo}</span>
+                    </div>
+                  </div>
+                  <span className="text-2xl p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
+                    {event.emoji}
+                  </span>
+                </div>
+
+                <p className="text-xs sm:text-sm text-slate-700 bg-slate-50/80 p-3 rounded-xl border border-slate-200/80 font-mono font-medium">
+                  {event.description}
+                </p>
+
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-1.5">
+                    {(event.feed_reactions || []).map((r) => (
+                      <span
+                        key={r.id || Math.random()}
+                        className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs text-slate-700 font-semibold"
+                      >
+                        {r.emoji} <span className="text-xs font-extrabold text-indigo-600">{r.count || 1}</span>
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {['❤️', '🔥', '👏', '💪'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => handleReaction(event.id, emoji)}
+                        aria-label={`Reaccionar con ${emoji}`}
+                        className="p-1.5 hover:bg-slate-100 rounded-xl text-base transition-transform active:scale-125"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <span className="text-xl p-1 bg-slate-100 rounded-xl border border-slate-200">
-                  {event.emoji}
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono">
-                {event.description}
-              </p>
-
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-1.5">
-                  {(event.feed_reactions || []).map((r) => (
-                    <span
-                      key={r.id || Math.random()}
-                      className="px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-xs text-slate-700 font-medium"
-                    >
-                      {r.emoji} <span className="text-[10px] font-bold text-indigo-600">{r.count || 1}</span>
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-1">
-                  {['❤️', '🔥', '👏', '💪'].map((emoji) => (
-                    <button
-                      key={emoji}
-                      onClick={() => handleReaction(event.id, emoji)}
-                      className="p-1 hover:bg-slate-100 rounded-lg text-sm transition-transform active:scale-125"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );
