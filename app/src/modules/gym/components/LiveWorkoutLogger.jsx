@@ -81,20 +81,57 @@ export default function LiveWorkoutLogger({
 
   // Pre-fill exercises if started from routine
   useEffect(() => {
-    if (initialRoutine && initialRoutine.items) {
-      const formattedEx = initialRoutine.items.map((item, idx) => {
-        const targetSetsCount = item.target_sets || 3;
-        const initialSets = Array.from({ length: targetSetsCount }).map((_, setIdx) => ({
-          id: `${Date.now()}-${idx}-${setIdx}`,
-          indicator: 'normal',
-          weight_kg: 20,
-          reps: item.target_reps || 10,
-          is_checked: false,
-        }));
+    const rawExercises = initialRoutine?.exercises || initialRoutine?.items || [];
+    if (initialRoutine && rawExercises.length > 0) {
+      setWorkoutName(initialRoutine.name || 'Workout of the Day');
+
+      const formattedEx = rawExercises.map((item, idx) => {
+        let matchedEx = item.exercise;
+        if (!matchedEx && item.exercise_id) {
+          matchedEx = exercises?.find((e) => e.id === item.exercise_id);
+        }
+        if (!matchedEx && (item.exercise_title || item.title || item.name || item.es_title)) {
+          const t = (item.exercise_title || item.title || item.name || item.es_title).toLowerCase().trim();
+          matchedEx = exercises?.find(
+            (e) => e.name?.toLowerCase().trim() === t || e.name_es?.toLowerCase().trim() === t
+          );
+        }
+        if (!matchedEx) {
+          matchedEx = {
+            id: item.exercise_id || `ex-${idx}`,
+            name: item.exercise_title || item.title || item.name || item.es_title || 'Exercise',
+            name_es: item.es_title || item.exercise_title || item.title || item.name || 'Ejercicio',
+            muscle_group: item.muscle_group || 'other',
+            exercise_type: item.exercise_type || 'weight_reps',
+            equipment_category: item.equipment_category || 'dumbbell',
+          };
+        }
+
+        let initialSets = [];
+        if (Array.isArray(item.sets) && item.sets.length > 0) {
+          initialSets = item.sets.map((s, setIdx) => ({
+            id: `${Date.now()}-${idx}-${setIdx}`,
+            indicator: s.indicator || s.set_type || 'normal',
+            weight_kg: s.weight_kg !== undefined && s.weight_kg !== null ? s.weight_kg : '',
+            reps: s.reps !== undefined && s.reps !== null ? s.reps : '',
+            duration_seconds: s.duration_seconds || null,
+            distance_meters: s.distance_meters || null,
+            is_checked: false,
+          }));
+        } else {
+          const targetSetsCount = parseInt(item.target_sets, 10) || 3;
+          initialSets = Array.from({ length: targetSetsCount }).map((_, setIdx) => ({
+            id: `${Date.now()}-${idx}-${setIdx}`,
+            indicator: 'normal',
+            weight_kg: item.target_weight || '',
+            reps: item.target_reps || 10,
+            is_checked: false,
+          }));
+        }
 
         return {
           id: `${Date.now()}-${idx}`,
-          exercise: item.exercise,
+          exercise: matchedEx,
           rest_seconds: item.rest_seconds || 90,
           sets: initialSets,
         };
@@ -102,7 +139,7 @@ export default function LiveWorkoutLogger({
 
       setWorkoutExercises(formattedEx);
     }
-  }, [initialRoutine]);
+  }, [initialRoutine, exercises]);
 
   // Add exercise to active session
   const handleAddExercise = (exercise) => {
