@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Dumbbell, Play, Edit3, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, Dumbbell, Play, Edit3, ArrowUp, ArrowDown, Timer } from 'lucide-react';
 import ExerciseLibrary from './ExerciseLibrary';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
@@ -265,6 +265,30 @@ export default function RoutineBuilder({
                       >
                         +
                       </button>
+                    </div>
+                  </div>
+
+                  {/* Rest Time Control */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-600 font-semibold flex items-center gap-1">
+                      <Timer className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Rest:</span>
+                    </span>
+                    <div className="flex items-center gap-1 bg-slate-200/60 p-0.5 rounded-lg">
+                      {[30, 60, 90, 120, 180].map((sec) => (
+                        <button
+                          key={sec}
+                          type="button"
+                          onClick={() => handleUpdateItemField(idx, 'rest_seconds', sec)}
+                          className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all ${
+                            (item.rest_seconds || 90) === sec
+                              ? 'bg-white text-indigo-700 shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {sec}s
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>

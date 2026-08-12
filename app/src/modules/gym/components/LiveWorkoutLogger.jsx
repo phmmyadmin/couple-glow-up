@@ -95,6 +95,7 @@ export default function LiveWorkoutLogger({
         return {
           id: `${Date.now()}-${idx}`,
           exercise: item.exercise,
+          rest_seconds: item.rest_seconds || 90,
           sets: initialSets,
         };
       });
@@ -108,6 +109,7 @@ export default function LiveWorkoutLogger({
     const newEx = {
       id: Date.now().toString(),
       exercise: exercise,
+      rest_seconds: 90,
       sets: [
         {
           id: Date.now().toString(),
@@ -120,6 +122,12 @@ export default function LiveWorkoutLogger({
     };
     setWorkoutExercises((prev) => [...prev, newEx]);
     setIsSelectingExercise(false);
+  };
+
+  const handleUpdateExerciseRest = (exIndex, restSecs) => {
+    setWorkoutExercises((prev) =>
+      prev.map((item, idx) => (idx === exIndex ? { ...item, rest_seconds: restSecs } : item))
+    );
   };
 
   const handleRemoveExercise = (exIndex) => {
@@ -178,9 +186,9 @@ export default function LiveWorkoutLogger({
           const updatedSets = item.sets.map((s, sIdx) => {
             if (sIdx === setIndex) {
               const updated = { ...s, [field]: value };
-              // Auto launch rest timer if checking a set as completed
+              // Auto launch rest timer using exercise-specific rest target
               if (field === 'is_checked' && value === true) {
-                startRestTimer(defaultRestSeconds);
+                startRestTimer(item.rest_seconds || defaultRestSeconds || 90);
               }
               return updated;
             }
@@ -409,10 +417,30 @@ export default function LiveWorkoutLogger({
                     </h4>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="text-xs bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg text-slate-600 font-semibold capitalize">
                       {item.exercise.muscle_group}
                     </span>
+
+                    {/* Per-Exercise Rest Selector */}
+                    <div className="flex items-center gap-1 bg-slate-100 border border-slate-200/80 p-0.5 rounded-lg">
+                      <Timer className="w-3 h-3 text-indigo-600 ml-1" />
+                      {[30, 60, 90, 120, 180].map((sec) => (
+                        <button
+                          key={sec}
+                          type="button"
+                          onClick={() => handleUpdateExerciseRest(exIdx, sec)}
+                          className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-all ${
+                            (item.rest_seconds || 90) === sec
+                              ? 'bg-white text-indigo-700 shadow-2xs font-extrabold'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          {sec}s
+                        </button>
+                      ))}
+                    </div>
+
                     <button
                       onClick={() => handleRemoveExercise(exIdx)}
                       aria-label="Remove exercise from workout"
