@@ -51,23 +51,23 @@ export default function FitApp({
 
   return (
     <div className="space-y-4">
-      {/* Date & Sub-navigation bar */}
-      <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-3 border border-slate-800/80 shadow-lg space-y-3">
+      {/* Date & Sub-navigation bar in exact original Fit-tracker style */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-2">
         {/* Date Selector */}
-        <div className="flex items-center justify-between">
+        <div className="date-selector w-full sm:w-auto justify-between sm:justify-start">
           <button
+            className="nav-btn"
             onClick={() => handleDateChange(-1)}
-            className="p-2 rounded-xl bg-slate-800/60 text-slate-300 hover:bg-slate-700 hover:text-white transition-all"
             aria-label="Previous day"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft size={18} />
           </button>
-
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => dateInputRef.current?.showPicker()}>
-            <Calendar className="w-4 h-4 text-emerald-400" />
-            <span className="text-sm font-semibold text-slate-200">
-              {selectedDate}
-            </span>
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => dateInputRef.current?.showPicker()}
+          >
+            <Calendar size={18} color="var(--color-indigo)" />
+            <span>{selectedDate}</span>
             <input
               ref={dateInputRef}
               type="date"
@@ -76,51 +76,36 @@ export default function FitApp({
               className="sr-only"
             />
           </div>
-
           <button
+            className="nav-btn"
             onClick={() => handleDateChange(1)}
-            className="p-2 rounded-xl bg-slate-800/60 text-slate-300 hover:bg-slate-700 hover:text-white transition-all"
             aria-label="Next day"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight size={18} />
           </button>
         </div>
 
-        {/* Fit Module Sub-Pills */}
-        <div className="grid grid-cols-3 gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800/50">
+        {/* Tab Group */}
+        <div className="tab-group flex-1">
           <button
+            className={`tab-item ${fitTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setFitTab('dashboard')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-              fitTab === 'dashboard'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
           >
-            <LayoutDashboard className="w-3.5 h-3.5" />
+            <LayoutDashboard size={18} />
             <span>{t('nav.diary', 'Diario')}</span>
           </button>
-
           <button
+            className={`tab-item ${fitTab === 'report' ? 'active' : ''}`}
             onClick={() => setFitTab('report')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-              fitTab === 'report'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
           >
-            <LineChart className="w-3.5 h-3.5" />
+            <LineChart size={18} />
             <span>{t('nav.report', 'Reporte & Progreso')}</span>
           </button>
-
           <button
+            className={`tab-item ${fitTab === 'profile' ? 'active' : ''}`}
             onClick={() => setFitTab('profile')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-              fitTab === 'profile'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
           >
-            <User className="w-3.5 h-3.5" />
+            <User size={18} />
             <span>{t('nav.profile', 'Perfil')}</span>
           </button>
         </div>

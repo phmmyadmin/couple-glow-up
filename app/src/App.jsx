@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Heart, Plus } from 'lucide-react';
+import { User, Plus, CheckCircle2 } from 'lucide-react';
 
 import FitApp from './modules/fit/FitApp';
 import ShoppingApp from './modules/shopping/ShoppingApp';
@@ -8,7 +8,6 @@ import GymApp from './modules/gym/GymApp';
 import FeedApp from './modules/feed/FeedApp';
 
 import BottomNav from './shared/BottomNav';
-import Toast from './shared/Toast';
 import Avatar from './shared/Avatar';
 import NewProfileModal from './modules/fit/components/NewProfileModal';
 
@@ -36,7 +35,7 @@ const addDays = (dateStr, days) => {
 
 export default function App() {
   const { t, i18n } = useTranslation();
-  const [activeModule, setActiveModule] = useState('fit'); // Default fit / tab
+  const [activeModule, setActiveModule] = useState('fit'); // Default fit tab
 
   const [data, setData] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -119,58 +118,85 @@ export default function App() {
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
   return (
-    <div className="min-h-screen bg-[#FAFAF7] text-[#18181B] font-sans pb-24">
-      <Toast message={toastMessage} />
+    <div className="app-container">
+      {/* Toast Notification in exact Fit Tracker style */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '1.25rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--text-main)',
+            color: '#FFF',
+            padding: '0.65rem 1.25rem',
+            borderRadius: '24px',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            zIndex: 300,
+            animation: 'slideUp 0.25s ease',
+          }}
+        >
+          <CheckCircle2 size={16} color="var(--color-carbs)" />
+          {toastMessage}
+        </div>
+      )}
 
-      {/* Fit-Tracker Header */}
-      <header className="sticky top-0 z-30 bg-[#FAFAF7]/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 max-w-md mx-auto">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm">
-              <Heart className="w-4 h-4 fill-white" />
+      {/* Header in exact Fit Tracker style */}
+      <header className="app-header" style={{ alignItems: 'flex-start' }}>
+        <div>
+          <h1 className="app-title">Couple Glow Up</h1>
+          {profiles.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
+              <User size={14} color="var(--text-muted)" />
+              <select
+                value={activeProfileId || ''}
+                onChange={(e) => handleProfileChange(e.target.value)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  color: 'var(--text-main)',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => setIsNewProfileModalOpen(true)}
+                style={{
+                  background: 'var(--bg-subtle)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '2px 8px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--color-indigo)',
+                  cursor: 'pointer',
+                }}
+              >
+                + Nuevo
+              </button>
             </div>
-            <div>
-              <h1 className="text-base font-bold text-slate-900 tracking-tight">
-                Couple Glow Up
-              </h1>
-              <p className="text-[11px] text-slate-500 font-medium -mt-0.5">
-                {t('header.subtitle', 'Control Nutricional & Déficit Calórico')}
-              </p>
-            </div>
-          </div>
-
-          {/* Profile Switcher */}
-          <div className="flex items-center gap-2">
-            {profiles.length > 0 && (
-              <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-full p-1 pl-2 shadow-sm">
-                <Avatar profile={activeProfile} size="sm" />
-                <select
-                  value={activeProfileId || ''}
-                  onChange={(e) => handleProfileChange(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none pr-1 cursor-pointer"
-                >
-                  {profiles.map((p) => (
-                    <option key={p.id} value={p.id} className="bg-white text-slate-900">
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <button
-              onClick={() => setIsNewProfileModalOpen(true)}
-              className="p-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 transition-all shadow-sm"
-              title={t('header.newProfile', '+ Nuevo Perfil')}
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
+          )}
+          <p className="app-subtitle" style={{ marginTop: '0.25rem' }}>
+            {t('header.subtitle', 'Control Nutricional & Déficit Calórico')}
+          </p>
         </div>
       </header>
 
-      {/* Main Content Container */}
-      <main className="max-w-md mx-auto px-3 pt-3">
+      {/* Main Content Area */}
+      <main>
         {activeModule === 'feed' && (
           <FeedApp
             activeProfile={activeProfile}
@@ -215,7 +241,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Global Bottom Navigation */}
+      {/* Global Bottom Navigation in exact Fit Tracker style */}
       <BottomNav activeModule={activeModule} setActiveModule={setActiveModule} />
 
       {/* New Profile Modal */}
