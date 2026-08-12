@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Heart } from 'lucide-react';
+import { Plus, Heart, Play } from 'lucide-react';
 
 import FitApp from './modules/fit/FitApp';
 import ShoppingApp from './modules/shopping/ShoppingApp';
@@ -45,6 +45,51 @@ export default function App() {
     setActiveModule(mod);
     localStorage.setItem('glowup_active_module', mod);
   };
+
+  // Floating Active Workout Bar State
+  const [activeWorkoutData, setActiveWorkoutData] = useState(() => {
+    try {
+      const raw = localStorage.getItem('couple_glow_up_active_workout');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [floatingSeconds, setFloatingSeconds] = useState(0);
+
+  useEffect(() => {
+    const updateActiveWorkout = () => {
+      try {
+        const raw = localStorage.getItem('couple_glow_up_active_workout');
+        setActiveWorkoutData(raw ? JSON.parse(raw) : null);
+      } catch {
+        setActiveWorkoutData(null);
+      }
+    };
+
+    window.addEventListener('active_workout_updated', updateActiveWorkout);
+    window.addEventListener('storage', updateActiveWorkout);
+    return () => {
+      window.removeEventListener('active_workout_updated', updateActiveWorkout);
+      window.removeEventListener('storage', updateActiveWorkout);
+    };
+  }, []);
+
+  useEffect(() => {
+    let interval = null;
+    if (activeWorkoutData?.startTime) {
+      const updateTimer = () => {
+        const secs = Math.floor((Date.now() - activeWorkoutData.startTime) / 1000);
+        setFloatingSeconds(Math.max(0, secs));
+      };
+      updateTimer();
+      interval = setInterval(updateTimer, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeWorkoutData]);
 
   const [data, setData] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -220,6 +265,35 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Floating Active Workout Bar when navigating to other modules */}
+      {activeModule !== 'gym' && activeWorkoutData && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md bg-slate-900/95 text-white backdrop-blur-lg border border-slate-700/80 shadow-2xl p-3 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative flex items-center justify-center shrink-0">
+              <span className="animate-ping absolute inline-flex h-3.5 w-3.5 rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold truncate text-slate-100">
+                {activeWorkoutData.workoutName || 'Active Workout'}
+              </div>
+              <div className="text-[11px] font-mono font-bold text-emerald-400">
+                ⏱️ {Math.floor(floatingSeconds / 60).toString().padStart(2, '0')}:{(floatingSeconds % 60).toString().padStart(2, '0')} • {activeWorkoutData.workoutExercises?.length || 0} exercises
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => handleSetActiveModule('gym')}
+            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>Resume</span>
+          </button>
+        </div>
+      )}
 
       {/* Global Bottom Navigation */}
       <BottomNav activeModule={activeModule} setActiveModule={handleSetActiveModule} />

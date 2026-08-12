@@ -36,13 +36,28 @@ export default function LiveWorkoutLogger({
   onCancel,
   activeProfile,
   initialRoutine = null,
+  initialWorkoutState = null,
   onAddCustomExercise,
 }) {
-  const [workoutName, setWorkoutName] = useState(
-    initialRoutine?.name || 'Workout of the Day'
+  const [workoutName, setWorkoutName] = useState(() => {
+    return initialWorkoutState?.workoutName || initialRoutine?.name || 'Workout of the Day';
+  });
+
+  const startTimeRef = React.useRef(
+    initialWorkoutState?.startTime || Date.now()
   );
-  const [secondsElapsed, setSecondsElapsed] = useState(0);
-  const [workoutExercises, setWorkoutExercises] = useState([]);
+
+  const [secondsElapsed, setSecondsElapsed] = useState(() => {
+    if (initialWorkoutState?.startTime) {
+      return Math.max(0, Math.floor((Date.now() - initialWorkoutState.startTime) / 1000));
+    }
+    return initialWorkoutState?.secondsElapsed || 0;
+  });
+
+  const [workoutExercises, setWorkoutExercises] = useState(() => {
+    return initialWorkoutState?.workoutExercises || [];
+  });
+
   const [isSelectingExercise, setIsSelectingExercise] = useState(false);
 
   // Rest Timer State
@@ -57,10 +72,26 @@ export default function LiveWorkoutLogger({
   // Timer interval for main session duration
   useEffect(() => {
     const timer = setInterval(() => {
-      setSecondsElapsed((prev) => prev + 1);
+      setSecondsElapsed(Math.max(0, Math.floor((Date.now() - startTimeRef.current) / 1000)));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Auto-persist active workout state to localStorage
+  useEffect(() => {
+    if (workoutExercises.length > 0 || workoutName) {
+      const stateToSave = {
+        workoutName,
+        startTime: startTimeRef.current,
+        secondsElapsed,
+        workoutExercises,
+        activeRoutine: initialRoutine,
+        lastUpdated: Date.now(),
+      };
+      localStorage.setItem('couple_glow_up_active_workout', JSON.stringify(stateToSave));
+      window.dispatchEvent(new Event('active_workout_updated'));
+    }
+  }, [workoutName, secondsElapsed, workoutExercises, initialRoutine]);
 
   // Timer interval for rest countdown
   useEffect(() => {
@@ -106,7 +137,7 @@ export default function LiveWorkoutLogger({
   // Pre-fill exercises if started from routine
   useEffect(() => {
     const rawExercises = initialRoutine?.exercises || initialRoutine?.items || [];
-    if (initialRoutine && rawExercises.length > 0) {
+    if (initialRoutine && rawExercises.length > 0 && workoutExercises.length === 0 && !initialWorkoutState) {
       setWorkoutName(initialRoutine.name || 'Workout of the Day');
 
       const formattedEx = rawExercises.map((item, idx) => {
@@ -290,7 +321,18 @@ export default function LiveWorkoutLogger({
     });
   };
 
+  const handleCancelWorkout = () => {
+    if (window.confirm('Are you sure you want to cancel this workout? Progress will be lost.')) {
+      localStorage.removeItem('couple_glow_up_active_workout');
+      window.dispatchEvent(new Event('active_workout_updated'));
+      onCancel();
+    }
+  };
+
   const handleFinish = () => {
+    localStorage.removeItem('couple_glow_up_active_workout');
+    window.dispatchEvent(new Event('active_workout_updated'));
+
     const allSets = [];
     workoutExercises.forEach((item) => {
       item.sets.forEach((s) => {
@@ -320,7 +362,7 @@ export default function LiveWorkoutLogger({
         name: workoutName,
         profile_id: activeProfile?.id || null,
         duration_minutes: durationMins,
-        started_at: new Date().toISOString(),
+        started_at: new Date(startTimeRef.current).toISOString(),
         finished_at: new Date().toISOString(),
         estimated_volume_kg: totalLiveVolumeKg,
       },
@@ -402,7 +444,7 @@ export default function LiveWorkoutLogger({
           </div>
 
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onCancel}>
+            <Button variant="ghost" size="sm" onClick={handleCancelWorkout}>
               Cancel
             </Button>
             <Button variant="primary" size="sm" icon={Check} onClick={handleFinish}>

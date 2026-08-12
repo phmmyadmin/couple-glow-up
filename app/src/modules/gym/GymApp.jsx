@@ -41,9 +41,56 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   const [personalRecords, setPersonalRecords] = useState([]);
 
   // Active workout logging session state
-  const [isLiveSessionActive, setIsLiveSessionActive] = useState(false);
+  const [activeWorkoutState, setActiveWorkoutState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('couple_glow_up_active_workout');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [isLiveSessionActive, setIsLiveSessionActive] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem('couple_glow_up_active_workout'));
+    } catch {
+      return false;
+    }
+  });
+
   const [activeRoutine, setActiveRoutine] = useState(null);
   const [targetWorkoutId, setTargetWorkoutId] = useState(null);
+
+  // Pending offline workouts queue
+  const [pendingOfflineWorkouts, setPendingOfflineWorkouts] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  // Listen to active workout updates
+  useEffect(() => {
+    const handleActiveUpdate = () => {
+      try {
+        const raw = localStorage.getItem('couple_glow_up_active_workout');
+        if (raw) {
+          setActiveWorkoutState(JSON.parse(raw));
+          setIsLiveSessionActive(true);
+        } else {
+          setActiveWorkoutState(null);
+          setIsLiveSessionActive(false);
+        }
+      } catch {
+        setActiveWorkoutState(null);
+        setIsLiveSessionActive(false);
+      }
+    };
+
+    window.addEventListener('active_workout_updated', handleActiveUpdate);
+    return () => window.removeEventListener('active_workout_updated', handleActiveUpdate);
+  }, []);
 
   useEffect(() => {
     async function loadGymData() {
@@ -57,7 +104,11 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
         setRoutines(dbRoutines);
 
         const dbWorkouts = await fetchWorkoutsFromSupabase(activeProfile.id);
-        setWorkouts(dbWorkouts);
+        if (dbWorkouts) {
+          // Merge with pending offline workouts if any
+          const pending = JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
+          setWorkouts([...pending, ...dbWorkouts]);
+        }
 
         const dbPRs = await fetchPersonalRecordsFromSupabase(activeProfile.id);
         setPersonalRecords(dbPRs);
@@ -66,6 +117,37 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
 
     loadGymData();
   }, [activeProfile]);
+
+  // Sync offline workouts handler
+  const handleSyncOfflineWorkouts = async () => {
+    const pending = JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
+    if (pending.length === 0) return;
+
+    let syncedCount = 0;
+    const remaining = [];
+
+    for (const item of pending) {
+      const { id, is_offline_pending, workout_sets, ...meta } = item;
+      const saved = await saveWorkoutSessionToSupabase(meta, workout_sets || []);
+      if (saved) {
+        syncedCount++;
+      } else {
+        remaining.push(item);
+      }
+    }
+
+    localStorage.setItem('couple_glow_up_pending_workouts', JSON.stringify(remaining));
+    setPendingOfflineWorkouts(remaining);
+
+    if (activeProfile?.id) {
+      const fresh = await fetchWorkoutsFromSupabase(activeProfile.id);
+      if (fresh) setWorkouts(fresh);
+    }
+
+    if (setToastMessage) {
+      setToastMessage(`✅ ${syncedCount} offline workout(s) synced to cloud!`);
+    }
+  };
 
   // ── EXERCISE HANDLERS ──
   const handleAddCustomExercise = async (newEx) => {
@@ -114,50 +196,67 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
 
   // ── WORKOUT HANDLERS ──
   const handleSaveWorkout = async (workoutObj, sets) => {
-    const saved = await saveWorkoutSessionToSupabase(workoutObj, sets);
-    if (saved) {
-      setWorkouts((prev) => [saved, ...prev]);
+    localStorage.removeItem('couple_glow_up_active_workout');
+    window.dispatchEvent(new Event('active_workout_updated'));
 
-      // Evaluate PRs: skip first-time exercises, dedup per exercise per workout
-      const newPRs = await evaluateAndSavePRs(
-        activeProfile?.id,
-        sets,
-        saved.id
-      );
-      if (newPRs.length > 0) {
-        setPersonalRecords((prev) => {
-          // Merge: replace existing PR entries for same exercise+type
-          const updated = [...prev];
-          for (const pr of newPRs) {
-            const idx = updated.findIndex(
-              (p) => p.exercise_id === pr.exercise_id && p.record_type === pr.record_type
-            );
-            if (idx >= 0) updated[idx] = pr;
-            else updated.unshift(pr);
-          }
-          return updated;
-        });
-        if (setToastMessage) {
-          setToastMessage(`🏆 ${newPRs.length} new PR${newPRs.length > 1 ? 's' : ''}!`);
-        }
-      }
-    } else {
-      const localW = {
+    let saved = null;
+    if (navigator.onLine) {
+      saved = await saveWorkoutSessionToSupabase(workoutObj, sets);
+    }
+
+    if (!saved) {
+      // Offline fallback save
+      const offlineItem = {
         ...workoutObj,
-        id: Date.now().toString(),
+        id: `offline-${Date.now()}`,
+        is_offline_pending: true,
         workout_sets: sets,
       };
-      setWorkouts((prev) => [localW, ...prev]);
+
+      const existing = JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
+      existing.unshift(offlineItem);
+      localStorage.setItem('couple_glow_up_pending_workouts', JSON.stringify(existing));
+      setPendingOfflineWorkouts(existing);
+
+      setWorkouts((prev) => [offlineItem, ...prev]);
+
+      setIsLiveSessionActive(false);
+      setActiveRoutine(null);
+      setActiveWorkoutState(null);
+
+      if (setToastMessage) {
+        setToastMessage('📶 Connection offline: Workout saved locally! Click Sync when online.');
+      }
+      return;
+    }
+
+    // Standard online save success
+    setWorkouts((prev) => [saved, ...prev]);
+
+    // Evaluate PRs
+    const newPRs = await evaluateAndSavePRs(activeProfile?.id, sets, saved.id);
+    if (newPRs.length > 0) {
+      setPersonalRecords((prev) => {
+        const updated = [...prev];
+        for (const pr of newPRs) {
+          const idx = updated.findIndex(
+            (p) => p.exercise_id === pr.exercise_id && p.record_type === pr.record_type
+          );
+          if (idx >= 0) updated[idx] = pr;
+          else updated.unshift(pr);
+        }
+        return updated;
+      });
+      if (setToastMessage) {
+        setToastMessage(`🏆 ${newPRs.length} new PR${newPRs.length > 1 ? 's' : ''}! 🎉 Workout saved!`);
+      }
+    } else if (setToastMessage) {
+      setToastMessage('Workout saved 🎉');
     }
 
     setIsLiveSessionActive(false);
     setActiveRoutine(null);
-
-    if (setToastMessage && !saved) {
-      setToastMessage('Workout saved 🎉');
-    } else if (saved) {
-      setToastMessage('Workout saved 🎉');
-    }
+    setActiveWorkoutState(null);
   };
 
   const handleDeleteWorkout = async (workoutId) => {
@@ -207,9 +306,15 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
       <LiveWorkoutLogger
         exercises={exercises}
         onSaveWorkout={handleSaveWorkout}
-        onCancel={() => setIsLiveSessionActive(false)}
+        onCancel={() => {
+          setIsLiveSessionActive(false);
+          setActiveWorkoutState(null);
+          localStorage.removeItem('couple_glow_up_active_workout');
+          window.dispatchEvent(new Event('active_workout_updated'));
+        }}
         activeProfile={activeProfile}
         initialRoutine={activeRoutine}
+        initialWorkoutState={activeWorkoutState}
         onAddCustomExercise={handleAddCustomExercise}
       />
     );
@@ -217,6 +322,26 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
 
   return (
     <div className="space-y-6 sm:space-y-7">
+      {/* Offline Pending Workouts Alert Banner */}
+      {pendingOfflineWorkouts.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm font-semibold text-amber-900 shadow-2xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base shrink-0">📶</span>
+            <span className="truncate">
+              You have <strong>{pendingOfflineWorkouts.length}</strong> workout(s) saved locally offline.
+            </span>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleSyncOfflineWorkouts}
+            className="bg-amber-500 hover:bg-amber-600 text-white font-bold border-amber-600 shrink-0"
+          >
+            Sync to Cloud Now
+          </Button>
+        </div>
+      )}
+
       {/* Gym Sub-Tabs */}
       <Tabs items={tabItems} activeTab={gymTab} onChange={handleGymTabChange} />
 
