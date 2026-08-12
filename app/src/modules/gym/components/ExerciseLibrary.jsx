@@ -143,6 +143,11 @@ export default function ExerciseLibrary({
     const targetEx = exercises.find((e) => e.id === exId);
     if (!targetEx) return { historySessions: [], maxWeight: 0, peak1RM: 0, chartPoints: [] };
 
+    const exType = targetEx.exercise_type || 'weight_reps';
+    const isDist = exType === 'distance_duration';
+    const isDur = exType === 'duration_only';
+    const isReps = exType === 'reps_only' || exType === 'bodyweight_reps';
+
     const historySessions = [];
     const chartPoints = [];
 
@@ -163,11 +168,28 @@ export default function ExerciseLibrary({
       if (exSets.length > 0) {
         let sessionMaxWeight = 0;
         let sessionPeak1RM = 0;
+        let sessionMaxDist = 0;
+        let sessionPeakSpeed = 0;
+        let sessionMaxDuration = 0;
+        let sessionMaxReps = 0;
 
         exSets.forEach((s) => {
           const wKg = parseFloat(s.weight_kg) || 0;
           const reps = parseInt(s.reps, 10) || 0;
+          const distM = parseFloat(s.distance_meters) || (parseFloat(s.distance_km) * 1000) || 0;
+          const durS = parseInt(s.duration_seconds, 10) || 0;
+
           if (wKg > sessionMaxWeight) sessionMaxWeight = wKg;
+          if (reps > sessionMaxReps) sessionMaxReps = reps;
+          if (durS > sessionMaxDuration) sessionMaxDuration = durS;
+
+          const distKm = distM / 1000;
+          if (distKm > sessionMaxDist) sessionMaxDist = distKm;
+
+          if (distKm > 0 && durS > 0) {
+            const speed = distKm / (durS / 3600);
+            if (speed > sessionPeakSpeed) sessionPeakSpeed = speed;
+          }
 
           const est = calculate1RM(wKg, reps);
           if (est > sessionPeak1RM) sessionPeak1RM = est;
@@ -184,16 +206,21 @@ export default function ExerciseLibrary({
           setsCount: exSets.length,
           maxWeight: sessionMaxWeight,
           peak1RM: sessionPeak1RM,
+          maxDist: sessionMaxDist,
+          peakSpeed: sessionPeakSpeed,
+          maxDuration: sessionMaxDuration,
+          maxReps: sessionMaxReps,
           sets: exSets,
         });
 
-        if (sessionPeak1RM > 0) {
+        const valForChart = isDist ? sessionPeakSpeed : isDur ? sessionMaxDuration : isReps ? sessionMaxReps : sessionPeak1RM;
+        if (valForChart > 0) {
           chartPoints.push({
             date: new Date(w.started_at).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
             }),
-            val1RM: sessionPeak1RM,
+            val1RM: parseFloat(valForChart.toFixed(1)),
           });
         }
       }
@@ -201,11 +228,20 @@ export default function ExerciseLibrary({
 
     const overallMaxWeight = Math.max(...historySessions.map((s) => s.maxWeight), 0);
     const overallPeak1RM = Math.max(...historySessions.map((s) => s.peak1RM), 0);
+    const overallMaxDist = Math.max(...historySessions.map((s) => s.maxDist), 0);
+    const overallPeakSpeed = Math.max(...historySessions.map((s) => s.peakSpeed), 0);
+    const overallMaxDuration = Math.max(...historySessions.map((s) => s.maxDuration), 0);
+    const overallMaxReps = Math.max(...historySessions.map((s) => s.maxReps), 0);
 
     return {
       historySessions: historySessions.reverse(),
       maxWeight: overallMaxWeight,
       peak1RM: overallPeak1RM,
+      maxDistanceKm: overallMaxDist,
+      peakSpeedKmh: overallPeakSpeed,
+      maxDurationSec: overallMaxDuration,
+      maxReps: overallMaxReps,
+      exType,
       chartPoints,
     };
   };
@@ -534,18 +570,52 @@ export default function ExerciseLibrary({
 
               {/* Stats Overview Grid */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3 text-center">
-                  <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">Peak 1RM</span>
-                  <span className="text-base font-extrabold text-indigo-900 font-mono">
-                    {exData.peak1RM > 0 ? `${exData.peak1RM} kg` : '-'}
-                  </span>
-                </div>
-                <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Max Weight</span>
-                  <span className="text-base font-extrabold text-slate-800 font-mono">
-                    {exData.maxWeight > 0 ? `${exData.maxWeight} kg` : '-'}
-                  </span>
-                </div>
+                {exData.exType === 'distance_duration' ? (
+                  <>
+                    <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3 text-center">
+                      <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">Peak Speed</span>
+                      <span className="text-base font-extrabold text-indigo-900 font-mono">
+                        {exData.peakSpeedKmh > 0 ? `${exData.peakSpeedKmh.toFixed(1)} km/h` : '-'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Max Distance</span>
+                      <span className="text-base font-extrabold text-slate-800 font-mono">
+                        {exData.maxDistanceKm > 0 ? `${exData.maxDistanceKm.toFixed(1)} km` : '-'}
+                      </span>
+                    </div>
+                  </>
+                ) : exData.exType === 'duration_only' ? (
+                  <>
+                    <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3 text-center">
+                      <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">Max Duration</span>
+                      <span className="text-base font-extrabold text-indigo-900 font-mono">
+                        {exData.maxDurationSec > 0 ? `${Math.floor(exData.maxDurationSec / 60)}:${String(exData.maxDurationSec % 60).padStart(2, '0')} min` : '-'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Max Set</span>
+                      <span className="text-base font-extrabold text-slate-800 font-mono">
+                        {exData.maxDurationSec > 0 ? `${exData.maxDurationSec}s` : '-'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3 text-center">
+                      <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">Peak 1RM</span>
+                      <span className="text-base font-extrabold text-indigo-900 font-mono">
+                        {exData.peak1RM > 0 ? `${exData.peak1RM} kg` : '-'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Max Weight</span>
+                      <span className="text-base font-extrabold text-slate-800 font-mono">
+                        {exData.maxWeight > 0 ? `${exData.maxWeight} kg` : '-'}
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Sessions</span>
                   <span className="text-base font-extrabold text-slate-800 font-mono">
@@ -560,7 +630,15 @@ export default function ExerciseLibrary({
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold flex items-center gap-1.5 text-indigo-400">
                       <TrendingUp className="w-4 h-4" />
-                      <span>1RM Progression</span>
+                      <span>
+                        {exData.exType === 'distance_duration'
+                          ? 'Speed Progression (km/h)'
+                          : exData.exType === 'duration_only'
+                          ? 'Duration Progression'
+                          : exData.exType === 'reps_only'
+                          ? 'Reps Progression'
+                          : '1RM Progression'}
+                      </span>
                     </span>
                     <span className="text-slate-400 text-[11px]">
                       {exData.chartPoints[0].date} — {exData.chartPoints[exData.chartPoints.length - 1].date}
@@ -599,7 +677,7 @@ export default function ExerciseLibrary({
                             fontWeight="bold"
                             fontFamily="monospace"
                           >
-                            {pt.val1RM}kg
+                            {pt.val1RM}{exData.exType === 'distance_duration' ? 'km/h' : exData.exType === 'duration_only' ? 's' : 'kg'}
                           </text>
                         </g>
                       ))}
@@ -631,7 +709,13 @@ export default function ExerciseLibrary({
                             <span className="text-[11px] text-slate-500">{session.date}</span>
                           </div>
                           <div className="text-[11px] text-slate-500 font-mono">
-                            {session.setsCount} sets • Max: <span className="font-bold text-slate-700">{session.maxWeight}kg</span> • Peak 1RM: <span className="font-bold text-indigo-600">{session.peak1RM}kg</span>
+                            {exData.exType === 'distance_duration' ? (
+                              <>{session.setsCount} sets • Max Speed: <span className="font-bold text-indigo-600">{session.peakSpeed > 0 ? `${session.peakSpeed.toFixed(1)} km/h` : '-'}</span> • Max Dist: <span className="font-bold text-slate-700">{session.maxDist > 0 ? `${session.maxDist.toFixed(1)} km` : '-'}</span></>
+                            ) : exData.exType === 'duration_only' ? (
+                              <>{session.setsCount} sets • Max Duration: <span className="font-bold text-indigo-600">{session.maxDuration > 0 ? `${session.maxDuration}s` : '-'}</span></>
+                            ) : (
+                              <>{session.setsCount} sets • Max: <span className="font-bold text-slate-700">{session.maxWeight}kg</span> • Peak 1RM: <span className="font-bold text-indigo-600">{session.peak1RM}kg</span></>
+                            )}
                           </div>
                         </div>
 

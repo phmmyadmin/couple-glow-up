@@ -178,6 +178,18 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     }
   };
 
+  const handleEditExercise = async (updatedEx) => {
+    const saved = await saveExerciseToSupabase(updatedEx);
+    if (saved) {
+      setExercises((prev) => prev.map((e) => (e.id === saved.id ? saved : e)));
+    } else {
+      setExercises((prev) => prev.map((e) => (e.id === updatedEx.id ? updatedEx : e)));
+    }
+    if (setToastMessage) {
+      setToastMessage('Exercise updated successfully');
+    }
+  };
+
   const handleGoToWorkout = (workoutId) => {
     setTargetWorkoutId(workoutId);
     handleGymTabChange('history');
