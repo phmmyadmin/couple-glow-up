@@ -8,6 +8,7 @@ import ReportView from './components/ReportView';
 import ChatInputBar from './components/ChatInputBar';
 import EditDrawer from './components/EditDrawer';
 import ProfileView from './components/ProfileView';
+import Tabs from '../../shared/ui/Tabs';
 
 export default function FitApp({
   data,
@@ -85,29 +86,17 @@ export default function FitApp({
           </button>
         </div>
 
-        {/* Tab Group */}
-        <div className="tab-group flex-1">
-          <button
-            className={`tab-item ${fitTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setFitTab('dashboard')}
-          >
-            <LayoutDashboard size={18} />
-            <span>{t('nav.diary', 'Diario')}</span>
-          </button>
-          <button
-            className={`tab-item ${fitTab === 'report' ? 'active' : ''}`}
-            onClick={() => setFitTab('report')}
-          >
-            <LineChart size={18} />
-            <span>{t('nav.report', 'Reporte & Progreso')}</span>
-          </button>
-          <button
-            className={`tab-item ${fitTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setFitTab('profile')}
-          >
-            <User size={18} />
-            <span>{t('nav.profile', 'Perfil')}</span>
-          </button>
+        {/* Sub Tabs */}
+        <div className="flex-1 w-full">
+          <Tabs
+            items={[
+              { id: 'dashboard', label: t('nav.diary', 'Diario'), icon: LayoutDashboard },
+              { id: 'report', label: t('nav.report', 'Reporte & Progreso'), icon: LineChart },
+              { id: 'profile', label: t('nav.profile', 'Perfil'), icon: User },
+            ]}
+            activeTab={fitTab}
+            onChange={setFitTab}
+          />
         </div>
       </div>
 

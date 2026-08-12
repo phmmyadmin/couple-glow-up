@@ -1,28 +1,31 @@
 import React from 'react';
-import { Clock, Edit2, Trash2 } from 'lucide-react';
+import { Clock, Edit2, Trash2, Utensils } from 'lucide-react';
 import { getFoodEmoji } from '../../../utils/emoji';
 import { getCategoryInfo } from '../../../utils/category';
+import Card from '../../../shared/ui/Card';
 
 export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
   if (!intakes || intakes.length === 0) {
     return (
-      <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '2rem' }}>
-        No hay comidas registradas para este día. Escribe abajo para añadir.
-      </div>
+      <Card className="text-center py-8 space-y-2">
+        <Utensils className="w-10 h-10 text-slate-300 mx-auto" />
+        <p className="text-sm text-slate-500 font-medium">
+          No hay comidas registradas para este día. Dicta o escribe abajo para añadir.
+        </p>
+      </Card>
     );
   }
 
   // Safety expansion: if any intake name contains '+' or '\+', expand it into sub-items
   const expandedIntakes = [];
   intakes.forEach((item, originalIdx) => {
-    // For backwards compatibility, use item.name or fallback to item.description
     const rawName = item.name || item.description || '';
     let cleanName = rawName.replace(/^(?:Comida|Desayuno|Cena|Snack|Merienda)\s*\d*:\s*/i, '').trim();
-    
+
     if (cleanName.includes('+') || cleanName.includes('\\+')) {
-      const parts = cleanName.split(/\\?\+/).map(p => p.trim()).filter(Boolean);
+      const parts = cleanName.split(/\\?\+/).map((p) => p.trim()).filter(Boolean);
       const count = parts.length;
-      parts.forEach(part => {
+      parts.forEach((part) => {
         const subName = part.replace(/^(?:Comida|Desayuno|Cena|Snack|Merienda)\s*\d*:\s*/i, '');
         expandedIntakes.push({
           time: item.time || '12:00',
@@ -35,16 +38,16 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
             calories: Math.round(item.macros.calories / count),
             protein: Math.round((item.macros.protein / count) * 10) / 10,
             carbs: Math.round((item.macros.carbs / count) * 10) / 10,
-            fats: Math.round((item.macros.fats / count) * 10) / 10
+            fats: Math.round((item.macros.fats / count) * 10) / 10,
           },
-          originalIndex: originalIdx
+          originalIndex: originalIdx,
         });
       });
     } else {
       expandedIntakes.push({
         ...item,
         name: cleanName,
-        originalIndex: originalIdx
+        originalIndex: originalIdx,
       });
     }
   });
@@ -56,13 +59,13 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
   expandedIntakes.forEach((item) => {
     const timeKey = item.time || '12:00';
     const groupKey = item.dishName ? `${timeKey}-${item.dishName}` : timeKey;
-    
+
     if (!currentGroup || currentGroup.key !== groupKey) {
       currentGroup = {
         key: groupKey,
         time: timeKey,
         dishName: item.dishName,
-        items: []
+        items: [],
       };
       groupedMeals.push(currentGroup);
     }
@@ -77,52 +80,32 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="space-y-4">
       {groupedMeals.map((meal, mealIdx) => {
-        const groupTotalCalories = meal.items.reduce((sum, item) => sum + (item.macros?.calories || 0), 0);
+        const groupTotalCalories = meal.items.reduce(
+          (sum, item) => sum + (item.macros?.calories || 0),
+          0
+        );
+
         return (
-          <div
+          <Card
             key={mealIdx}
-            style={{
-              background: 'var(--bg-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1rem',
-              borderLeft: '4px solid var(--color-indigo)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-            }}
+            className="p-4 border-l-4 border-l-indigo-600 space-y-3"
           >
             {/* Group Header */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '0.75rem',
-                paddingBottom: '0.4rem',
-                borderBottom: '1px solid var(--border-subtle)',
-                gap: '0.5rem',
-                flexWrap: 'wrap'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--color-indigo)', fontWeight: 700, flex: '1 1 auto', minWidth: 0 }}>
-                <Clock size={14} style={{ flexShrink: 0 }} />
-                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 truncate min-w-0">
+                <Clock className="w-4 h-4 shrink-0" />
+                <span className="truncate">
                   {meal.dishName ? `${meal.time} - ${meal.dishName}` : `Toma ${meal.time}`}
                 </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
-                <span style={{
-                  fontSize: '0.75rem',
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  color: 'var(--color-calories)',
-                  fontWeight: 700,
-                  padding: '0.15rem 0.55rem',
-                  borderRadius: '12px',
-                  whiteSpace: 'nowrap'
-                }}>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
                   {groupTotalCalories} kcal
                 </span>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                <span className="text-xs text-slate-500 font-medium">
                   ({meal.items.length} {meal.items.length === 1 ? 'alimento' : 'alimentos'})
                 </span>
                 {onDeleteGroup && (
@@ -133,84 +116,60 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
                         onDeleteGroup(meal.items);
                       }
                     }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '0.2rem',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      color: 'var(--text-muted)',
-                      transition: 'color 0.2s ease'
-                    }}
-                    title="Borrar toma / plato completo"
+                    aria-label="Borrar toma completa"
+                    className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all"
                   >
-                    <Trash2 size={16} color="#ef4444" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 )}
               </div>
             </div>
 
-          {/* Individual Items */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            {meal.items.map((item, idx) => {
-              const displayTitle = getFormatDisplay(item);
-              const emoji = getFoodEmoji(item.name);
-              const catInfo = getCategoryInfo(item.category);
-              return (
-                <div
-                  key={idx}
-                  onClick={() => onItemClick && onItemClick(item, item.originalIndex)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.65rem 0.75rem',
-                    background: 'var(--bg-surface)',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-subtle)',
-                    cursor: 'pointer',
-                    transition: 'transform 0.15s ease',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: '1.4rem', flexShrink: 0 }}>{emoji}</span>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main)', wordBreak: 'break-word' }}>
-                          {displayTitle}
-                        </span>
-                        <span style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 600,
-                          background: catInfo.bg,
-                          color: catInfo.color,
-                          padding: '0.08rem 0.45rem',
-                          borderRadius: '10px',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {catInfo.emoji} {catInfo.label}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', fontSize: '0.73rem', marginTop: '0.15rem', whiteSpace: 'nowrap' }}>
-                        <span style={{ color: 'var(--color-calories)', fontWeight: 600 }}>{item.macros.calories} kcal</span>
-                        <span style={{ color: 'var(--color-protein)', fontWeight: 600 }}>{item.macros.protein}g P</span>
-                        <span style={{ color: 'var(--color-carbs)', fontWeight: 600 }}>{item.macros.carbs}g C</span>
-                        <span style={{ color: 'var(--color-fats)', fontWeight: 600 }}>{item.macros.fats}g G</span>
+            {/* Individual Items */}
+            <div className="space-y-2">
+              {meal.items.map((item, idx) => {
+                const displayTitle = getFormatDisplay(item);
+                const emoji = getFoodEmoji(item.name);
+                const catInfo = getCategoryInfo(item.category);
+
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => onItemClick && onItemClick(item, item.originalIndex)}
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-indigo-200 cursor-pointer transition-all gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="text-xl shrink-0">{emoji}</span>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-xs sm:text-sm text-slate-900 truncate">
+                            {displayTitle}
+                          </span>
+                          <span
+                            className="text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                            style={{ backgroundColor: catInfo.bg, color: catInfo.color }}
+                          >
+                            {catInfo.emoji} {catInfo.label}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 text-xs font-mono font-semibold">
+                          <span className="text-rose-500">{item.macros.calories} kcal</span>
+                          <span className="text-blue-600">{item.macros.protein}g P</span>
+                          <span className="text-emerald-600">{item.macros.carbs}g C</span>
+                          <span className="text-amber-600">{item.macros.fats}g G</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <Edit2 size={15} color="var(--text-subtle)" style={{ flexShrink: 0 }} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    })}
-  </div>
+                    <Edit2 className="w-4 h-4 text-slate-400 shrink-0" />
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        );
+      })}
+    </div>
   );
 }

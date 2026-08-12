@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Dumbbell, Play, Edit3 } from 'lucide-react';
+import { Plus, Trash2, Dumbbell, Play, Edit3, ArrowUp, ArrowDown } from 'lucide-react';
 import ExerciseLibrary from './ExerciseLibrary';
-import Card, { CardTitle } from '../../../shared/ui/Card';
+import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
+
+const ROUTINE_COLORS = [
+  '#6366f1', // Indigo
+  '#ec4899', // Pink
+  '#10b981', // Emerald
+  '#f59e0b', // Amber
+  '#3b82f6', // Blue
+  '#8b5cf6', // Purple
+];
 
 export default function RoutineBuilder({
   routines,
@@ -16,6 +25,7 @@ export default function RoutineBuilder({
   const [editingRoutine, setEditingRoutine] = useState(null);
   const [routineName, setRoutineName] = useState('');
   const [routineDesc, setRoutineDesc] = useState('');
+  const [routineColor, setRoutineColor] = useState('#6366f1');
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [isSelectingExercise, setIsSelectingExercise] = useState(false);
 
@@ -23,6 +33,7 @@ export default function RoutineBuilder({
     setEditingRoutine(null);
     setRoutineName('Nueva Rutina');
     setRoutineDesc('');
+    setRoutineColor('#6366f1');
     setSelectedExercises([]);
     setIsEditing(true);
   };
@@ -31,6 +42,7 @@ export default function RoutineBuilder({
     setEditingRoutine(routine);
     setRoutineName(routine.name);
     setRoutineDesc(routine.description || '');
+    setRoutineColor(routine.color || '#6366f1');
     setSelectedExercises(routine.exercises || []);
     setIsEditing(true);
   };
@@ -47,6 +59,22 @@ export default function RoutineBuilder({
     setIsSelectingExercise(false);
   };
 
+  const handleUpdateItemField = (index, field, value) => {
+    setSelectedExercises((prev) =>
+      prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleMoveExercise = (index, direction) => {
+    const newIdx = index + direction;
+    if (newIdx < 0 || newIdx >= selectedExercises.length) return;
+    const updated = [...selectedExercises];
+    const temp = updated[index];
+    updated[index] = updated[newIdx];
+    updated[newIdx] = temp;
+    setSelectedExercises(updated);
+  };
+
   const handleRemoveExercise = (idx) => {
     setSelectedExercises((prev) => prev.filter((_, i) => i !== idx));
   };
@@ -59,6 +87,7 @@ export default function RoutineBuilder({
       id: editingRoutine?.id || null,
       name: routineName.trim(),
       description: routineDesc.trim() || null,
+      color: routineColor,
       exercises: selectedExercises,
     });
 
@@ -81,7 +110,7 @@ export default function RoutineBuilder({
           {editingRoutine ? 'Editar Rutina' : 'Crear Nueva Rutina'}
         </h3>
 
-        <form onSubmit={handleSave} className="space-y-3">
+        <form onSubmit={handleSave} className="space-y-4">
           <Input
             label="Nombre de la Rutina"
             placeholder="Ej: Push Day, Full Body A..."
@@ -97,8 +126,30 @@ export default function RoutineBuilder({
             onChange={(e) => setRoutineDesc(e.target.value)}
           />
 
-          {/* Routine Exercises */}
-          <div className="space-y-2.5 pt-2">
+          {/* Routine Color Picker */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-600">
+              Color de Etiqueta
+            </label>
+            <div className="flex items-center gap-2">
+              {ROUTINE_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setRoutineColor(c)}
+                  className={`w-7 h-7 rounded-xl transition-all ${
+                    routineColor === c
+                      ? 'ring-2 ring-indigo-500 ring-offset-2 scale-110'
+                      : 'opacity-80 hover:opacity-100'
+                  }`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Routine Exercises List */}
+          <div className="space-y-2.5 pt-2 border-t border-slate-200/80">
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Ejercicios Incluidos ({selectedExercises.length})
             </h4>
@@ -106,19 +157,36 @@ export default function RoutineBuilder({
             {selectedExercises.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs sm:text-sm"
+                className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2 text-xs sm:text-sm"
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-indigo-600 font-mono">{idx + 1}.</span>
-                  <span className="font-semibold text-slate-900">
-                    {item.exercise?.name_es || item.exercise?.name || 'Ejercicio'}
-                  </span>
-                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {/* Reorder Buttons */}
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={() => handleMoveExercise(idx, -1)}
+                        className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={idx === selectedExercises.length - 1}
+                        onClick={() => handleMoveExercise(idx, 1)}
+                        className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg font-semibold">
-                    {item.target_sets} series × {item.target_reps} reps
-                  </span>
+                    <span className="font-bold text-indigo-600 font-mono">{idx + 1}.</span>
+                    <span className="font-bold text-slate-900">
+                      {item.exercise?.name_es || item.exercise?.name || 'Ejercicio'}
+                    </span>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => handleRemoveExercise(idx)}
@@ -127,6 +195,37 @@ export default function RoutineBuilder({
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                </div>
+
+                {/* Target Sets & Reps Editable Controls */}
+                <div className="flex items-center gap-3 pt-1 border-t border-slate-200/60">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-500 font-medium">Series:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={item.target_sets || 3}
+                      onChange={(e) =>
+                        handleUpdateItemField(idx, 'target_sets', parseInt(e.target.value, 10))
+                      }
+                      className="w-14 px-2 py-1 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-500 font-medium">Reps:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={item.target_reps || 10}
+                      onChange={(e) =>
+                        handleUpdateItemField(idx, 'target_reps', parseInt(e.target.value, 10))
+                      }
+                      className="w-14 px-2 py-1 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
+                    />
+                  </div>
                 </div>
               </div>
             ))}
@@ -174,7 +273,11 @@ export default function RoutineBuilder({
       ) : (
         <div className="space-y-3">
           {routines.map((routine) => (
-            <Card key={routine.id} className="space-y-3 p-4 hover:border-indigo-200">
+            <Card
+              key={routine.id}
+              className="space-y-3 p-4 border-l-4 hover:border-indigo-200"
+              style={{ borderLeftColor: routine.color || '#6366f1' }}
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="text-base font-bold text-slate-900">{routine.name}</h4>
@@ -183,6 +286,9 @@ export default function RoutineBuilder({
                       {routine.description}
                     </p>
                   )}
+                  <span className="inline-block text-[11px] font-mono font-semibold text-slate-500 mt-1">
+                    {routine.exercises?.length || 0} ejercicios
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-1">
