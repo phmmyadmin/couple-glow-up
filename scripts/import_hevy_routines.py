@@ -1,0 +1,541 @@
+#!/usr/bin/env python3
+import json
+import os
+import sys
+import urllib.request
+
+ENV_PATH = os.path.join(os.path.dirname(__file__), "../app/.env")
+SUPABASE_URL = "https://tarkabzvlllptenatxln.supabase.co"
+SUPABASE_KEY = "sb_publishable_slCCCjjFmUxs5R1LrLiRPQ_k8Qy7RUP"
+
+if os.path.exists(ENV_PATH):
+    with open(ENV_PATH, "r") as f:
+        for line in f:
+            if line.startswith("VITE_SUPABASE_URL="):
+                SUPABASE_URL = line.split("=", 1)[1].strip()
+            elif line.startswith("VITE_SUPABASE_ANON_KEY="):
+                SUPABASE_KEY = line.split("=", 1)[1].strip()
+
+HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+}
+
+def api_request(endpoint, method="GET", data=None):
+    url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
+    payload = json.dumps(data).encode("utf-8") if data is not None else None
+    req = urllib.request.Request(url, data=payload, headers=HEADERS, method=method)
+    try:
+        with urllib.request.urlopen(req) as res:
+            content = res.read().decode()
+            return json.loads(content) if content else None
+    except Exception as e:
+        print(f"⚠️ API Error ({endpoint}): {e}", flush=True)
+        return None
+
+HEVY_PAYLOAD = {
+    "updated": [
+        {
+            "id": "f593ab2e-a608-4fad-b3d0-d452de2424c7",
+            "title": "Push",
+            "exercises": [
+                {
+                    "title": "Manquito Rotador Mancuerna",
+                    "muscle_group": "shoulders",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "dumbbell",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": 5, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Press militar banda elastica",
+                    "muscle_group": "shoulders",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "resistance_band",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": None, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Retraccion escapular banda elastica",
+                    "muscle_group": "other",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "resistance_band",
+                    "sets": [{"index": 0, "indicator": "warmup", "weight_kg": None, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Flexiones Escapulares",
+                    "muscle_group": "other",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "none",
+                    "sets": [{"index": 0, "indicator": "warmup", "weight_kg": None, "reps": 12}],
+                    "rest_seconds": 20
+                },
+                {
+                    "title": "Movilidad cadera",
+                    "muscle_group": "other",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "none",
+                    "sets": [{"index": 0, "indicator": "warmup", "weight_kg": None, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Chest Fly (Machine)",
+                    "es_title": "Aperturas (Máquina)",
+                    "muscle_group": "chest",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 50, "reps": 14},
+                        {"index": 1, "indicator": "normal", "weight_kg": 50, "reps": 7},
+                        {"index": 2, "indicator": "normal", "weight_kg": 45, "reps": 7}
+                    ],
+                    "rest_seconds": 165
+                },
+                {
+                    "title": "Incline Bench Press (Smith Machine)",
+                    "es_title": "Press de Banca Inclinado (Máquina Smith)",
+                    "muscle_group": "chest",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 32, "reps": 7},
+                        {"index": 1, "indicator": "normal", "weight_kg": 27, "reps": 10},
+                        {"index": 2, "indicator": "normal", "weight_kg": 27, "reps": 8}
+                    ],
+                    "rest_seconds": 180
+                },
+                {
+                    "title": "Overhead Press (Smith Machine)",
+                    "es_title": "Press de Hombros (Máquina Smith)",
+                    "muscle_group": "shoulders",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 14, "reps": 8},
+                        {"index": 1, "indicator": "normal", "weight_kg": 14, "reps": 7},
+                        {"index": 2, "indicator": "normal", "weight_kg": 9, "reps": 8}
+                    ],
+                    "rest_seconds": 180
+                },
+                {
+                    "title": "Seated Dip Machine",
+                    "es_title": "Máquina para Fondos Sentado",
+                    "muscle_group": "triceps",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 75, "reps": 9},
+                        {"index": 1, "indicator": "normal", "weight_kg": 75, "reps": 9},
+                        {"index": 2, "indicator": "normal", "weight_kg": 75, "reps": 8}
+                    ],
+                    "rest_seconds": 165
+                },
+                {
+                    "title": "Triceps Pushdown",
+                    "es_title": "Trícep con Polea",
+                    "muscle_group": "triceps",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 30, "reps": 17},
+                        {"index": 1, "indicator": "normal", "weight_kg": 30, "reps": 11},
+                        {"index": 2, "indicator": "normal", "weight_kg": 30, "reps": 11}
+                    ],
+                    "rest_seconds": 120
+                },
+                {
+                    "title": "Bicep Curl (Cable)",
+                    "es_title": "Curl de Bíceps (Cable)",
+                    "muscle_group": "biceps",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 31, "reps": 12},
+                        {"index": 1, "indicator": "normal", "weight_kg": 31, "reps": 9}
+                    ],
+                    "rest_seconds": 165
+                },
+                {
+                    "title": "Crunch (Machine)",
+                    "es_title": "Abdominal Corto (Máquina)",
+                    "muscle_group": "abdominals",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 70, "reps": 15},
+                        {"index": 1, "indicator": "normal", "weight_kg": 70, "reps": 8},
+                        {"index": 2, "indicator": "normal", "weight_kg": 70, "reps": 7}
+                    ],
+                    "rest_seconds": 120
+                },
+                {
+                    "title": "Cycling",
+                    "es_title": "Bicicleta",
+                    "muscle_group": "cardio",
+                    "exercise_type": "distance_duration",
+                    "equipment_category": "machine",
+                    "sets": [{"index": 0, "indicator": "normal", "duration_seconds": 1200}],
+                    "rest_seconds": 0
+                }
+            ]
+        },
+        {
+            "id": "df991f19-f3bf-4f73-99be-f0f47ca90f75",
+            "title": "Pull",
+            "exercises": [
+                {
+                    "title": "Manquito Rotador Mancuerna",
+                    "muscle_group": "shoulders",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "dumbbell",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": 5, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Retraccion escapular banda elastica",
+                    "muscle_group": "other",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "resistance_band",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": None, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Flexiones Escapulares",
+                    "muscle_group": "other",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "none",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": None, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Movilidad cadera",
+                    "muscle_group": "other",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "none",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": None, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Iso-Lateral Row (Machine)",
+                    "es_title": "Remo Iso-Lateral",
+                    "muscle_group": "upper_back",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 80, "reps": 14},
+                        {"index": 1, "indicator": "normal", "weight_kg": 80, "reps": 10},
+                        {"index": 2, "indicator": "normal", "weight_kg": 80, "reps": 9},
+                        {"index": 3, "indicator": "normal", "weight_kg": 85, "reps": 8}
+                    ],
+                    "rest_seconds": 180
+                },
+                {
+                    "title": "Lat Pulldown (Cable)",
+                    "es_title": "Jalón al Pecho (Cable)",
+                    "muscle_group": "lats",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 36, "reps": 11},
+                        {"index": 1, "indicator": "normal", "weight_kg": 36, "reps": 9},
+                        {"index": 2, "indicator": "normal", "weight_kg": 40, "reps": 8}
+                    ],
+                    "rest_seconds": 180
+                },
+                {
+                    "title": "Rear Delt Reverse Fly (Machine)",
+                    "es_title": "Vuelos Posteriores (Máquina)",
+                    "muscle_group": "shoulders",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 30, "reps": 12},
+                        {"index": 1, "indicator": "normal", "weight_kg": 30, "reps": 8},
+                        {"index": 2, "indicator": "normal", "weight_kg": 30, "reps": 7}
+                    ],
+                    "rest_seconds": 150
+                },
+                {
+                    "title": "Bicep Curl (Cable)",
+                    "es_title": "Curl de Bíceps (Cable)",
+                    "muscle_group": "biceps",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 36, "reps": 8},
+                        {"index": 1, "indicator": "normal", "weight_kg": 31, "reps": 9},
+                        {"index": 2, "indicator": "normal", "weight_kg": 31, "reps": 7}
+                    ],
+                    "rest_seconds": 165
+                },
+                {
+                    "title": "Back Extension (Hyperextension)",
+                    "es_title": "Extensión de Espalda (Hiperextensión)",
+                    "muscle_group": "lower_back",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": None, "reps": 11},
+                        {"index": 1, "indicator": "normal", "weight_kg": None, "reps": 11},
+                        {"index": 2, "indicator": "normal", "weight_kg": None, "reps": 11}
+                    ],
+                    "rest_seconds": 120
+                },
+                {
+                    "title": "Crunch (Machine)",
+                    "es_title": "Abdominal Corto (Máquina)",
+                    "muscle_group": "abdominals",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 70, "reps": 17},
+                        {"index": 1, "indicator": "normal", "weight_kg": 75, "reps": 10},
+                        {"index": 2, "indicator": "normal", "weight_kg": 75, "reps": 10}
+                    ],
+                    "rest_seconds": 120
+                },
+                {
+                    "title": "Seated Incline Curl (Dumbbell)",
+                    "es_title": "Curl de Bíceps Inclinado (Mancuerna)",
+                    "muscle_group": "biceps",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "dumbbell",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": 18, "reps": 12}],
+                    "rest_seconds": 150
+                },
+                {
+                    "title": "Cycling",
+                    "es_title": "Bicicleta",
+                    "muscle_group": "cardio",
+                    "exercise_type": "distance_duration",
+                    "equipment_category": "machine",
+                    "sets": [{"index": 0, "indicator": "normal", "duration_seconds": 10}],
+                    "rest_seconds": 0
+                }
+            ]
+        },
+        {
+            "id": "d588ac4a-c067-4c50-8cdd-49101d5100b7",
+            "title": "Legs",
+            "exercises": [
+                {
+                    "title": "Movilidad cadera",
+                    "muscle_group": "other",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "none",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": None, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Movilidad Rodilla",
+                    "muscle_group": "other",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "none",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": None, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Isquio pelota",
+                    "muscle_group": "hamstrings",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "other",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": None, "reps": 12}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Sentadilla pelota",
+                    "muscle_group": "quadriceps",
+                    "exercise_type": "reps_only",
+                    "equipment_category": "other",
+                    "sets": [{"index": 0, "indicator": "normal", "weight_kg": None, "reps": 10}],
+                    "rest_seconds": 0
+                },
+                {
+                    "title": "Zancada estatico",
+                    "muscle_group": "quadriceps",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "dumbbell",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 32, "reps": 15},
+                        {"index": 1, "indicator": "normal", "weight_kg": 32, "reps": 15},
+                        {"index": 2, "indicator": "normal", "weight_kg": 32, "reps": 12},
+                        {"index": 3, "indicator": "normal", "weight_kg": 28, "reps": 12}
+                    ],
+                    "rest_seconds": 180
+                },
+                {
+                    "title": "Leg Extension (Machine)",
+                    "es_title": "Extensión de Pierna",
+                    "muscle_group": "quadriceps",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 50, "reps": 12},
+                        {"index": 1, "indicator": "normal", "weight_kg": 50, "reps": 11},
+                        {"index": 2, "indicator": "normal", "weight_kg": 50, "reps": 10}
+                    ],
+                    "rest_seconds": 165
+                },
+                {
+                    "title": "Seated Leg Curl (Machine)",
+                    "es_title": "Curl de Pierna Sentado",
+                    "muscle_group": "hamstrings",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 55, "reps": 12},
+                        {"index": 1, "indicator": "normal", "weight_kg": 55, "reps": 10},
+                        {"index": 2, "indicator": "normal", "weight_kg": 55, "reps": 8}
+                    ],
+                    "rest_seconds": 165
+                },
+                {
+                    "title": "Hip Adduction (Machine)",
+                    "es_title": "Aducción de Caderas",
+                    "muscle_group": "adductors",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 79, "reps": 11},
+                        {"index": 1, "indicator": "normal", "weight_kg": 79, "reps": 10}
+                    ],
+                    "rest_seconds": 150
+                },
+                {
+                    "title": "Hip Abduction (Machine)",
+                    "es_title": "Abducción de Caderas",
+                    "muscle_group": "abductors",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 79, "reps": 11},
+                        {"index": 1, "indicator": "normal", "weight_kg": 74, "reps": 13}
+                    ],
+                    "rest_seconds": 150
+                },
+                {
+                    "title": "Back Extension (Weighted Hyperextension)",
+                    "es_title": "Extensión de Espalda (Hiperextensión con peso)",
+                    "muscle_group": "lower_back",
+                    "exercise_type": "bodyweight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 0, "reps": 11},
+                        {"index": 1, "indicator": "normal", "weight_kg": 11, "reps": 11},
+                        {"index": 2, "indicator": "normal", "weight_kg": 11, "reps": 7}
+                    ],
+                    "rest_seconds": 135
+                },
+                {
+                    "title": "Crunch (Machine)",
+                    "es_title": "Abdominal Corto (Máquina)",
+                    "muscle_group": "abdominals",
+                    "exercise_type": "weight_reps",
+                    "equipment_category": "machine",
+                    "sets": [
+                        {"index": 0, "indicator": "normal", "weight_kg": 50, "reps": 14},
+                        {"index": 1, "indicator": "normal", "weight_kg": 60, "reps": 10}
+                    ],
+                    "rest_seconds": 165
+                }
+            ]
+        }
+    ]
+}
+
+ROUTINE_COLORS = {
+    "Push": "#ec4899", # Pink
+    "Pull": "#3b82f6", # Blue
+    "Legs": "#10b981"  # Emerald
+}
+
+def parse_and_import_routines():
+    print(f"🚀 Parsing and Importing Hevy Routines to Supabase ({SUPABASE_URL})...", flush=True)
+
+    # 1. Fetch Profile ID
+    profiles = api_request("profiles?select=id&limit=1")
+    if not profiles:
+        print("❌ Profile ID not found.", flush=True)
+        return
+    profile_id = profiles[0]["id"]
+
+    # 2. Fetch Exercises Catalog Map
+    all_exs = api_request("exercises?select=id,name,name_es") or []
+    ex_map = {}
+    for ex in all_exs:
+        if ex.get("name"):
+            ex_map[ex["name"].lower().strip()] = ex
+        if ex.get("name_es"):
+            ex_map[ex["name_es"].lower().strip()] = ex
+
+    imported_routines = []
+
+    for r_item in HEVY_PAYLOAD["updated"]:
+        r_name = r_item["title"]
+        r_color = ROUTINE_COLORS.get(r_name, "#6366f1")
+
+        parsed_exercises = []
+
+        for ex_data in r_item["exercises"]:
+            raw_title = ex_data.get("title", "")
+            es_title = ex_data.get("es_title", "")
+
+            # Match exercise in database
+            ex_obj = ex_map.get(raw_title.lower().strip()) or ex_map.get(es_title.lower().strip())
+
+            # If exercise missing, create custom exercise
+            if not ex_obj:
+                new_ex_payload = {
+                    "name": raw_title,
+                    "name_es": es_title or raw_title,
+                    "exercise_type": ex_data.get("exercise_type") or "weight_reps",
+                    "muscle_group": ex_data.get("muscle_group") or "other",
+                    "equipment_category": ex_data.get("equipment_category") or "dumbbell",
+                    "is_custom": True
+                }
+                res = api_request("exercises", method="POST", data=new_ex_payload)
+                if res:
+                    ex_obj = res[0]
+                    ex_map[raw_title.lower().strip()] = ex_obj
+
+            if not ex_obj:
+                continue
+
+            sets_list = ex_data.get("sets") or []
+            target_sets = len(sets_list) if sets_list else 3
+            first_set_reps = sets_list[0].get("reps") if sets_list and sets_list[0].get("reps") else 10
+
+            parsed_exercises.append({
+                "exercise_id": ex_obj["id"],
+                "exercise": ex_obj,
+                "target_sets": target_sets,
+                "target_reps": str(first_set_reps),
+                "rest_seconds": ex_data.get("rest_seconds", 90),
+                "sets": sets_list
+            })
+
+        routine_payload = {
+            "profile_id": profile_id,
+            "name": r_name,
+            "description": f"Rutina oficial de {r_name} (Importada de Hevy)",
+            "color": r_color,
+            "exercises": parsed_exercises
+        }
+
+        # Check if routine with same name exists, update if exists or insert
+        existing_r = api_request(f"routines?name=eq.{urllib.parse.quote(r_name)}&profile_id=eq.{profile_id}")
+        if existing_r:
+            r_id = existing_r[0]["id"]
+            api_request(f"routines?id=eq.{r_id}", method="PATCH", data=routine_payload)
+            print(f"  ✅ Updated routine '{r_name}' with {len(parsed_exercises)} exercises.", flush=True)
+        else:
+            res = api_request("routines", method="POST", data=routine_payload)
+            print(f"  🎉 Created new routine '{r_name}' with {len(parsed_exercises)} exercises.", flush=True)
+
+    print(f"\n🎉 ALL 3 HEVY ROUTINES ('Push', 'Pull', 'Legs') PARSED AND IMPORTED TO SUPABASE!", flush=True)
+
+if __name__ == "__main__":
+    parse_and_import_routines()
