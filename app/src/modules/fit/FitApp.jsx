@@ -33,18 +33,23 @@ export default function FitApp({
   const [editingItem, setEditingItem] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
 
-  const activeDateData = data?.days?.find((d) => d.date === selectedDate);
+  const daysList = data?.days || data?.dailyLogs || [];
+  const activeDateData = daysList.find((d) => d.date === selectedDate) || daysList[daysList.length - 1];
+
   const totalCalories = activeDateData?.intakes?.reduce((sum, item) => sum + (item.calories || 0), 0) || 0;
   const totalProtein = activeDateData?.intakes?.reduce((sum, item) => sum + (item.protein || 0), 0) || 0;
   const totalCarbs = activeDateData?.intakes?.reduce((sum, item) => sum + (item.carbs || 0), 0) || 0;
   const totalFats = activeDateData?.intakes?.reduce((sum, item) => sum + (item.fats || 0), 0) || 0;
 
-  const targetMacros = activeProfile?.target_macros || data?.user_profile?.target_macros || {
-    calories: 1950,
-    protein: 145,
-    carbs: 195,
-    fats: 65,
-  };
+  const targetMacros =
+    activeProfile?.target_macros ||
+    data?.userProfile?.targetMacros ||
+    data?.user_profile?.target_macros || {
+      calories: 1950,
+      protein: 145,
+      carbs: 195,
+      fats: 65,
+    };
 
   const handleDateChange = (days) => {
     setSelectedDate(addDays(selectedDate, days));

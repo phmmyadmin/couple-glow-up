@@ -96,20 +96,27 @@ export async function fetchDailyLogsFromSupabase(profileId) {
     // Sort logs by date ascending
     formattedLogs.sort((a, b) => a.date.localeCompare(b.date));
 
+    const targetMacros = {
+      calories: profile?.target_calories || 2000,
+      protein: profile?.target_protein || 150,
+      carbs: profile?.target_carbs || 200,
+      fats: profile?.target_fats || 60,
+    };
+
     return {
       userProfile: {
-        targetMacros: {
-          calories: profile?.target_calories || 2000,
-          protein: profile?.target_protein || 150,
-          carbs: profile?.target_carbs || 200,
-          fats: profile?.target_fats || 60
-        },
+        targetMacros,
+        target_macros: targetMacros,
         weightLog: {
           startWeight: profile?.weight || 70.0,
-          history: (weights || []).map(w => ({ date: w.date, time: w.time || '08:00', weight: w.weight }))
-        }
+          history: (weights || []).map((w) => ({ date: w.date, time: w.time || '08:00', weight: w.weight })),
+        },
       },
-      dailyLogs: formattedLogs
+      user_profile: {
+        target_macros: targetMacros,
+      },
+      days: formattedLogs,
+      dailyLogs: formattedLogs,
     };
   } catch (err) {
     console.error('Supabase fetch error:', err);
