@@ -23,9 +23,9 @@ export default function Button({
   };
 
   const sizeClasses = {
-    sm: 'text-xs px-2.5 py-1.5 gap-1.5',
-    md: 'text-xs sm:text-sm px-3.5 py-2 gap-2',
-    lg: 'text-sm sm:text-base px-5 py-2.5 gap-2.5 rounded-2xl',
+    sm: 'text-xs px-3 py-2 gap-2 rounded-xl',
+    md: 'text-xs sm:text-sm px-4 py-2.5 sm:py-3 gap-2 rounded-xl',
+    lg: 'text-sm sm:text-base px-6 py-3.5 gap-2.5 rounded-2xl',
   };
 
   return (
@@ -38,7 +38,7 @@ export default function Button({
       } ${className}`}
       {...props}
     >
-      {Icon && <Icon className="w-4 h-4 shrink-0" />}
+      {Icon && <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />}
       {children && <span>{children}</span>}
     </button>
   );

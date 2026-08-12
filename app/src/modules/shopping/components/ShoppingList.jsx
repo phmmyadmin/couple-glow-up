@@ -56,11 +56,11 @@ export default function ShoppingList({
   const checkedItems = filteredItems.filter((item) => item.is_checked);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Quick Add Form Card */}
-      <Card>
-        <form onSubmit={handleAdd} className="space-y-3">
-          <div className="flex gap-2">
+      <Card className="p-5 sm:p-6">
+        <form onSubmit={handleAdd} className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Input
               type="text"
               placeholder="Ej: Pechuga de pollo, Leche..."
@@ -69,38 +69,40 @@ export default function ShoppingList({
               onChange={(e) => setNameInput(e.target.value)}
               className="flex-1"
             />
-            <Input
-              type="number"
-              min="0.1"
-              step="any"
-              aria-label="Cantidad"
-              value={quantityInput}
-              onChange={(e) => setQuantityInput(e.target.value)}
-              className="w-20 text-center font-mono"
-            />
-            <Select
-              aria-label="Unidad de medida"
-              value={unitInput}
-              onChange={(e) => setUnitInput(e.target.value)}
-              className="w-24"
-            >
-              <option value="ud">ud</option>
-              <option value="kg">kg</option>
-              <option value="g">g</option>
-              <option value="L">L</option>
-              <option value="pack">pack</option>
-            </Select>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                min="0.1"
+                step="any"
+                aria-label="Cantidad"
+                value={quantityInput}
+                onChange={(e) => setQuantityInput(e.target.value)}
+                className="w-24 text-center font-mono font-bold"
+              />
+              <Select
+                aria-label="Unidad de medida"
+                value={unitInput}
+                onChange={(e) => setUnitInput(e.target.value)}
+                className="w-28 font-semibold"
+              >
+                <option value="ud">ud</option>
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="L">L</option>
+                <option value="pack">pack</option>
+              </Select>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
             {/* Category Selector Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-[260px] sm:max-w-md">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
               {CATEGORIES.filter((c) => c.id !== 'all').map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                     selectedCategory === cat.id
                       ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -111,20 +113,20 @@ export default function ShoppingList({
               ))}
             </div>
 
-            <Button type="submit" icon={Plus} variant="primary">
-              Añadir
+            <Button type="submit" icon={Plus} variant="primary" className="shrink-0">
+              Añadir Producto
             </Button>
           </div>
         </form>
       </Card>
 
       {/* Category Filter Scroll */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
         {CATEGORIES.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setFilterCategory(cat.id)}
-            className={`px-3.5 py-1.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
               filterCategory === cat.id
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -136,9 +138,9 @@ export default function ShoppingList({
       </div>
 
       {/* List Content */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Pending Items */}
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Por Comprar ({pendingItems.length})
@@ -149,12 +151,12 @@ export default function ShoppingList({
           </div>
 
           {pendingItems.length === 0 ? (
-            <Card className="text-center py-8 space-y-2">
-              <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto" />
+            <Card className="text-center py-10 space-y-3">
+              <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto" />
               <p className="text-sm text-slate-500 font-medium">No hay productos pendientes en la lista.</p>
             </Card>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {pendingItems.map((item) => {
                 const addedByProfile = profiles.find((p) => p.id === item.added_by);
                 const catObj = CATEGORIES.find((c) => c.id === item.category);
@@ -162,31 +164,31 @@ export default function ShoppingList({
                 return (
                   <Card
                     key={item.id}
-                    className="p-3.5 sm:p-4 flex items-center justify-between hover:border-indigo-200/80"
+                    className="p-4 sm:p-5 flex items-center justify-between hover:border-indigo-200/80 gap-4"
                   >
-                    <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
                       <button
                         onClick={() => onToggleItem(item.id, true)}
                         aria-label={`Marcar ${item.name} como comprado`}
-                        className="w-7 h-7 rounded-xl border-2 border-slate-300 hover:border-indigo-600 flex items-center justify-center transition-all bg-white shadow-sm"
+                        className="w-8 h-8 rounded-xl border-2 border-slate-300 hover:border-indigo-600 flex items-center justify-center transition-all bg-white shadow-sm shrink-0"
                       >
                         <Check className="w-4 h-4 text-transparent hover:text-indigo-600" />
                       </button>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-base">{catObj?.emoji || '📦'}</span>
-                          <span className="text-sm font-bold text-slate-900 truncate">
+                          <span className="text-sm sm:text-base font-bold text-slate-900 truncate">
                             {item.name}
                           </span>
-                          <span className="text-xs font-mono text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-lg font-bold">
+                          <span className="text-xs font-mono text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg font-bold">
                             {item.quantity} {item.unit}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-3 shrink-0">
                       {addedByProfile && <Avatar profile={addedByProfile} size="sm" />}
                       <button
                         onClick={() => onDeleteItem(item.id)}
@@ -205,12 +207,12 @@ export default function ShoppingList({
 
         {/* Checked Items */}
         {checkedItems.length > 0 && (
-          <div className="space-y-2.5 pt-3 border-t border-slate-200/80">
+          <div className="space-y-3 pt-4 border-t border-slate-200/80">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
               Comprados ({checkedItems.length})
             </h3>
 
-            <div className="space-y-2 opacity-80">
+            <div className="space-y-3 opacity-80">
               {checkedItems.map((item) => {
                 const checkedByProfile = profiles.find((p) => p.id === item.checked_by);
                 const catObj = CATEGORIES.find((c) => c.id === item.category);
@@ -218,13 +220,13 @@ export default function ShoppingList({
                 return (
                   <Card
                     key={item.id}
-                    className="p-3.5 sm:p-4 flex items-center justify-between bg-slate-50/80 border-slate-200"
+                    className="p-4 sm:p-5 flex items-center justify-between bg-slate-50/80 border-slate-200 gap-4"
                   >
-                    <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
                       <button
                         onClick={() => onToggleItem(item.id, false)}
                         aria-label={`Desmarcar ${item.name}`}
-                        className="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-sm"
+                        className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-sm shrink-0"
                       >
                         <Check className="w-4 h-4" />
                       </button>
@@ -238,7 +240,7 @@ export default function ShoppingList({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-3 shrink-0">
                       {checkedByProfile && <Avatar profile={checkedByProfile} size="sm" />}
                       <button
                         onClick={() => onDeleteItem(item.id)}

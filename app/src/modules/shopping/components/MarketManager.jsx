@@ -38,18 +38,18 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Add Market Form */}
-      <Card>
-        <form onSubmit={handleSubmit} className="space-y-3">
+      <Card className="p-5 sm:p-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <CardTitle icon={Store}>Añadir Mercado / Tienda</CardTitle>
 
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Select
               aria-label="Icono del mercado"
               value={emojiInput}
               onChange={(e) => setEmojiInput(e.target.value)}
-              className="w-20 text-base text-center font-emoji"
+              className="w-24 text-base text-center font-emoji font-bold"
             >
               {EMOJI_OPTIONS.map((emoji) => (
                 <option key={emoji} value={emoji}>
@@ -68,7 +68,7 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Input
               type="text"
               placeholder="Ubicación u observación (opcional)"
@@ -78,39 +78,39 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
               className="flex-1"
             />
 
-            <Button type="submit" icon={Plus} variant="primary">
-              Guardar
+            <Button type="submit" icon={Plus} variant="primary" className="shrink-0">
+              Guardar Tienda
             </Button>
           </div>
         </form>
       </Card>
 
       {/* Markets List */}
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
           Tus Tiendas Registradas ({markets.length})
         </h3>
 
         {markets.length === 0 ? (
-          <Card className="text-center py-8 space-y-2">
-            <Store className="w-10 h-10 text-slate-300 mx-auto" />
+          <Card className="text-center py-10 space-y-3">
+            <Store className="w-12 h-12 text-slate-300 mx-auto" />
             <p className="text-sm text-slate-500 font-medium">No hay tiendas registradas aún.</p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {markets.map((market) => (
               <Card
                 key={market.id}
-                className="p-3.5 flex items-center justify-between hover:border-indigo-200"
+                className="p-4 sm:p-5 flex items-center justify-between hover:border-indigo-200 gap-3"
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl p-2 bg-slate-100/80 rounded-2xl border border-slate-200">
+                <div className="flex items-center gap-3.5">
+                  <span className="text-2xl p-2.5 bg-slate-100/90 rounded-2xl border border-slate-200 shrink-0">
                     {market.emoji || '🏪'}
                   </span>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">{market.name}</h4>
+                    <h4 className="text-base font-bold text-slate-900">{market.name}</h4>
                     {market.address && (
-                      <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 font-medium">
+                      <p className="text-xs text-slate-500 flex items-center gap-1 mt-1 font-medium">
                         <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                         <span>{market.address}</span>
                       </p>
@@ -139,14 +139,14 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
               <AlertTriangle className="w-6 h-6" />
             </div>
 
-            <div className="text-center space-y-1">
+            <div className="text-center space-y-1.5">
               <h3 className="text-base font-bold text-slate-900">¿Eliminar {deletingMarket.market.name}?</h3>
-              <p className="text-xs text-slate-600 font-medium">
+              <p className="text-xs sm:text-sm text-slate-600 font-medium">
                 Esta tienda tiene <strong>{deletingMarket.count} precios asociados</strong> registrados en la comparativa.
               </p>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-3 pt-2">
               <Button
                 variant="outline"
                 className="flex-1"
