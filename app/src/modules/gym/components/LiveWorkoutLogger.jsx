@@ -502,14 +502,16 @@ export default function LiveWorkoutLogger({
                 <div className="space-y-2.5 pt-1">
                   <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider px-2">
                     <span className="col-span-1 text-center">Set</span>
-                    <span className="col-span-4 text-center">Weight (kg)</span>
-                    <span className="col-span-4 text-center">Reps</span>
-                    <span className="col-span-2 text-center">1RM (Est)</span>
+                    <span className="col-span-2 text-center">Type</span>
+                    <span className="col-span-3 text-center">Weight (kg)</span>
+                    <span className="col-span-3 text-center">Reps</span>
+                    <span className="col-span-2 text-center">1RM</span>
                     <span className="col-span-1 text-center">Done</span>
                   </div>
 
                   {item.sets.map((set, setIdx) => {
                     const est1RM = calculate1RM(set.weight_kg, set.reps);
+                    const ind = set.indicator || 'normal';
 
                     return (
                       <div
@@ -517,14 +519,53 @@ export default function LiveWorkoutLogger({
                         className={`grid grid-cols-12 gap-2 items-center p-2 rounded-xl transition-all ${
                           set.is_checked
                             ? 'bg-emerald-50/80 border border-emerald-200'
+                            : ind === 'warmup'
+                            ? 'bg-amber-50/70 border border-amber-200/80'
+                            : ind === 'dropset'
+                            ? 'bg-purple-50/70 border border-purple-200/80'
+                            : ind === 'failure'
+                            ? 'bg-rose-50/70 border border-rose-200/80'
                             : 'bg-slate-50 border border-slate-200/80'
                         }`}
                       >
-                        <span className="col-span-1 text-center text-xs font-mono font-bold text-slate-600">
-                          {setIdx + 1}
-                        </span>
+                        {/* Set Index + Indicator Badge */}
+                        <div className="col-span-1 flex items-center justify-center gap-1 font-mono font-bold text-xs">
+                          {ind === 'warmup' ? (
+                            <span className="bg-amber-500 text-white text-[10px] px-1 rounded font-extrabold" title="Warmup Set">W</span>
+                          ) : ind === 'dropset' ? (
+                            <span className="bg-purple-600 text-white text-[10px] px-1 rounded font-extrabold" title="Drop Set">D</span>
+                          ) : ind === 'failure' ? (
+                            <span className="bg-rose-600 text-white text-[10px] px-1 rounded font-extrabold" title="Failure Set">F</span>
+                          ) : (
+                            <span className="text-slate-600">{setIdx + 1}</span>
+                          )}
+                        </div>
 
-                        <div className="col-span-4">
+                        {/* Indicator Selector Buttons */}
+                        <div className="col-span-2 flex justify-center">
+                          <div className="flex items-center bg-white border border-slate-200 p-0.5 rounded-lg gap-0.5">
+                            {[
+                              { key: 'normal', label: 'N', active: 'bg-slate-800 text-white' },
+                              { key: 'warmup', label: 'W', active: 'bg-amber-500 text-white font-bold' },
+                              { key: 'dropset', label: 'D', active: 'bg-purple-600 text-white font-bold' },
+                              { key: 'failure', label: 'F', active: 'bg-rose-600 text-white font-bold' },
+                            ].map((b) => (
+                              <button
+                                key={b.key}
+                                type="button"
+                                onClick={() => handleUpdateSetField(exIdx, setIdx, 'indicator', b.key)}
+                                className={`w-4 h-4 text-[9px] rounded flex items-center justify-center transition-all ${
+                                  ind === b.key ? b.active : 'text-slate-400 hover:text-slate-700'
+                                }`}
+                                title={`Set indicator: ${b.key}`}
+                              >
+                                {b.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="col-span-3">
                           <input
                             type="number"
                             step="any"
@@ -541,7 +582,7 @@ export default function LiveWorkoutLogger({
                           />
                         </div>
 
-                        <div className="col-span-4">
+                        <div className="col-span-3">
                           <input
                             type="number"
                             value={set.reps ?? ''}
