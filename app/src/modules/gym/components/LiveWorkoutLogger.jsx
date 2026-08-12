@@ -205,10 +205,20 @@ export default function LiveWorkoutLogger({
     const allSets = [];
     workoutExercises.forEach((item) => {
       item.sets.forEach((s) => {
-        if (s.is_checked) {
+        // Include set if checked OR if it has any non-zero values entered
+        const hasValue =
+          s.is_checked ||
+          (s.weight_kg !== undefined && parseFloat(s.weight_kg) > 0) ||
+          (s.reps !== undefined && parseInt(s.reps, 10) > 0) ||
+          Boolean(s.duration_seconds) ||
+          Boolean(s.distance_meters);
+
+        if (hasValue) {
           allSets.push({
             ...s,
             exercise_id: item.exercise.id,
+            exercise: item.exercise,
+            exercises: item.exercise,
           });
         }
       });

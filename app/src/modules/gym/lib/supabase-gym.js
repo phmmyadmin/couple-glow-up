@@ -132,11 +132,11 @@ export async function saveWorkoutSessionToSupabase(workoutObj, sets) {
       prs: s.prs || [],
     }));
 
-    // 3. Insert sets
+    // 3. Insert sets and join exercises relation
     const { data: setData, error: setErr } = await supabase
       .from('workout_sets')
       .insert(formattedSets)
-      .select();
+      .select('*, exercises(*)');
 
     if (setErr) throw setErr;
 

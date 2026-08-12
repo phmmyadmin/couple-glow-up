@@ -184,7 +184,7 @@ export default function WorkoutHistory({
 
                 {/* Expandable Breakdown of Exercises & Sets */}
                 {isExpanded && (
-                  <div className="pt-4 border-t border-slate-200/80 space-y-3 animate-in fade-in duration-150">
+                  <div className="pt-4 border-t border-slate-200/80 space-y-4 animate-in fade-in duration-150">
                     <h5 className="text-xs font-bold text-slate-600 uppercase tracking-wider">
                       Workout Breakdown
                     </h5>
@@ -192,23 +192,64 @@ export default function WorkoutHistory({
                     {sets.length === 0 ? (
                       <p className="text-xs text-slate-400">No set details recorded for this workout.</p>
                     ) : (
-                      <div className="space-y-2.5">
-                        {sets.map((set, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between text-xs sm:text-sm font-mono"
-                          >
-                            <span className="font-bold text-slate-900 font-sans flex items-center gap-2">
-                              <Dumbbell className="w-4 h-4 text-indigo-600" />
-                              <span>{set.exercises?.name || set.exercises?.name_es || `Set ${idx + 1}`}</span>
-                            </span>
-                            <span className="text-slate-700 font-semibold bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-xs">
-                              {set.weight_kg ? `${set.weight_kg} kg × ` : ''}
-                              {set.reps ? `${set.reps} reps` : ''}
-                              {set.duration_seconds ? `${set.duration_seconds}s` : ''}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="space-y-3">
+                        {(() => {
+                          const groupedSets = sets.reduce((acc, set) => {
+                            const exName =
+                              set.exercises?.name ||
+                              set.exercises?.name_es ||
+                              set.exercise?.name ||
+                              set.exercise?.name_es ||
+                              set.exercise_name ||
+                              'Exercise';
+
+                            if (!acc[exName]) {
+                              acc[exName] = {
+                                name: exName,
+                                muscle_group: set.exercises?.muscle_group || set.exercise?.muscle_group || '',
+                                sets: [],
+                              };
+                            }
+                            acc[exName].sets.push(set);
+                            return acc;
+                          }, {});
+
+                          return Object.values(groupedSets).map((exGroup, groupIdx) => (
+                            <div
+                              key={groupIdx}
+                              className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5"
+                            >
+                              <div className="flex items-center justify-between">
+                                <h6 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                                  <Dumbbell className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>{exGroup.name}</span>
+                                </h6>
+                                {exGroup.muscle_group && (
+                                  <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-600 font-semibold capitalize">
+                                    {exGroup.muscle_group}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {exGroup.sets.map((set, setIdx) => (
+                                  <div
+                                    key={setIdx}
+                                    className="bg-white border border-slate-200/80 rounded-lg p-2 flex items-center justify-between text-xs font-mono"
+                                  >
+                                    <span className="text-slate-400 font-bold text-[10px]">#{setIdx + 1}</span>
+                                    <span className="font-bold text-slate-800">
+                                      {set.weight_kg ? `${set.weight_kg}kg × ` : ''}
+                                      {set.reps ? `${set.reps} reps` : ''}
+                                      {set.duration_seconds ? `${set.duration_seconds}s` : ''}
+                                      {set.distance_meters ? `${set.distance_meters}m` : ''}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ));
+                        })()}
                       </div>
                     )}
                   </div>
