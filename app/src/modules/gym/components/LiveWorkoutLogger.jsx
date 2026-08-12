@@ -222,7 +222,7 @@ export default function LiveWorkoutLogger({
         profile_id: activeProfile?.id || null,
         duration_minutes: durationMins,
         started_at: new Date().toISOString(),
-        completed_at: new Date().toISOString(),
+        finished_at: new Date().toISOString(),
         estimated_volume_kg: totalLiveVolumeKg,
       },
       allSets
