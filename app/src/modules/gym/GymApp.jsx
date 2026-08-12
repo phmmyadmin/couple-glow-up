@@ -21,6 +21,7 @@ import {
   deleteWorkoutFromSupabase,
   updateWorkoutInSupabase,
   fetchPersonalRecordsFromSupabase,
+  evaluateAndSavePRs,
 } from './lib/supabase-gym';
 
 export default function GymApp({ activeProfile, profiles, setToastMessage }) {
@@ -115,6 +116,30 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     const saved = await saveWorkoutSessionToSupabase(workoutObj, sets);
     if (saved) {
       setWorkouts((prev) => [saved, ...prev]);
+
+      // Evaluate PRs: skip first-time exercises, dedup per exercise per workout
+      const newPRs = await evaluateAndSavePRs(
+        activeProfile?.id,
+        sets,
+        saved.id
+      );
+      if (newPRs.length > 0) {
+        setPersonalRecords((prev) => {
+          // Merge: replace existing PR entries for same exercise+type
+          const updated = [...prev];
+          for (const pr of newPRs) {
+            const idx = updated.findIndex(
+              (p) => p.exercise_id === pr.exercise_id && p.record_type === pr.record_type
+            );
+            if (idx >= 0) updated[idx] = pr;
+            else updated.unshift(pr);
+          }
+          return updated;
+        });
+        if (setToastMessage) {
+          setToastMessage(`🏆 ${newPRs.length} new PR${newPRs.length > 1 ? 's' : ''}!`);
+        }
+      }
     } else {
       const localW = {
         ...workoutObj,
@@ -127,7 +152,9 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     setIsLiveSessionActive(false);
     setActiveRoutine(null);
 
-    if (setToastMessage) {
+    if (setToastMessage && !saved) {
+      setToastMessage('Workout saved 🎉');
+    } else if (saved) {
       setToastMessage('Workout saved 🎉');
     }
   };
@@ -169,6 +196,13 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     { id: 'exercises', label: 'Exercises', icon: Dumbbell },
     { id: 'history', label: 'History', icon: History, badge: workouts.length },
   ];
+
+  const [targetWorkoutId, setTargetWorkoutId] = useState(null);
+
+  const handleGoToWorkout = (workoutId) => {
+    setTargetWorkoutId(workoutId);
+    handleGymTabChange('history');
+  };
 
   return (
     <div className="space-y-6 sm:space-y-7">
@@ -225,7 +259,10 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
       {gymTab === 'exercises' && (
         <ExerciseLibrary
           exercises={exercises}
+          workouts={workouts}
+          personalRecords={personalRecords}
           onAddCustomExercise={handleAddCustomExercise}
+          onGoToWorkout={handleGoToWorkout}
         />
       )}
 
@@ -235,6 +272,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
           personalRecords={personalRecords}
           onDeleteWorkout={handleDeleteWorkout}
           onUpdateWorkout={handleUpdateWorkout}
+          initialExpandedWorkoutId={targetWorkoutId}
         />
       )}
     </div>

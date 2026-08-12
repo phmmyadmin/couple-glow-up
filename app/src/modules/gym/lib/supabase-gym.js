@@ -193,6 +193,148 @@ export async function fetchPersonalRecordsFromSupabase(profileId) {
   }
 }
 
+/**
+ * Evaluate and save PRs for all sets in a just-completed workout.
+ *
+ * Rules:
+ *  1. If this is the FIRST TIME a profile has ever done an exercise → skip PR entirely.
+ *  2. Each exercise can only generate ONE PR per workout save (dedup across sets).
+ *  3. A PR is only recorded if the new value strictly beats the existing record.
+ *
+ * @param {string} profileId
+ * @param {Array}  sets  - flat array of {exercise_id, weight_kg, reps, duration_seconds}
+ * @param {string} workoutId  - the workout that was just saved
+ * @returns {Array} array of newly created PR objects
+ */
+export async function evaluateAndSavePRs(profileId, sets, workoutId) {
+  if (!supabase || !profileId || !sets.length) return [];
+
+  // 1. Group sets by exercise_id to find best value per exercise this session
+  const bestPerExercise = {};
+  for (const s of sets) {
+    const exId = s.exercise_id;
+    if (!exId) continue;
+
+    const est1rm = calculate1RM(s.weight_kg, s.reps);
+    const existing = bestPerExercise[exId];
+
+    if (!existing || est1rm > existing.est1rm) {
+      bestPerExercise[exId] = {
+        exercise_id: exId,
+        weight_kg: s.weight_kg,
+        reps: s.reps,
+        duration_seconds: s.duration_seconds,
+        est1rm,
+      };
+    }
+  }
+
+  const exerciseIds = Object.keys(bestPerExercise);
+  if (!exerciseIds.length) return [];
+
+  // 2. Count how many PREVIOUS workouts (not the current one) included each exercise
+  //    to detect "first time ever" attempts
+  const { data: previousSets } = await supabase
+    .from('workout_sets')
+    .select('exercise_id, workout_id')
+    .eq('workouts.profile_id', profileId)
+    .in('exercise_id', exerciseIds)
+    .neq('workout_id', workoutId);
+
+  const previousExerciseIds = new Set((previousSets || []).map((s) => s.exercise_id));
+
+  // 3. Fetch existing PRs for this profile
+  const { data: existingPRs } = await supabase
+    .from('personal_records')
+    .select('*')
+    .eq('profile_id', profileId)
+    .in('exercise_id', exerciseIds);
+
+  const existingPRMap = {};
+  for (const pr of existingPRs || []) {
+    const key = `${pr.exercise_id}__${pr.record_type}`;
+    existingPRMap[key] = pr;
+  }
+
+  // 4. Determine which exercises beat their PR
+  const newPRs = [];
+  for (const exId of exerciseIds) {
+    // RULE 1: Skip first-ever attempt (no previous sets for this exercise)
+    if (!previousExerciseIds.has(exId)) continue;
+
+    const best = bestPerExercise[exId];
+
+    // Check 1RM PR
+    if (best.weight_kg && best.reps) {
+      const recordType = 'estimated_1rm';
+      const key = `${exId}__${recordType}`;
+      const existing = existingPRMap[key];
+
+      if (!existing || best.est1rm > existing.value) {
+        newPRs.push({
+          profile_id: profileId,
+          exercise_id: exId,
+          record_type: recordType,
+          value: best.est1rm,
+          workout_id: workoutId,
+          achieved_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    // Check max weight PR
+    if (best.weight_kg) {
+      const recordType = 'max_weight';
+      const key = `${exId}__${recordType}`;
+      const existing = existingPRMap[key];
+
+      if (!existing || best.weight_kg > existing.value) {
+        newPRs.push({
+          profile_id: profileId,
+          exercise_id: exId,
+          record_type: recordType,
+          value: best.weight_kg,
+          workout_id: workoutId,
+          achieved_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    // Check max duration PR
+    if (best.duration_seconds) {
+      const recordType = 'max_duration';
+      const key = `${exId}__${recordType}`;
+      const existing = existingPRMap[key];
+
+      if (!existing || best.duration_seconds > existing.value) {
+        newPRs.push({
+          profile_id: profileId,
+          exercise_id: exId,
+          record_type: recordType,
+          value: best.duration_seconds,
+          workout_id: workoutId,
+          achieved_at: new Date().toISOString(),
+        });
+      }
+    }
+  }
+
+  if (!newPRs.length) return [];
+
+  // 5. Upsert (on conflict = profile_id + exercise_id + record_type → update)
+  const { data: saved, error } = await supabase
+    .from('personal_records')
+    .upsert(newPRs, { onConflict: 'profile_id,exercise_id,record_type' })
+    .select('*, exercises(*)');
+
+  if (error) {
+    console.error('Error saving PRs:', error);
+    return [];
+  }
+
+  return saved || [];
+}
+
 // ── 1RM EPLEY HELPER ──
 export function calculate1RM(weight, reps) {
   if (!weight || !reps || weight <= 0 || reps <= 0) return 0;

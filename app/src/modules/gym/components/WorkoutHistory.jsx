@@ -4,9 +4,22 @@ import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
 
-export default function WorkoutHistory({ workouts, personalRecords, onDeleteWorkout, onUpdateWorkout }) {
-  const [expandedWorkoutId, setExpandedWorkoutId] = useState(null);
+export default function WorkoutHistory({
+  workouts,
+  personalRecords,
+  onDeleteWorkout,
+  onUpdateWorkout,
+  initialExpandedWorkoutId = null,
+}) {
+  const [expandedWorkoutId, setExpandedWorkoutId] = useState(initialExpandedWorkoutId);
   const [searchFilter, setSearchFilter] = useState('');
+
+  // Sync if initialExpandedWorkoutId changes externally
+  React.useEffect(() => {
+    if (initialExpandedWorkoutId) {
+      setExpandedWorkoutId(initialExpandedWorkoutId);
+    }
+  }, [initialExpandedWorkoutId]);
 
   // Editing state
   const [editingWorkout, setEditingWorkout] = useState(null);

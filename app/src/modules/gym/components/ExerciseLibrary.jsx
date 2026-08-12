@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Plus, Dumbbell, Filter } from 'lucide-react';
+import { Search, Plus, Dumbbell, Filter, Info, Trophy, TrendingUp, Calendar, Flame, ChevronRight, X, ExternalLink } from 'lucide-react';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
+import { calculate1RM } from '../lib/supabase-gym';
 
 const MUSCLE_GROUPS = [
   { id: 'all', label: 'All Muscles' },
@@ -29,11 +30,19 @@ const EQUIPMENT_TYPES = [
   { id: 'other', label: '📦 Other' },
 ];
 
-export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSelectExercise }) {
+export default function ExerciseLibrary({
+  exercises,
+  workouts = [],
+  personalRecords = [],
+  onAddCustomExercise,
+  onSelectExercise,
+  onGoToWorkout,
+}) {
   const [search, setSearch] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState('all');
   const [selectedEquipment, setSelectedEquipment] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState(null);
 
   // New custom exercise state
   const [customName, setCustomName] = useState('');
@@ -47,7 +56,11 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
     const raw = e.other_muscles;
     if (!raw) return [];
     if (Array.isArray(raw)) return raw;
-    try { return JSON.parse(raw); } catch { return []; }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
   };
 
   const filteredExercises = exercises.filter((e) => {
@@ -63,7 +76,8 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
     const matchesEquipment =
       selectedEquipment === 'all' ||
       eqLower === selectedEquipment ||
-      (selectedEquipment === 'other' && !['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'kettlebell', 'smith_machine'].includes(eqLower));
+      (selectedEquipment === 'other' &&
+        !['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'kettlebell', 'smith_machine'].includes(eqLower));
 
     return matchesSearch && matchesMuscle && matchesEquipment;
   });
@@ -95,6 +109,76 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
     } else {
       setCustomSecondaryMuscles([...customSecondaryMuscles, muscleId]);
     }
+  };
+
+  // Compute history statistics for selected exercise
+  const getExerciseHistoryData = (exId) => {
+    if (!exId || !workouts.length) return { historySessions: [], max1RM: 0, maxWeight: 0, maxVolume: 0, chartPoints: [] };
+
+    const sessions = [];
+
+    // Filter workouts that contain this exercise
+    workouts.forEach((w) => {
+      const setsForEx = (w.workout_sets || []).filter(
+        (s) => s.exercise_id === exId || s.exercises?.id === exId
+      );
+
+      if (setsForEx.length > 0) {
+        let best1RM = 0;
+        let bestWeight = 0;
+        let totalVolume = 0;
+
+        setsForEx.forEach((s) => {
+          const wKg = parseFloat(s.weight_kg) || 0;
+          const r = parseInt(s.reps, 10) || 0;
+          if (wKg > bestWeight) bestWeight = wKg;
+          const est1RM = calculate1RM(wKg, r);
+          if (est1RM > best1RM) best1RM = est1RM;
+          totalVolume += wKg * r;
+        });
+
+        sessions.push({
+          workoutId: w.id,
+          workoutName: w.name,
+          date: w.started_at,
+          sets: setsForEx,
+          best1RM,
+          bestWeight,
+          totalVolume,
+        });
+      }
+    });
+
+    // Sort chronologically for chart
+    const chronologicalSessions = [...sessions].sort(
+      (a, b) => new Date(a.date) - new Date(b.date)
+    );
+
+    let globalMax1RM = 0;
+    let globalMaxWeight = 0;
+    let globalMaxVolume = 0;
+
+    chronologicalSessions.forEach((s) => {
+      if (s.best1RM > globalMax1RM) globalMax1RM = s.best1RM;
+      if (s.bestWeight > globalMaxWeight) globalMaxWeight = s.bestWeight;
+      if (s.totalVolume > globalMaxVolume) globalMaxVolume = s.totalVolume;
+    });
+
+    const chartPoints = chronologicalSessions.map((s, idx) => ({
+      index: idx,
+      dateLabel: new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      val1RM: s.best1RM,
+      volume: s.totalVolume,
+      workoutId: s.workoutId,
+    }));
+
+    return {
+      historySessions: sessions.reverse(), // Newest first for list
+      max1RM: globalMax1RM,
+      maxWeight: globalMaxWeight,
+      maxVolume: globalMaxVolume,
+      chartPoints,
+    };
   };
 
   return (
@@ -184,12 +268,18 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
               return (
                 <Card
                   key={exercise.id || exercise.name}
-                  hover={Boolean(onSelectExercise)}
-                  onClick={() => onSelectExercise && onSelectExercise(exercise)}
-                  className="p-4 sm:p-5 flex items-center justify-between gap-4 shadow-sm"
+                  hover={true}
+                  onClick={() => {
+                    if (onSelectExercise) {
+                      onSelectExercise(exercise);
+                    } else {
+                      setSelectedExerciseForHistory(exercise);
+                    }
+                  }}
+                  className="p-4 sm:p-5 flex items-center justify-between gap-4 shadow-sm group"
                 >
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                       <Dumbbell className="w-6 h-6" />
                     </div>
                     <div className="space-y-1 min-w-0">
@@ -221,15 +311,243 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
                     </div>
                   </div>
 
-                  <span className="text-xs bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl text-slate-700 font-semibold capitalize shrink-0">
-                    {exercise.equipment_category || exercise.equipment || 'Bodyweight'}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl text-slate-700 font-semibold capitalize">
+                      {exercise.equipment_category || exercise.equipment || 'Bodyweight'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedExerciseForHistory(exercise);
+                      }}
+                      className="p-2 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-indigo-50"
+                      title="View Exercise History & Charts"
+                    >
+                      <Info className="w-4.5 h-4.5" />
+                    </button>
+                  </div>
                 </Card>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* Exercise History & Analytics Modal */}
+      {selectedExerciseForHistory && (() => {
+        const exData = getExerciseHistoryData(selectedExerciseForHistory.id);
+        const hasHistory = exData.historySessions.length > 0;
+
+        // SVG Chart coordinates calculation
+        const maxVal = Math.max(...exData.chartPoints.map((p) => p.val1RM), 1);
+        const minVal = Math.min(...exData.chartPoints.map((p) => p.val1RM), 0);
+        const range = Math.max(maxVal - minVal, 10);
+
+        const points = exData.chartPoints.map((p, idx) => {
+          const x = exData.chartPoints.length === 1 ? 150 : 20 + (idx / (exData.chartPoints.length - 1)) * 260;
+          const y = 130 - ((p.val1RM - minVal) / range) * 90;
+          return { x, y, ...p };
+        });
+
+        const svgPathStr = points.length > 0
+          ? points.reduce((acc, pt, i) => (i === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`), '')
+          : '';
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+            <Card className="max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md">
+                    <Dumbbell className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">
+                      {selectedExerciseForHistory.name || selectedExerciseForHistory.name_es}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 capitalize font-medium mt-0.5">
+                      <span className="font-semibold text-indigo-600">{selectedExerciseForHistory.muscle_group}</span>
+                      <span>•</span>
+                      <span>{selectedExerciseForHistory.equipment_category || 'Bodyweight'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedExerciseForHistory(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Personal Record Badges Row */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 p-3 rounded-xl text-center">
+                  <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">Best 1RM</span>
+                  <span className="font-mono font-extrabold text-base text-indigo-900">
+                    {exData.max1RM > 0 ? `${exData.max1RM} kg` : '-'}
+                  </span>
+                </div>
+
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-3 rounded-xl text-center">
+                  <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Max Weight</span>
+                  <span className="font-mono font-extrabold text-base text-emerald-900">
+                    {exData.maxWeight > 0 ? `${exData.maxWeight} kg` : '-'}
+                  </span>
+                </div>
+
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 p-3 rounded-xl text-center">
+                  <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">Sessions</span>
+                  <span className="font-mono font-extrabold text-base text-amber-900">
+                    {exData.historySessions.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* SVG 1RM Progression Chart */}
+              {exData.chartPoints.length > 1 ? (
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+                    <span className="flex items-center gap-1.5">
+                      <TrendingUp className="w-4 h-4 text-indigo-600" />
+                      <span>1RM Progression</span>
+                    </span>
+                    <span className="font-mono text-indigo-700">{exData.max1RM} kg peak</span>
+                  </div>
+
+                  <div className="h-36 w-full pt-2">
+                    <svg viewBox="0 0 300 150" className="w-full h-full overflow-visible">
+                      <defs>
+                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Area Fill */}
+                      {points.length > 0 && (
+                        <path
+                          d={`${svgPathStr} L ${points[points.length - 1].x} 140 L ${points[0].x} 140 Z`}
+                          fill="url(#chartGrad)"
+                        />
+                      )}
+
+                      {/* Line */}
+                      <path
+                        d={svgPathStr}
+                        fill="none"
+                        stroke="#6366f1"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+
+                      {/* Points */}
+                      {points.map((pt) => (
+                        <g key={pt.index} className="group cursor-pointer">
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r="5"
+                            className="fill-white stroke-indigo-600 stroke-[3] group-hover:r-7 transition-all"
+                          />
+                          <text
+                            x={pt.x}
+                            y={pt.y - 10}
+                            textAnchor="middle"
+                            className="text-[9px] font-mono font-bold fill-indigo-900 opacity-90"
+                          >
+                            {pt.val1RM}kg
+                          </text>
+                        </g>
+                      ))}
+                    </svg>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* History Log List */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Past Workout Sessions ({exData.historySessions.length})
+                </h4>
+
+                {!hasHistory ? (
+                  <div className="text-center py-6 bg-slate-50 border border-slate-200/60 rounded-2xl text-xs text-slate-400">
+                    No workout sessions recorded for this exercise yet.
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                    {exData.historySessions.map((session, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5 text-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-bold text-slate-900 block">{session.workoutName}</span>
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              {new Date(session.date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-lg">
+                              Vol: {session.totalVolume} kg
+                            </span>
+
+                            {onGoToWorkout && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedExerciseForHistory(null);
+                                  onGoToWorkout(session.workoutId);
+                                }}
+                                className="p-1 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg flex items-center gap-1 font-semibold"
+                                title="Go to Workout in History"
+                              >
+                                <span>View</span>
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Sets Breakdown */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-1">
+                          {session.sets.map((s, sIdx) => (
+                            <div
+                              key={sIdx}
+                              className="bg-white border border-slate-200 px-2.5 py-1 rounded-lg font-mono text-[11px] flex justify-between items-center"
+                            >
+                              <span className="text-slate-400 font-bold">#{sIdx + 1}</span>
+                              <span className="font-bold text-slate-800">
+                                {s.weight_kg ? `${s.weight_kg}kg × ` : ''}
+                                {s.reps ? `${s.reps}` : ''}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end pt-2 border-t border-slate-100">
+                <Button variant="ghost" onClick={() => setSelectedExerciseForHistory(null)}>
+                  Close
+                </Button>
+              </div>
+            </Card>
+          </div>
+        );
+      })()}
 
       {/* New Exercise Modal */}
       {isModalOpen && (
