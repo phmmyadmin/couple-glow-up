@@ -239,10 +239,10 @@ export default function WorkoutHistory({
                                   >
                                     <span className="text-slate-400 font-bold text-[10px]">#{setIdx + 1}</span>
                                     <span className="font-bold text-slate-800">
-                                      {set.weight_kg ? `${set.weight_kg}kg × ` : ''}
-                                      {set.reps ? `${set.reps} reps` : ''}
-                                      {set.duration_seconds ? `${set.duration_seconds}s` : ''}
-                                      {set.distance_meters ? `${set.distance_meters}m` : ''}
+                                      {set.weight_kg ? `${set.weight_kg}kg ` : ''}
+                                      {set.reps ? `× ${set.reps} reps ` : ''}
+                                      {set.duration_seconds ? `⏱️ ${Math.floor(set.duration_seconds / 60)}:${String(set.duration_seconds % 60).padStart(2, '0')} min ` : ''}
+                                      {set.distance_meters ? `📍 ${(set.distance_meters / 1000).toFixed(1)} km` : ''}
                                     </span>
                                   </div>
                                 ))}

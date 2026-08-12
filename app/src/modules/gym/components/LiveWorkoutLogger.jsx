@@ -6,6 +6,30 @@ import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
 
+function formatSecondsToMMSS(totalSeconds) {
+  if (totalSeconds === null || totalSeconds === undefined || totalSeconds === '') return '';
+  const secs = parseInt(totalSeconds, 10);
+  if (isNaN(secs) || secs < 0) return '';
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function parseMMSSToSeconds(mmssStr) {
+  if (mmssStr === null || mmssStr === undefined || mmssStr === '') return null;
+  const str = String(mmssStr).trim();
+  if (!str) return null;
+  if (!str.includes(':')) {
+    const num = parseFloat(str);
+    if (isNaN(num) || num <= 0) return null;
+    return num > 300 ? Math.round(num) : Math.round(num * 60);
+  }
+  const parts = str.split(':');
+  const m = parseInt(parts[0], 10) || 0;
+  const s = parseInt(parts[1], 10) || 0;
+  return m * 60 + s;
+}
+
 export default function LiveWorkoutLogger({
   exercises,
   onSaveWorkout,
@@ -501,108 +525,170 @@ export default function LiveWorkoutLogger({
                 </div>
 
                 {/* Sets Table */}
-                <div className="space-y-2.5 pt-1">
-                  <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider px-2">
-                    <span className="col-span-1 text-center">Set</span>
-                    <span className="col-span-2 text-center">Type</span>
-                    <span className="col-span-3 text-center">Weight (kg)</span>
-                    <span className="col-span-3 text-center">Reps</span>
-                    <span className="col-span-2 text-center">1RM</span>
-                    <span className="col-span-1 text-center">Done</span>
-                  </div>
+                {(() => {
+                  const exType = item.exercise?.exercise_type || 'weight_reps';
+                  const isDistanceDuration = exType === 'distance_duration';
+                  const isDurationOnly = exType === 'duration_only';
+                  const isRepsOnly = exType === 'reps_only' || exType === 'bodyweight_reps';
 
-                  {item.sets.map((set, setIdx) => {
-                    const est1RM = calculate1RM(set.weight_kg, set.reps);
-                    const ind = set.indicator || 'normal';
-
-                    return (
-                      <div
-                        key={set.id}
-                        className={`grid grid-cols-12 gap-2 items-center p-2 rounded-xl transition-all ${
-                          set.is_checked
-                            ? 'bg-emerald-50/80 border border-emerald-200'
-                            : ind === 'warmup'
-                            ? 'bg-amber-50/70 border border-amber-200/80'
-                            : ind === 'dropset'
-                            ? 'bg-purple-50/70 border border-purple-200/80'
-                            : ind === 'failure'
-                            ? 'bg-rose-50/70 border border-rose-200/80'
-                            : 'bg-slate-50 border border-slate-200/80'
-                        }`}
-                      >
-                        {/* Set Index + Indicator Badge */}
-                        <div className="col-span-1 flex items-center justify-center gap-1 font-mono font-bold text-xs">
-                          {ind === 'warmup' ? (
-                            <span className="bg-amber-500 text-white text-[10px] px-1 rounded font-extrabold" title="Warmup Set">W</span>
-                          ) : ind === 'dropset' ? (
-                            <span className="bg-purple-600 text-white text-[10px] px-1 rounded font-extrabold" title="Drop Set">D</span>
-                          ) : ind === 'failure' ? (
-                            <span className="bg-rose-600 text-white text-[10px] px-1 rounded font-extrabold" title="Failure Set">F</span>
-                          ) : (
-                            <span className="text-slate-600">{setIdx + 1}</span>
-                          )}
-                        </div>
-
-                        {/* Indicator Selector Buttons */}
-                        <div className="col-span-2 flex justify-center">
-                          <div className="flex items-center bg-white border border-slate-200 p-0.5 rounded-lg gap-0.5">
-                            {[
-                              { key: 'normal', label: 'N', active: 'bg-slate-800 text-white' },
-                              { key: 'warmup', label: 'W', active: 'bg-amber-500 text-white font-bold' },
-                              { key: 'dropset', label: 'D', active: 'bg-purple-600 text-white font-bold' },
-                              { key: 'failure', label: 'F', active: 'bg-rose-600 text-white font-bold' },
-                            ].map((b) => (
-                              <button
-                                key={b.key}
-                                type="button"
-                                onClick={() => handleUpdateSetField(exIdx, setIdx, 'indicator', b.key)}
-                                className={`w-4 h-4 text-[9px] rounded flex items-center justify-center transition-all ${
-                                  ind === b.key ? b.active : 'text-slate-400 hover:text-slate-700'
-                                }`}
-                                title={`Set indicator: ${b.key}`}
-                              >
-                                {b.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="col-span-3">
-                          <input
-                            type="number"
-                            step="any"
-                            value={set.weight_kg ?? ''}
-                            onChange={(e) =>
-                              handleUpdateSetField(
-                                exIdx,
-                                setIdx,
-                                'weight_kg',
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="w-full text-center py-1.5 text-xs font-mono font-bold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
-                          />
-                        </div>
-
-                        <div className="col-span-3">
-                          <input
-                            type="number"
-                            value={set.reps ?? ''}
-                            onChange={(e) =>
-                              handleUpdateSetField(
-                                exIdx,
-                                setIdx,
-                                'reps',
-                                parseInt(e.target.value, 10) || 0
-                              )
-                            }
-                            className="w-full text-center py-1.5 text-xs font-mono font-bold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
-                          />
-                        </div>
-
-                        <span className="col-span-2 text-center text-xs font-mono text-indigo-700 font-bold">
-                          {est1RM > 0 ? `${est1RM}kg` : '-'}
+                  return (
+                    <div className="space-y-2.5 pt-1">
+                      <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider px-2">
+                        <span className="col-span-1 text-center">Set</span>
+                        <span className="col-span-2 text-center">Type</span>
+                        <span className="col-span-3 text-center">
+                          {isDistanceDuration ? 'Km' : isDurationOnly ? 'Time' : 'Weight (kg)'}
                         </span>
+                        <span className="col-span-3 text-center">
+                          {isDistanceDuration ? 'Time (mm:ss)' : isDurationOnly ? '-' : 'Reps'}
+                        </span>
+                        <span className="col-span-2 text-center">
+                          {isDistanceDuration ? 'Speed' : isDurationOnly ? 'Time' : '1RM'}
+                        </span>
+                        <span className="col-span-1 text-center">Done</span>
+                      </div>
+
+                      {item.sets.map((set, setIdx) => {
+                        const est1RM = calculate1RM(set.weight_kg, set.reps);
+                        const ind = set.indicator || 'normal';
+
+                        // Calculate speed or formatted duration
+                        let speedOrPace = '-';
+                        if (isDistanceDuration) {
+                          const km = set.distance_meters ? set.distance_meters / 1000 : (set.distance_km ? parseFloat(set.distance_km) : null);
+                          const secs = set.duration_seconds ? parseInt(set.duration_seconds, 10) : null;
+                          if (km && secs && secs > 0) {
+                            const kmh = (km / (secs / 3600)).toFixed(1);
+                            speedOrPace = `${kmh} km/h`;
+                          } else if (secs) {
+                            speedOrPace = formatSecondsToMMSS(secs);
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={set.id}
+                            className={`grid grid-cols-12 gap-2 items-center p-2 rounded-xl transition-all ${
+                              set.is_checked
+                                ? 'bg-emerald-50/80 border border-emerald-200'
+                                : ind === 'warmup'
+                                ? 'bg-amber-50/70 border border-amber-200/80'
+                                : ind === 'dropset'
+                                ? 'bg-purple-50/70 border border-purple-200/80'
+                                : ind === 'failure'
+                                ? 'bg-rose-50/70 border border-rose-200/80'
+                                : 'bg-slate-50 border border-slate-200/80'
+                            }`}
+                          >
+                            {/* Set Index + Indicator Badge */}
+                            <div className="col-span-1 flex items-center justify-center gap-1 font-mono font-bold text-xs">
+                              {ind === 'warmup' ? (
+                                <span className="bg-amber-500 text-white text-[10px] px-1 rounded font-extrabold" title="Warmup Set">W</span>
+                              ) : ind === 'dropset' ? (
+                                <span className="bg-purple-600 text-white text-[10px] px-1 rounded font-extrabold" title="Drop Set">D</span>
+                              ) : ind === 'failure' ? (
+                                <span className="bg-rose-600 text-white text-[10px] px-1 rounded font-extrabold" title="Failure Set">F</span>
+                              ) : (
+                                <span className="text-slate-600">{setIdx + 1}</span>
+                              )}
+                            </div>
+
+                            {/* Indicator Selector Buttons */}
+                            <div className="col-span-2 flex justify-center">
+                              <div className="flex items-center bg-white border border-slate-200 p-0.5 rounded-lg gap-0.5">
+                                {[
+                                  { key: 'normal', label: 'N', active: 'bg-slate-800 text-white' },
+                                  { key: 'warmup', label: 'W', active: 'bg-amber-500 text-white font-bold' },
+                                  { key: 'dropset', label: 'D', active: 'bg-purple-600 text-white font-bold' },
+                                  { key: 'failure', label: 'F', active: 'bg-rose-600 text-white font-bold' },
+                                ].map((b) => (
+                                  <button
+                                    key={b.key}
+                                    type="button"
+                                    onClick={() => handleUpdateSetField(exIdx, setIdx, 'indicator', b.key)}
+                                    className={`w-4 h-4 text-[9px] rounded flex items-center justify-center transition-all ${
+                                      ind === b.key ? b.active : 'text-slate-400 hover:text-slate-700'
+                                    }`}
+                                    title={`Set indicator: ${b.key}`}
+                                  >
+                                    {b.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Col 3: Weight (kg) OR Distance (km) */}
+                            <div className="col-span-3">
+                              {isDistanceDuration ? (
+                                <input
+                                  type="number"
+                                  step="any"
+                                  placeholder="0.0"
+                                  value={set.distance_km !== undefined && set.distance_km !== null ? set.distance_km : set.distance_meters ? (set.distance_meters / 1000) : ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                                    handleUpdateSetField(exIdx, setIdx, 'distance_km', val);
+                                    handleUpdateSetField(exIdx, setIdx, 'distance_meters', val !== null ? val * 1000 : null);
+                                  }}
+                                  className="w-full text-center py-1.5 text-xs font-mono font-bold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                                />
+                              ) : (
+                                <input
+                                  type="number"
+                                  step="any"
+                                  placeholder={isRepsOnly ? '-' : '0'}
+                                  disabled={isRepsOnly}
+                                  value={set.weight_kg ?? ''}
+                                  onChange={(e) =>
+                                    handleUpdateSetField(
+                                      exIdx,
+                                      setIdx,
+                                      'weight_kg',
+                                      parseFloat(e.target.value) || 0
+                                    )
+                                  }
+                                  className="w-full text-center py-1.5 text-xs font-mono font-bold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                                />
+                              )}
+                            </div>
+
+                            {/* Col 4: Reps OR Time (mm:ss) */}
+                            <div className="col-span-3">
+                              {isDistanceDuration || isDurationOnly ? (
+                                <input
+                                  type="text"
+                                  placeholder="mm:ss (e.g. 20:00)"
+                                  value={set.duration_mmss !== undefined ? set.duration_mmss : formatSecondsToMMSS(set.duration_seconds)}
+                                  onChange={(e) => {
+                                    const textVal = e.target.value;
+                                    const secs = parseMMSSToSeconds(textVal);
+                                    handleUpdateSetField(exIdx, setIdx, 'duration_mmss', textVal);
+                                    handleUpdateSetField(exIdx, setIdx, 'duration_seconds', secs);
+                                  }}
+                                  className="w-full text-center py-1.5 text-xs font-mono font-bold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                                />
+                              ) : (
+                                <input
+                                  type="number"
+                                  placeholder="10"
+                                  value={set.reps ?? ''}
+                                  onChange={(e) =>
+                                    handleUpdateSetField(
+                                      exIdx,
+                                      setIdx,
+                                      'reps',
+                                      parseInt(e.target.value, 10) || 0
+                                    )
+                                  }
+                                  className="w-full text-center py-1.5 text-xs font-mono font-bold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                                />
+                              )}
+                            </div>
+
+                            {/* Col 5: 1RM / Speed / Time */}
+                            <span className="col-span-2 text-center text-xs font-mono text-indigo-700 font-bold">
+                              {isDistanceDuration ? speedOrPace : isDurationOnly ? (formatSecondsToMMSS(set.duration_seconds) || '-') : (est1RM > 0 ? `${est1RM}kg` : '-')}
+                            </span>
 
                         <div className="col-span-1 flex justify-center">
                           <button
@@ -628,6 +714,8 @@ export default function LiveWorkoutLogger({
                     );
                   })}
                 </div>
+              );
+            })()}
 
                 <div className="flex justify-between items-center pt-2">
                   <Button
