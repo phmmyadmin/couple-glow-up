@@ -38,12 +38,17 @@ export default function ExerciseLibrary({
   onEditExercise,
   onSelectExercise,
   onGoToWorkout,
+  initialSelectedHistoryExercise = null,
+  onCloseHistoryModal = null,
 }) {
   const [search, setSearch] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState('all');
   const [selectedEquipment, setSelectedEquipment] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState(null);
+  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState(
+    initialSelectedHistoryExercise || null
+  );
+  const [chartMetric, setChartMetric] = useState('max');
 
   // Edit Exercise Modal State
   const [editingExerciseModal, setEditingExerciseModal] = useState(null);
@@ -528,14 +533,20 @@ export default function ExerciseLibrary({
         const exData = getExerciseHistoryData(selectedExerciseForHistory.id);
         const hasHistory = exData.historySessions.length > 0;
 
-        const maxVal = Math.max(...exData.chartPoints.map((p) => p.val1RM), 1);
-        const minVal = Math.min(...exData.chartPoints.map((p) => p.val1RM), 0);
+        const activeMetric = chartMetric || 'max';
+        const rawValues = exData.chartPoints.map((p) => (activeMetric === 'volume' ? p.valVolume : p.val1RM));
+        const maxVal = Math.max(...rawValues, 1);
+        const minVal = Math.min(...rawValues, 0);
         const range = Math.max(maxVal - minVal, 10);
 
+        const pointSpacing = 55;
+        const svgWidth = Math.max(320, exData.chartPoints.length * pointSpacing);
+
         const points = exData.chartPoints.map((p, idx) => {
-          const x = exData.chartPoints.length === 1 ? 150 : 20 + (idx / (exData.chartPoints.length - 1)) * 260;
-          const y = 130 - ((p.val1RM - minVal) / range) * 90;
-          return { x, y, ...p };
+          const targetVal = activeMetric === 'volume' ? p.valVolume : p.val1RM;
+          const x = exData.chartPoints.length === 1 ? svgWidth / 2 : 35 + idx * pointSpacing;
+          const y = 125 - ((targetVal - minVal) / range) * 85;
+          return { x, y, targetVal, date: p.date };
         });
 
         const svgPathStr = points.length > 0
@@ -561,7 +572,10 @@ export default function ExerciseLibrary({
                 </div>
 
                 <button
-                  onClick={() => setSelectedExerciseForHistory(null)}
+                  onClick={() => {
+                    setSelectedExerciseForHistory(null);
+                    if (onCloseHistoryModal) onCloseHistoryModal();
+                  }}
                   className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
                 >
                   <X className="w-5 h-5" />
@@ -624,33 +638,56 @@ export default function ExerciseLibrary({
                 </div>
               </div>
 
-              {/* SVG Progression Chart */}
+              {/* SVG Progression Chart with Metric Toggle */}
               {hasHistory && exData.chartPoints.length > 0 && (
-                <div className="bg-slate-900 text-white rounded-2xl p-4 space-y-2 shadow-inner">
-                  <div className="flex items-center justify-between text-xs">
+                <div className="bg-slate-900 text-white rounded-2xl p-4 space-y-3 shadow-inner">
+                  <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
                     <span className="font-bold flex items-center gap-1.5 text-indigo-400">
                       <TrendingUp className="w-4 h-4" />
                       <span>
-                        {exData.exType === 'distance_duration'
-                          ? 'Speed Progression (km/h)'
+                        {activeMetric === 'volume'
+                          ? exData.exType === 'distance_duration'
+                            ? 'Total Distance per Workout (km)'
+                            : 'Total Volume per Workout (kg)'
+                          : exData.exType === 'distance_duration'
+                          ? 'Peak Speed (km/h)'
                           : exData.exType === 'duration_only'
-                          ? 'Duration Progression'
+                          ? 'Max Duration'
                           : exData.exType === 'reps_only'
-                          ? 'Reps Progression'
-                          : '1RM Progression'}
+                          ? 'Max Reps'
+                          : 'Peak 1RM (kg)'}
                       </span>
                     </span>
-                    <span className="text-slate-400 text-[11px]">
-                      {exData.chartPoints[0].date} — {exData.chartPoints[exData.chartPoints.length - 1].date}
-                    </span>
+
+                    {/* Metric Toggle Buttons */}
+                    <div className="flex items-center bg-slate-800 p-0.5 rounded-lg text-[10px] font-bold border border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => setChartMetric('max')}
+                        className={`px-2.5 py-1 rounded-md transition-all ${
+                          activeMetric === 'max' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {exData.exType === 'distance_duration' ? 'Speed' : '1RM / Max'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setChartMetric('volume')}
+                        className={`px-2.5 py-1 rounded-md transition-all ${
+                          activeMetric === 'volume' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        Volume
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="h-36 w-full pt-2">
-                    <svg className="w-full h-full overflow-visible" viewBox="0 0 300 150">
+                  <div className="overflow-x-auto scrollbar-thin pb-2 pt-1">
+                    <svg className="h-40 overflow-visible" style={{ width: `${svgWidth}px` }} viewBox={`0 0 ${svgWidth} 150`}>
                       {/* Grid Lines */}
-                      <line x1="20" y1="30" x2="280" y2="30" stroke="#334155" strokeDasharray="3 3" strokeWidth="1" />
-                      <line x1="20" y1="75" x2="280" y2="75" stroke="#334155" strokeDasharray="3 3" strokeWidth="1" />
-                      <line x1="20" y1="120" x2="280" y2="120" stroke="#334155" strokeDasharray="3 3" strokeWidth="1" />
+                      <line x1="20" y1="30" x2={svgWidth - 20} y2="30" stroke="#334155" strokeDasharray="3 3" strokeWidth="1" />
+                      <line x1="20" y1="75" x2={svgWidth - 20} y2="75" stroke="#334155" strokeDasharray="3 3" strokeWidth="1" />
+                      <line x1="20" y1="120" x2={svgWidth - 20} y2="120" stroke="#334155" strokeDasharray="3 3" strokeWidth="1" />
 
                       {/* SVG Line */}
                       {svgPathStr && (
@@ -677,7 +714,17 @@ export default function ExerciseLibrary({
                             fontWeight="bold"
                             fontFamily="monospace"
                           >
-                            {pt.val1RM}{exData.exType === 'distance_duration' ? 'km/h' : exData.exType === 'duration_only' ? 's' : 'kg'}
+                            {pt.targetVal}{activeMetric === 'volume' ? (exData.exType === 'distance_duration' ? 'km' : 'kg') : (exData.exType === 'distance_duration' ? 'km/h' : exData.exType === 'duration_only' ? 's' : 'kg')}
+                          </text>
+                          <text
+                            x={pt.x}
+                            y={142}
+                            textAnchor="middle"
+                            fill="#64748b"
+                            fontSize="9"
+                            fontWeight="600"
+                          >
+                            {pt.date}
                           </text>
                         </g>
                       ))}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X, ArrowUp, ArrowDown, Timer, Flame, Edit3, Save } from 'lucide-react';
+import { Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X, ArrowUp, ArrowDown, Timer, Flame, Edit3, Save, Info } from 'lucide-react';
 import { calculate1RM } from '../lib/supabase-gym';
 import ExerciseLibrary from './ExerciseLibrary';
 import Card, { CardTitle } from '../../../shared/ui/Card';
@@ -30,8 +30,43 @@ function parseMMSSToSeconds(mmssStr) {
   return m * 60 + s;
 }
 
+export function getLastPerformanceForExercise(targetExercise, workouts = []) {
+  if (!targetExercise || !workouts || workouts.length === 0) return null;
+
+  const targetId = targetExercise.id;
+  const targetName = (targetExercise.name || targetExercise.name_es || '').toLowerCase().trim();
+
+  for (const w of workouts) {
+    const sets = w.workout_sets || [];
+    const exSets = sets.filter((s) => {
+      const sId = s.exercise_id || s.exercise?.id;
+      if (sId && targetId && sId === targetId) return true;
+      const sName = (
+        s.exercise?.name ||
+        s.exercise?.name_es ||
+        s.exercises?.name ||
+        s.exercises?.name_es ||
+        s.exercise_name ||
+        ''
+      ).toLowerCase().trim();
+      return Boolean(sName && targetName && sName === targetName);
+    });
+
+    if (exSets.length > 0) {
+      return {
+        workoutName: w.name,
+        dateStr: new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        sets: exSets,
+      };
+    }
+  }
+
+  return null;
+}
+
 export default function LiveWorkoutLogger({
   exercises,
+  workouts = [],
   onSaveWorkout,
   onCancel,
   activeProfile,
@@ -39,6 +74,7 @@ export default function LiveWorkoutLogger({
   initialWorkoutState = null,
   onAddCustomExercise,
 }) {
+  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState(null);
   const [workoutName, setWorkoutName] = useState(() => {
     return initialWorkoutState?.workoutName || initialRoutine?.name || 'Workout of the Day';
   });
@@ -183,62 +219,102 @@ export default function LiveWorkoutLogger({
               equipment_category: item.equipment_category || 'dumbbell',
             };
 
+        const lastPerf = getLastPerformanceForExercise(finalExercise, workouts);
+
         let initialSets = [];
         if (Array.isArray(item.sets) && item.sets.length > 0) {
-          initialSets = item.sets.map((s, setIdx) => ({
-            id: `${Date.now()}-${idx}-${setIdx}`,
-            indicator: s.indicator || s.set_type || 'normal',
-            weight_kg: s.weight_kg !== undefined && s.weight_kg !== null ? s.weight_kg : '',
-            reps: s.reps !== undefined && s.reps !== null ? s.reps : '',
-            duration_seconds: s.duration_seconds || null,
-            distance_meters: s.distance_meters || null,
-            distance_km: s.distance_km !== undefined ? s.distance_km : (s.distance_meters ? s.distance_meters / 1000 : null),
-            is_checked: false,
-          }));
+          initialSets = item.sets.map((s, setIdx) => {
+            const lastSet = lastPerf?.sets[setIdx] || lastPerf?.sets[0];
+            const weightVal = (s.weight_kg !== undefined && s.weight_kg !== '' && s.weight_kg !== 0)
+              ? s.weight_kg
+              : (lastSet?.weight_kg !== undefined ? lastSet.weight_kg : '');
+            const repsVal = (s.reps !== undefined && s.reps !== '' && s.reps !== 0)
+              ? s.reps
+              : (lastSet?.reps !== undefined ? lastSet.reps : '');
+
+            return {
+              id: `${Date.now()}-${idx}-${setIdx}`,
+              indicator: s.indicator || s.set_type || lastSet?.indicator || 'normal',
+              weight_kg: weightVal,
+              reps: repsVal,
+              duration_seconds: s.duration_seconds || lastSet?.duration_seconds || null,
+              distance_meters: s.distance_meters || lastSet?.distance_meters || null,
+              distance_km: s.distance_km !== undefined ? s.distance_km : (s.distance_meters ? s.distance_meters / 1000 : (lastSet?.distance_meters ? lastSet.distance_meters / 1000 : null)),
+              is_checked: false,
+            };
+          });
         } else {
-          const targetSetsCount = parseInt(item.target_sets, 10) || 3;
+          const targetSetsCount = parseInt(item.target_sets, 10) || (lastPerf?.sets.length || 3);
           const isDist = finalExercise.exercise_type === 'distance_duration';
           const isDur = finalExercise.exercise_type === 'duration_only';
 
-          initialSets = Array.from({ length: targetSetsCount }).map((_, setIdx) => ({
-            id: `${Date.now()}-${idx}-${setIdx}`,
-            indicator: 'normal',
-            weight_kg: isDist || isDur ? '' : (item.target_weight || ''),
-            reps: isDist || isDur ? '' : (item.target_reps || 10),
-            duration_seconds: isDist ? 1200 : isDur ? 60 : null,
-            distance_meters: isDist ? 5000 : null,
-            distance_km: isDist ? 5 : null,
-            is_checked: false,
-          }));
+          initialSets = Array.from({ length: targetSetsCount }).map((_, setIdx) => {
+            const lastSet = lastPerf?.sets[setIdx] || lastPerf?.sets[0];
+            return {
+              id: `${Date.now()}-${idx}-${setIdx}`,
+              indicator: lastSet?.indicator || 'normal',
+              weight_kg: isDist || isDur ? '' : (item.target_weight || lastSet?.weight_kg || 20),
+              reps: isDist || isDur ? '' : (item.target_reps || lastSet?.reps || 10),
+              duration_seconds: isDist ? (lastSet?.duration_seconds || 1200) : isDur ? (lastSet?.duration_seconds || 60) : null,
+              distance_meters: isDist ? (lastSet?.distance_meters || 5000) : null,
+              distance_km: isDist ? ((lastSet?.distance_meters || 5000) / 1000) : null,
+              is_checked: false,
+            };
+          });
         }
 
         return {
           exercise_id: finalExercise.id,
           exercise: finalExercise,
-          rest_seconds: item.rest_seconds !== undefined ? item.rest_seconds : 90,
+          rest_seconds: item.rest_seconds !== undefined ? item.rest_seconds : (finalExercise.exercise_type === 'distance_duration' ? 0 : 90),
+          lastPerformance: lastPerf,
           sets: initialSets,
         };
       });
 
       setWorkoutExercises(formattedEx);
     }
-  }, [initialRoutine, exercises]);
+  }, [initialRoutine, exercises, workouts]);
 
   // Add exercise to active session
   const handleAddExercise = (exercise) => {
-    const newEx = {
-      id: Date.now().toString(),
-      exercise: exercise,
-      rest_seconds: 90,
-      sets: [
+    const isDist = exercise.exercise_type === 'distance_duration';
+    const isDur = exercise.exercise_type === 'duration_only';
+    const lastPerf = getLastPerformanceForExercise(exercise, workouts);
+
+    let initialSets = [];
+    if (lastPerf && lastPerf.sets.length > 0) {
+      initialSets = lastPerf.sets.map((s, sIdx) => ({
+        id: `${Date.now()}-${sIdx}`,
+        indicator: s.indicator || 'normal',
+        weight_kg: s.weight_kg !== undefined && s.weight_kg !== null ? s.weight_kg : '',
+        reps: s.reps !== undefined && s.reps !== null ? s.reps : '',
+        duration_seconds: s.duration_seconds || (isDur ? 60 : null),
+        distance_meters: s.distance_meters || (isDist ? 5000 : null),
+        distance_km: s.distance_meters ? s.distance_meters / 1000 : (s.distance_km || null),
+        is_checked: false,
+      }));
+    } else {
+      initialSets = [
         {
           id: Date.now().toString(),
           indicator: 'normal',
-          weight_kg: 20,
-          reps: 10,
+          weight_kg: isDist || isDur ? '' : 20,
+          reps: isDist || isDur ? '' : 10,
+          duration_seconds: isDist ? 1200 : isDur ? 60 : null,
+          distance_meters: isDist ? 5000 : null,
+          distance_km: isDist ? 5 : null,
           is_checked: false,
         },
-      ],
+      ];
+    }
+
+    const newEx = {
+      id: Date.now().toString(),
+      exercise: exercise,
+      rest_seconds: isDist ? 0 : 90,
+      lastPerformance: lastPerf,
+      sets: initialSets,
     };
     setWorkoutExercises((prev) => [...prev, newEx]);
     setIsSelectingExercise(false);
@@ -552,9 +628,39 @@ export default function LiveWorkoutLogger({
                       </button>
                     </div>
 
-                    <h4 className="text-base font-bold text-slate-900">
-                      {item.exercise.name || item.exercise.name_es}
-                    </h4>
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <h4 className="text-base font-bold text-slate-900 truncate">
+                        {item.exercise.name || item.exercise.name_es}
+                      </h4>
+
+                      {/* Last Performance Reference Badge */}
+                      {(() => {
+                        const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts);
+                        if (!lastPerf || !lastPerf.sets || lastPerf.sets.length === 0) return null;
+                        const s0 = lastPerf.sets[0];
+                        let summaryText = '';
+                        if (s0.weight_kg) summaryText += `${s0.weight_kg}kg`;
+                        if (s0.reps) summaryText += `${summaryText ? ' × ' : ''}${s0.reps}`;
+                        if (s0.duration_seconds) summaryText += `${summaryText ? ' • ' : ''}${Math.floor(s0.duration_seconds / 60)}:${String(s0.duration_seconds % 60).padStart(2, '0')}m`;
+                        if (s0.distance_meters) summaryText += `${summaryText ? ' • ' : ''}${(s0.distance_meters / 1000).toFixed(1)}km`;
+
+                        return (
+                          <span className="text-[11px] font-mono bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md border border-indigo-100/80 flex items-center gap-1 shrink-0" title="Last performance reference">
+                            <span>Last: {summaryText} ({lastPerf.dateStr})</span>
+                          </span>
+                        );
+                      })()}
+
+                      {/* Info / History Button */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedExerciseForHistory(item.exercise)}
+                        className="p-1 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors shrink-0"
+                        title="Open Exercise History & Analytics"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2.5 flex-wrap">
@@ -863,6 +969,16 @@ export default function LiveWorkoutLogger({
             </form>
           </Card>
         </div>
+      )}
+
+      {/* Exercise History Modal triggerable directly from Live Workout Logger */}
+      {selectedExerciseForHistory && (
+        <ExerciseLibrary
+          exercises={exercises}
+          workouts={workouts}
+          initialSelectedHistoryExercise={selectedExerciseForHistory}
+          onCloseHistoryModal={() => setSelectedExerciseForHistory(null)}
+        />
       )}
         </>
       )}
