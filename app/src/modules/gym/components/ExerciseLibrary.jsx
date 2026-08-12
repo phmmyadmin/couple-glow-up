@@ -30,6 +30,17 @@ const EQUIPMENT_TYPES = [
   { id: 'other', label: '📦 Other' },
 ];
 
+function formatChartVal(val, isVolume, exType) {
+  if (isVolume) {
+    if (exType === 'distance_duration') return `${val.toFixed(1)}km`;
+    if (val >= 1000) return `${(val / 1000).toFixed(1)}k kg`;
+    return `${Math.round(val)}kg`;
+  }
+  if (exType === 'distance_duration') return `${val.toFixed(1)}km/h`;
+  if (exType === 'duration_only') return `${val}s`;
+  return `${val}kg`;
+}
+
 export default function ExerciseLibrary({
   exercises,
   workouts = [],
@@ -156,12 +167,12 @@ export default function ExerciseLibrary({
     const historySessions = [];
     const chartPoints = [];
 
-    // Reverse workouts chronological order for chart
-    const chronWorkouts = [...workouts].sort(
-      (a, b) => new Date(a.started_at) - new Date(b.started_at)
+    // Sort workouts newest to oldest so latest session is first
+    const sortedWorkouts = [...workouts].sort(
+      (a, b) => new Date(b.started_at) - new Date(a.started_at)
     );
 
-    chronWorkouts.forEach((w) => {
+    sortedWorkouts.forEach((w) => {
       const sets = w.workout_sets || [];
       const exSets = sets.filter(
         (s) =>
@@ -177,6 +188,8 @@ export default function ExerciseLibrary({
         let sessionPeakSpeed = 0;
         let sessionMaxDuration = 0;
         let sessionMaxReps = 0;
+        let sessionTotalVolumeKg = 0;
+        let sessionTotalDistKm = 0;
 
         exSets.forEach((s) => {
           const wKg = parseFloat(s.weight_kg) || 0;
@@ -184,11 +197,14 @@ export default function ExerciseLibrary({
           const distM = parseFloat(s.distance_meters) || (parseFloat(s.distance_km) * 1000) || 0;
           const durS = parseInt(s.duration_seconds, 10) || 0;
 
+          sessionTotalVolumeKg += wKg * reps;
+
           if (wKg > sessionMaxWeight) sessionMaxWeight = wKg;
           if (reps > sessionMaxReps) sessionMaxReps = reps;
           if (durS > sessionMaxDuration) sessionMaxDuration = durS;
 
           const distKm = distM / 1000;
+          sessionTotalDistKm += distKm;
           if (distKm > sessionMaxDist) sessionMaxDist = distKm;
 
           if (distKm > 0 && durS > 0) {
@@ -215,19 +231,22 @@ export default function ExerciseLibrary({
           peakSpeed: sessionPeakSpeed,
           maxDuration: sessionMaxDuration,
           maxReps: sessionMaxReps,
+          totalVolumeKg: sessionTotalVolumeKg,
+          totalDistKm: sessionTotalDistKm,
           sets: exSets,
         });
 
         const valForChart = isDist ? sessionPeakSpeed : isDur ? sessionMaxDuration : isReps ? sessionMaxReps : sessionPeak1RM;
-        if (valForChart > 0) {
-          chartPoints.push({
-            date: new Date(w.started_at).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-            }),
-            val1RM: parseFloat(valForChart.toFixed(1)),
-          });
-        }
+        const volumeForChart = isDist ? sessionTotalDistKm : isDur ? sessionMaxDuration : isReps ? sessionMaxReps : sessionTotalVolumeKg;
+
+        chartPoints.push({
+          date: new Date(w.started_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          }),
+          val1RM: parseFloat(valForChart.toFixed(1)),
+          valVolume: parseFloat(volumeForChart.toFixed(1)),
+        });
       }
     });
 
@@ -239,7 +258,7 @@ export default function ExerciseLibrary({
     const overallMaxReps = Math.max(...historySessions.map((s) => s.maxReps), 0);
 
     return {
-      historySessions: historySessions.reverse(),
+      historySessions,
       maxWeight: overallMaxWeight,
       peak1RM: overallPeak1RM,
       maxDistanceKm: overallMaxDist,
@@ -638,12 +657,12 @@ export default function ExerciseLibrary({
                 </div>
               </div>
 
-              {/* SVG Progression Chart with Metric Toggle */}
+              {/* SVG Progression Chart with Metric Toggle (Light Theme) */}
               {hasHistory && exData.chartPoints.length > 0 && (
-                <div className="bg-slate-900 text-white rounded-2xl p-4 space-y-3 shadow-inner">
+                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 space-y-3 shadow-2xs">
                   <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
-                    <span className="font-bold flex items-center gap-1.5 text-indigo-400">
-                      <TrendingUp className="w-4 h-4" />
+                    <span className="font-bold flex items-center gap-1.5 text-indigo-700">
+                      <TrendingUp className="w-4 h-4 text-indigo-600" />
                       <span>
                         {activeMetric === 'volume'
                           ? exData.exType === 'distance_duration'
@@ -660,12 +679,12 @@ export default function ExerciseLibrary({
                     </span>
 
                     {/* Metric Toggle Buttons */}
-                    <div className="flex items-center bg-slate-800 p-0.5 rounded-lg text-[10px] font-bold border border-slate-700">
+                    <div className="flex items-center bg-slate-200/70 p-0.5 rounded-xl border border-slate-300/60 text-[10px] font-bold">
                       <button
                         type="button"
                         onClick={() => setChartMetric('max')}
-                        className={`px-2.5 py-1 rounded-md transition-all ${
-                          activeMetric === 'max' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-400 hover:text-slate-200'
+                        className={`px-2.5 py-1 rounded-lg transition-all ${
+                          activeMetric === 'max' ? 'bg-indigo-600 text-white font-extrabold shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
                         {exData.exType === 'distance_duration' ? 'Speed' : '1RM / Max'}
@@ -673,8 +692,8 @@ export default function ExerciseLibrary({
                       <button
                         type="button"
                         onClick={() => setChartMetric('volume')}
-                        className={`px-2.5 py-1 rounded-md transition-all ${
-                          activeMetric === 'volume' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-400 hover:text-slate-200'
+                        className={`px-2.5 py-1 rounded-lg transition-all ${
+                          activeMetric === 'volume' ? 'bg-indigo-600 text-white font-extrabold shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
                         Volume
@@ -683,51 +702,85 @@ export default function ExerciseLibrary({
                   </div>
 
                   <div className="overflow-x-auto scrollbar-thin pb-2 pt-1">
-                    <svg className="h-40 overflow-visible" style={{ width: `${svgWidth}px` }} viewBox={`0 0 ${svgWidth} 150`}>
+                    <svg className="h-44 overflow-visible" style={{ width: `${svgWidth}px` }} viewBox={`0 0 ${svgWidth} 160`}>
+                      <defs>
+                        <linearGradient id="lightChartGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" stopOpacity="0.22" />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+
                       {/* Grid Lines */}
-                      <line x1="20" y1="30" x2={svgWidth - 20} y2="30" stroke="#334155" strokeDasharray="3 3" strokeWidth="1" />
-                      <line x1="20" y1="75" x2={svgWidth - 20} y2="75" stroke="#334155" strokeDasharray="3 3" strokeWidth="1" />
-                      <line x1="20" y1="120" x2={svgWidth - 20} y2="120" stroke="#334155" strokeDasharray="3 3" strokeWidth="1" />
+                      <line x1="20" y1="30" x2={svgWidth - 20} y2="30" stroke="#e2e8f0" strokeDasharray="4 4" strokeWidth="1" />
+                      <line x1="20" y1="75" x2={svgWidth - 20} y2="75" stroke="#e2e8f0" strokeDasharray="4 4" strokeWidth="1" />
+                      <line x1="20" y1="120" x2={svgWidth - 20} y2="120" stroke="#e2e8f0" strokeDasharray="4 4" strokeWidth="1" />
+
+                      {/* Area Fill */}
+                      {areaPathStr && <path d={areaPathStr} fill="url(#lightChartGrad)" />}
 
                       {/* SVG Line */}
                       {svgPathStr && (
                         <path
                           d={svgPathStr}
                           fill="none"
-                          stroke="#6366f1"
-                          strokeWidth="3"
+                          stroke="#4f46e5"
+                          strokeWidth="3.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
                       )}
 
                       {/* SVG Data Points */}
-                      {points.map((pt, idx) => (
-                        <g key={idx}>
-                          <circle cx={pt.x} cy={pt.y} r="5" fill="#818cf8" stroke="#ffffff" strokeWidth="2" />
-                          <text
-                            x={pt.x}
-                            y={pt.y - 9}
-                            textAnchor="middle"
-                            fill="#cbd5e1"
-                            fontSize="10"
-                            fontWeight="bold"
-                            fontFamily="monospace"
-                          >
-                            {pt.targetVal}{activeMetric === 'volume' ? (exData.exType === 'distance_duration' ? 'km' : 'kg') : (exData.exType === 'distance_duration' ? 'km/h' : exData.exType === 'duration_only' ? 's' : 'kg')}
-                          </text>
-                          <text
-                            x={pt.x}
-                            y={142}
-                            textAnchor="middle"
-                            fill="#64748b"
-                            fontSize="9"
-                            fontWeight="600"
-                          >
-                            {pt.date}
-                          </text>
-                        </g>
-                      ))}
+                      {points.map((pt, idx) => {
+                        const formattedVal = formatChartVal(pt.targetVal, activeMetric === 'volume', exData.exType);
+                        const isLatest = idx === 0;
+
+                        return (
+                          <g key={idx}>
+                            <circle
+                              cx={pt.x}
+                              cy={pt.y}
+                              r={isLatest ? '5.5' : '4.5'}
+                              fill={isLatest ? '#4f46e5' : '#6366f1'}
+                              stroke="#ffffff"
+                              strokeWidth="2.5"
+                            />
+                            <text
+                              x={pt.x}
+                              y={pt.y - 10}
+                              textAnchor="middle"
+                              fill="#1e293b"
+                              fontSize={isLatest ? '10.5' : '10'}
+                              fontWeight={isLatest ? '800' : '700'}
+                              fontFamily="monospace"
+                            >
+                              {formattedVal}
+                            </text>
+                            <text
+                              x={pt.x}
+                              y={142}
+                              textAnchor="middle"
+                              fill={isLatest ? '#4f46e5' : '#64748b'}
+                              fontSize="9.5"
+                              fontWeight={isLatest ? '800' : '600'}
+                            >
+                              {pt.date}
+                            </text>
+                            {isLatest && (
+                              <text
+                                x={pt.x}
+                                y={153}
+                                textAnchor="middle"
+                                fill="#4f46e5"
+                                fontSize="8"
+                                fontWeight="800"
+                              >
+                                • Latest
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })}
                     </svg>
                   </div>
                 </div>
