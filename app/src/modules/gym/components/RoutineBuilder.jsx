@@ -234,9 +234,11 @@ export default function RoutineBuilder({
 
               {selectedExercises.map((item, exIdx) => {
                 const exName = item.exercise?.name || item.exercise?.name_es || item.title || item.name || 'Exercise';
-                const exType = item.exercise?.exercise_type || 'weight_reps';
-                const isRepsOnly = exType === 'reps_only';
+                const matchedCatalogEx = exercises.find((e) => e.id === item.exercise_id || e.id === item.exercise?.id || (e.name && e.name.toLowerCase().trim() === exName.toLowerCase().trim()));
+                const exType = item.exercise?.exercise_type || matchedCatalogEx?.exercise_type || 'weight_reps';
+                const isDistanceDuration = exType === 'distance_duration';
                 const isDurationOnly = exType === 'duration_only';
+                const isRepsOnly = exType === 'reps_only' || exType === 'bodyweight_reps';
 
                 return (
                   <div
@@ -286,8 +288,8 @@ export default function RoutineBuilder({
                       <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
                         <span className="col-span-2 text-center">SET</span>
                         <span className="col-span-3 text-center">TYPE</span>
-                        <span className="col-span-3 text-center">{isDurationOnly ? 'SEC' : 'KG'}</span>
-                        <span className="col-span-3 text-center">REPS</span>
+                        <span className="col-span-3 text-center">{isDistanceDuration ? 'KM' : isDurationOnly ? 'TIME' : 'KG'}</span>
+                        <span className="col-span-3 text-center">{isDistanceDuration ? 'TIME' : isDurationOnly ? '-' : 'REPS'}</span>
                         <span className="col-span-1"></span>
                       </div>
 
@@ -321,43 +323,71 @@ export default function RoutineBuilder({
                             </div>
                           </div>
 
-                          {/* Weight (KG) / Duration */}
+                          {/* Weight (KG) / Distance (KM) */}
                           <div className="col-span-3">
-                            <input
-                              type="number"
-                              step="any"
-                              placeholder={isRepsOnly ? '-' : '0'}
-                              disabled={isRepsOnly}
-                              value={s.weight_kg !== undefined && s.weight_kg !== null ? s.weight_kg : ''}
-                              onChange={(e) =>
-                                handleUpdateSetField(
-                                  exIdx,
-                                  setIdx,
-                                  'weight_kg',
-                                  e.target.value === '' ? '' : parseFloat(e.target.value) || 0
-                                )
-                              }
-                              className="w-full py-1 px-2 text-xs text-center font-mono font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-400"
-                            />
+                            {isDistanceDuration ? (
+                              <input
+                                type="number"
+                                step="any"
+                                placeholder="0.0"
+                                value={s.distance_km !== undefined && s.distance_km !== null ? s.distance_km : s.distance_meters ? (s.distance_meters / 1000) : ''}
+                                onChange={(e) => {
+                                  const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                                  handleUpdateSetField(exIdx, setIdx, 'distance_km', val);
+                                  handleUpdateSetField(exIdx, setIdx, 'distance_meters', val ? val * 1000 : null);
+                                }}
+                                className="w-full py-1 px-2 text-xs text-center font-mono font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              />
+                            ) : (
+                              <input
+                                type="number"
+                                step="any"
+                                placeholder={isRepsOnly ? '-' : '0'}
+                                disabled={isRepsOnly}
+                                value={s.weight_kg !== undefined && s.weight_kg !== null ? s.weight_kg : ''}
+                                onChange={(e) =>
+                                  handleUpdateSetField(
+                                    exIdx,
+                                    setIdx,
+                                    'weight_kg',
+                                    e.target.value === '' ? '' : parseFloat(e.target.value) || 0
+                                  )
+                                }
+                                className="w-full py-1 px-2 text-xs text-center font-mono font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-400"
+                              />
+                            )}
                           </div>
 
-                          {/* Reps */}
+                          {/* Reps / Time (MM:SS) */}
                           <div className="col-span-3">
-                            <input
-                              type="number"
-                              placeholder={isDurationOnly ? '-' : '10'}
-                              disabled={isDurationOnly}
-                              value={s.reps !== undefined && s.reps !== null ? s.reps : ''}
-                              onChange={(e) =>
-                                handleUpdateSetField(
-                                  exIdx,
-                                  setIdx,
-                                  'reps',
-                                  e.target.value === '' ? '' : parseInt(e.target.value, 10) || 0
-                                )
-                              }
-                              className="w-full py-1 px-2 text-xs text-center font-mono font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-400"
-                            />
+                            {isDistanceDuration || isDurationOnly ? (
+                              <input
+                                type="text"
+                                placeholder="20:00"
+                                value={s.duration_mmss !== undefined ? s.duration_mmss : (s.duration_seconds ? `${Math.floor(s.duration_seconds / 60)}:${String(s.duration_seconds % 60).padStart(2, '0')}` : '')}
+                                onChange={(e) => {
+                                  const textVal = e.target.value;
+                                  handleUpdateSetField(exIdx, setIdx, 'duration_mmss', textVal);
+                                }}
+                                className="w-full py-1 px-2 text-xs text-center font-mono font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              />
+                            ) : (
+                              <input
+                                type="number"
+                                placeholder={isDurationOnly ? '-' : '10'}
+                                disabled={isDurationOnly}
+                                value={s.reps !== undefined && s.reps !== null ? s.reps : ''}
+                                onChange={(e) =>
+                                  handleUpdateSetField(
+                                    exIdx,
+                                    setIdx,
+                                    'reps',
+                                    e.target.value === '' ? '' : parseInt(e.target.value, 10) || 0
+                                  )
+                                }
+                                className="w-full py-1 px-2 text-xs text-center font-mono font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-400"
+                              />
+                            )}
                           </div>
 
                           {/* Remove Set Button */}

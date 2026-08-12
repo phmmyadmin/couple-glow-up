@@ -110,26 +110,47 @@ export default function LiveWorkoutLogger({
       setWorkoutName(initialRoutine.name || 'Workout of the Day');
 
       const formattedEx = rawExercises.map((item, idx) => {
-        let matchedEx = item.exercise;
-        if (!matchedEx && item.exercise_id) {
-          matchedEx = exercises?.find((e) => e.id === item.exercise_id);
+        let matchedEx = null;
+
+        // 1. Try matching by exercise_id
+        if (item.exercise_id || item.exercise?.id) {
+          const exId = item.exercise_id || item.exercise?.id;
+          matchedEx = exercises?.find((e) => e.id === exId);
         }
-        if (!matchedEx && (item.exercise_title || item.title || item.name || item.es_title)) {
-          const t = (item.exercise_title || item.title || item.name || item.es_title).toLowerCase().trim();
-          matchedEx = exercises?.find(
-            (e) => e.name?.toLowerCase().trim() === t || e.name_es?.toLowerCase().trim() === t
-          );
-        }
+
+        // 2. Try matching by name / name_es
         if (!matchedEx) {
-          matchedEx = {
-            id: item.exercise_id || `ex-${idx}`,
-            name: item.exercise_title || item.title || item.name || item.es_title || 'Exercise',
-            name_es: item.es_title || item.exercise_title || item.title || item.name || 'Ejercicio',
-            muscle_group: item.muscle_group || 'other',
-            exercise_type: item.exercise_type || 'weight_reps',
-            equipment_category: item.equipment_category || 'dumbbell',
-          };
+          const targetName = (
+            item.exercise?.name ||
+            item.exercise?.name_es ||
+            item.exercise_title ||
+            item.title ||
+            item.name ||
+            item.es_title ||
+            ''
+          )
+            .toLowerCase()
+            .trim();
+
+          if (targetName) {
+            matchedEx = exercises?.find(
+              (e) =>
+                (e.name && e.name.toLowerCase().trim() === targetName) ||
+                (e.name_es && e.name_es.toLowerCase().trim() === targetName)
+            );
+          }
         }
+
+        const finalExercise = matchedEx
+          ? { ...(item.exercise || {}), ...matchedEx }
+          : item.exercise || {
+              id: item.exercise_id || `ex-${idx}`,
+              name: item.exercise_title || item.title || item.name || item.es_title || 'Exercise',
+              name_es: item.es_title || item.exercise_title || item.title || item.name || 'Ejercicio',
+              muscle_group: item.muscle_group || 'other',
+              exercise_type: item.exercise_type || 'weight_reps',
+              equipment_category: item.equipment_category || 'dumbbell',
+            };
 
         let initialSets = [];
         if (Array.isArray(item.sets) && item.sets.length > 0) {
@@ -140,23 +161,30 @@ export default function LiveWorkoutLogger({
             reps: s.reps !== undefined && s.reps !== null ? s.reps : '',
             duration_seconds: s.duration_seconds || null,
             distance_meters: s.distance_meters || null,
+            distance_km: s.distance_km !== undefined ? s.distance_km : (s.distance_meters ? s.distance_meters / 1000 : null),
             is_checked: false,
           }));
         } else {
           const targetSetsCount = parseInt(item.target_sets, 10) || 3;
+          const isDist = finalExercise.exercise_type === 'distance_duration';
+          const isDur = finalExercise.exercise_type === 'duration_only';
+
           initialSets = Array.from({ length: targetSetsCount }).map((_, setIdx) => ({
             id: `${Date.now()}-${idx}-${setIdx}`,
             indicator: 'normal',
-            weight_kg: item.target_weight || '',
-            reps: item.target_reps || 10,
+            weight_kg: isDist || isDur ? '' : (item.target_weight || ''),
+            reps: isDist || isDur ? '' : (item.target_reps || 10),
+            duration_seconds: isDist ? 1200 : isDur ? 60 : null,
+            distance_meters: isDist ? 5000 : null,
+            distance_km: isDist ? 5 : null,
             is_checked: false,
           }));
         }
 
         return {
-          id: `${Date.now()}-${idx}`,
-          exercise: matchedEx,
-          rest_seconds: item.rest_seconds || 90,
+          exercise_id: finalExercise.id,
+          exercise: finalExercise,
+          rest_seconds: item.rest_seconds !== undefined ? item.rest_seconds : 90,
           sets: initialSets,
         };
       });
