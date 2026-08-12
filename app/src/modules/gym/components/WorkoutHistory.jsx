@@ -18,6 +18,14 @@ export default function WorkoutHistory({
   React.useEffect(() => {
     if (initialExpandedWorkoutId) {
       setExpandedWorkoutId(initialExpandedWorkoutId);
+      setSearchFilter('');
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`workout-card-${initialExpandedWorkoutId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
     }
   }, [initialExpandedWorkoutId]);
 
@@ -131,7 +139,10 @@ export default function WorkoutHistory({
             return (
               <Card
                 key={workout.id}
-                className="p-5 sm:p-6 space-y-4 cursor-pointer hover:border-indigo-200 shadow-sm"
+                id={`workout-card-${workout.id}`}
+                className={`p-5 sm:p-6 space-y-4 cursor-pointer transition-all ${
+                  isExpanded ? 'border-l-4 border-indigo-600 ring-2 ring-indigo-500/20 shadow-md' : 'hover:border-indigo-200 shadow-sm'
+                }`}
                 onClick={() => toggleExpand(workout.id)}
               >
                 <div className="flex items-start justify-between gap-3">

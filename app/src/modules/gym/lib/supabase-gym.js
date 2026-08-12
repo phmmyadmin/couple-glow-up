@@ -19,13 +19,24 @@ export async function fetchExercisesFromSupabase() {
 export async function saveExerciseToSupabase(exercise) {
   if (!supabase) return null;
   try {
-    const { data, error } = await supabase
-      .from('exercises')
-      .insert(exercise)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
+    if (exercise.id) {
+      const { data, error } = await supabase
+        .from('exercises')
+        .update(exercise)
+        .eq('id', exercise.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } else {
+      const { data, error } = await supabase
+        .from('exercises')
+        .insert(exercise)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
   } catch (err) {
     console.error('Error saving exercise:', err);
     return null;

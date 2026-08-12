@@ -261,6 +261,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
           workouts={workouts}
           personalRecords={personalRecords}
           onAddCustomExercise={handleAddCustomExercise}
+          onEditExercise={handleEditExercise}
           onGoToWorkout={handleGoToWorkout}
         />
       )}
