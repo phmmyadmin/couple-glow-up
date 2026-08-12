@@ -8,7 +8,7 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
   const [productNameInput, setProductNameInput] = useState('');
   const [selectedMarketId, setSelectedMarketId] = useState(markets[0]?.id || '');
   const [priceInput, setPriceInput] = useState('');
-  const [currencyInput, setCurrencyInput] = useState('EUR');
+  const [currencyInput, setCurrencyInput] = useState('PHP');
   const [unitInput, setUnitInput] = useState('kg');
 
   // Editing state
@@ -35,7 +35,7 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
     setProductNameInput(p.product_name || p.products?.name || '');
     setSelectedMarketId(p.market_id);
     setPriceInput(p.price.toString());
-    setCurrencyInput(p.currency || 'EUR');
+    setCurrencyInput(p.currency || 'PHP');
     setUnitInput(p.unit || 'kg');
   };
 
@@ -124,8 +124,8 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
                 onChange={(e) => setCurrencyInput(e.target.value)}
                 className="w-28 font-bold"
               >
-                <option value="EUR">€ EUR</option>
                 <option value="PHP">₱ PHP</option>
+                <option value="EUR">€ EUR</option>
                 <option value="USD">$ USD</option>
               </Select>
 

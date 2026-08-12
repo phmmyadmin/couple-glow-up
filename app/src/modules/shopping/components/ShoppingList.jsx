@@ -38,7 +38,7 @@ export default function ShoppingList({
   const [inspectingItem, setInspectingItem] = useState(null);
   const [modalMarketId, setModalMarketId] = useState(markets[0]?.id || '');
   const [modalPriceInput, setModalPriceInput] = useState('');
-  const [modalCurrencyInput, setModalCurrencyInput] = useState('EUR');
+  const [modalCurrencyInput, setModalCurrencyInput] = useState('PHP');
   const [modalUnitInput, setModalUnitInput] = useState('kg');
   const [editingModalPriceId, setEditingModalPriceId] = useState(null);
 
@@ -105,7 +105,7 @@ export default function ShoppingList({
     setEditingModalPriceId(p.id);
     setModalMarketId(p.market_id);
     setModalPriceInput(p.price.toString());
-    setModalCurrencyInput(p.currency || 'EUR');
+    setModalCurrencyInput(p.currency || 'PHP');
     setModalUnitInput(p.unit || 'kg');
   };
 
@@ -472,8 +472,8 @@ export default function ShoppingList({
                   onChange={(e) => setModalCurrencyInput(e.target.value)}
                   className="w-24 font-bold"
                 >
-                  <option value="EUR">€ EUR</option>
                   <option value="PHP">₱ PHP</option>
+                  <option value="EUR">€ EUR</option>
                   <option value="USD">$ USD</option>
                 </Select>
 
