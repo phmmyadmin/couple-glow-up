@@ -38,13 +38,26 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
   // New custom exercise state
   const [customName, setCustomName] = useState('');
   const [customMuscle, setCustomMuscle] = useState('chest');
+  const [customSecondaryMuscles, setCustomSecondaryMuscles] = useState([]);
   const [customType, setCustomType] = useState('weight_reps');
   const [customEquipment, setCustomEquipment] = useState('dumbbell');
+
+  // Parse other_muscles whether it comes as array or JSON string
+  const parseOtherMuscles = (e) => {
+    const raw = e.other_muscles;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try { return JSON.parse(raw); } catch { return []; }
+  };
 
   const filteredExercises = exercises.filter((e) => {
     const matchesSearch =
       (e.name || e.name_es || '').toLowerCase().includes(search.toLowerCase());
-    const matchesMuscle = selectedMuscle === 'all' || e.muscle_group === selectedMuscle;
+    const secondaries = parseOtherMuscles(e);
+    const matchesMuscle =
+      selectedMuscle === 'all' ||
+      e.muscle_group === selectedMuscle ||
+      secondaries.includes(selectedMuscle);
 
     const eqLower = (e.equipment_category || e.equipment || '').toLowerCase();
     const matchesEquipment =
@@ -64,6 +77,7 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
         name: customName.trim(),
         name_es: customName.trim(),
         muscle_group: customMuscle,
+        other_muscles: customSecondaryMuscles,
         exercise_type: customType,
         equipment_category: customEquipment,
         is_custom: true,
@@ -71,7 +85,16 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
     }
 
     setCustomName('');
+    setCustomSecondaryMuscles([]);
     setIsModalOpen(false);
+  };
+
+  const toggleSecondaryMuscle = (muscleId) => {
+    if (customSecondaryMuscles.includes(muscleId)) {
+      setCustomSecondaryMuscles(customSecondaryMuscles.filter((id) => id !== muscleId));
+    } else {
+      setCustomSecondaryMuscles([...customSecondaryMuscles, muscleId]);
+    }
   };
 
   return (
@@ -156,6 +179,8 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
                   ? 'Distance & Time'
                   : 'Duration';
 
+              const secondaryList = parseOtherMuscles(exercise);
+
               return (
                 <Card
                   key={exercise.id || exercise.name}
@@ -167,15 +192,32 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0">
                       <Dumbbell className="w-6 h-6" />
                     </div>
-                    <div className="space-y-0.5 min-w-0">
+                    <div className="space-y-1 min-w-0">
                       <h4 className="text-base font-bold text-slate-900 truncate">
                         {exercise.name || exercise.name_es}
                       </h4>
-                      <p className="text-xs text-slate-500 font-medium capitalize flex items-center gap-2">
-                        <span>{exercise.muscle_group}</span>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 font-medium">
+                        <span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md capitalize border border-indigo-100">
+                          {exercise.muscle_group}
+                        </span>
+
+                        {secondaryList.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400 font-bold">+</span>
+                            {secondaryList.map((sec) => (
+                              <span
+                                key={sec}
+                                className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[11px] font-semibold capitalize border border-slate-200/60"
+                              >
+                                {sec}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
                         <span className="text-slate-300">•</span>
                         <span className="text-indigo-600 font-mono font-semibold">{typeLabel}</span>
-                      </p>
+                      </div>
                     </div>
                   </div>
 
@@ -192,7 +234,7 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
       {/* New Exercise Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="max-w-md w-full p-6 sm:p-7 space-y-5 shadow-xl border border-slate-200">
+          <Card className="max-w-md w-full p-6 sm:p-7 space-y-5 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-slate-900">Create Custom Exercise</h3>
 
             <form onSubmit={handleCreateCustom} className="space-y-4">
@@ -206,9 +248,12 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Select
-                  label="Muscle Group"
+                  label="Primary Muscle"
                   value={customMuscle}
-                  onChange={(e) => setCustomMuscle(e.target.value)}
+                  onChange={(e) => {
+                    setCustomMuscle(e.target.value);
+                    setCustomSecondaryMuscles((prev) => prev.filter((m) => m !== e.target.value));
+                  }}
                 >
                   {MUSCLE_GROUPS.filter((m) => m.id !== 'all').map((m) => (
                     <option key={m.id} value={m.id}>
@@ -228,6 +273,32 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
                     </option>
                   ))}
                 </Select>
+              </div>
+
+              {/* Secondary Muscle Matrix Multi-select */}
+              <div className="space-y-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700">
+                  Secondary Muscles (Optional)
+                </label>
+                <div className="flex flex-wrap gap-1.5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                  {MUSCLE_GROUPS.filter((m) => m.id !== 'all' && m.id !== customMuscle).map((m) => {
+                    const isSelected = customSecondaryMuscles.includes(m.id);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => toggleSecondaryMuscle(m.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {isSelected ? `✓ ${m.label}` : m.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <Select
