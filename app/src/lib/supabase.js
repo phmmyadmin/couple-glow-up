@@ -62,9 +62,9 @@ export async function fetchDailyLogsFromSupabase(profileId) {
       .order('date', { ascending: true });
 
     const formattedLogs = (logs || []).map(l => {
-      // Sort intakes by created_at ascending
+      // Sort intakes by created_at descending (newest first)
       const rawIntakes = [...(l.intakes || [])].sort((a, b) => 
-        (a.created_at || '').localeCompare(b.created_at || '')
+        (b.created_at || b.time || '').localeCompare(a.created_at || a.time || '')
       );
 
       return {

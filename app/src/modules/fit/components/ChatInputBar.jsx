@@ -97,13 +97,8 @@ export default function ChatInputBar({ onSendFood, isLoading }) {
 
       <style>{`
         .chat-bar-container {
-          position: fixed;
-          bottom: 5.75rem;
-          left: 50%;
-          transform: translateX(-50%);
-          width: calc(100% - 2rem);
-          max-width: 640px;
-          z-index: 30;
+          width: 100%;
+          margin: 0 auto;
         }
 
         .chat-bar-form {

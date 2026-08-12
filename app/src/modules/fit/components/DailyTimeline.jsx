@@ -79,9 +79,12 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
     return item.name;
   };
 
+  // Reverse groupedMeals so newest logged intakes appear at top
+  const sortedGroupedMeals = [...groupedMeals].reverse();
+
   return (
     <div className="space-y-6 sm:space-y-7 my-4">
-      {groupedMeals.map((meal, mealIdx) => {
+      {sortedGroupedMeals.map((meal, mealIdx) => {
         const groupTotalCalories = meal.items.reduce(
           (sum, item) => sum + (item.macros?.calories || 0),
           0

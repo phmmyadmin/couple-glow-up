@@ -145,6 +145,17 @@ export default function FitApp({
             targets={targetMacros}
           />
 
+          {/* Chat Input Bar - Fixed right below Macro Ring */}
+          <ChatInputBar
+            selectedDate={selectedDate}
+            data={data}
+            setData={setData}
+            activeProfileId={activeProfile?.id}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+            setToastMessage={setToastMessage}
+          />
+
           {/* Daily Timeline */}
           <DailyTimeline
             selectedDate={selectedDate}
@@ -157,17 +168,6 @@ export default function FitApp({
               setEditingItem(item);
               setEditingIndex(index);
             }}
-          />
-
-          {/* Chat Input Bar */}
-          <ChatInputBar
-            selectedDate={selectedDate}
-            data={data}
-            setData={setData}
-            activeProfileId={activeProfile?.id}
-            isLoading={isLoading}
-            setIsLoading={setIsLoading}
-            setToastMessage={setToastMessage}
           />
         </div>
       )}
