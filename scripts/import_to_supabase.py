@@ -81,9 +81,15 @@ def import_to_supabase(json_file="data/hevy_workouts.json"):
         started_at = format_iso_timestamp(w.get("start_time") or w.get("started_at") or w.get("created_at"))
         finished_at = format_iso_timestamp(w.get("end_time") or w.get("finished_at") or w.get("completed_at")) or started_at
         
-        duration_mins = w.get("duration_minutes") or w.get("duration") or 30
-        if isinstance(duration_mins, int) and duration_mins > 600:
+        st_num = w.get("start_time")
+        et_num = w.get("end_time")
+        duration_mins = w.get("duration_minutes") or w.get("duration")
+        if not duration_mins and isinstance(st_num, (int, float)) and isinstance(et_num, (int, float)) and et_num > st_num:
+            duration_mins = round((et_num - st_num) / 60)
+        elif duration_mins and isinstance(duration_mins, int) and duration_mins > 600:
             duration_mins = max(1, round(duration_mins / 60))
+        if not duration_mins:
+            duration_mins = 30
 
         est_vol = w.get("estimated_volume_kg") or w.get("volume_kg") or 0
 

@@ -88,9 +88,13 @@ def convert_hevy_json_to_sql(input_json="data/hevy_workouts.json", output_sql="d
         started_at = workout.get("start_time") or workout.get("started_at") or workout.get("created_at") or "now()"
         finished_at = workout.get("end_time") or workout.get("finished_at") or workout.get("completed_at") or started_at
         
-        duration_mins = workout.get("duration_minutes") or workout.get("duration") or 30
-        if duration_mins and isinstance(duration_mins, int) and duration_mins > 600:
+        duration_mins = workout.get("duration_minutes") or workout.get("duration")
+        if not duration_mins and isinstance(started_at, (int, float)) and isinstance(finished_at, (int, float)) and finished_at > started_at:
+            duration_mins = round((finished_at - started_at) / 60)
+        elif duration_mins and isinstance(duration_mins, int) and duration_mins > 600:
             duration_mins = max(1, round(duration_mins / 60))
+        if not duration_mins:
+            duration_mins = 30
 
         estimated_vol = workout.get("estimated_volume_kg") or workout.get("volume_kg") or 0
 
