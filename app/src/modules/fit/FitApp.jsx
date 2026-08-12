@@ -51,9 +51,9 @@ export default function FitApp({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Date & Sub-navigation bar in exact original Fit-tracker style */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-2">
+    <div className="space-y-6 sm:space-y-7">
+      {/* Date & Sub-navigation bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-3">
         {/* Date Selector */}
         <div className="date-selector w-full sm:w-auto justify-between sm:justify-start">
           <button
@@ -90,9 +90,9 @@ export default function FitApp({
         <div className="flex-1 w-full">
           <Tabs
             items={[
-              { id: 'dashboard', label: t('nav.diary', 'Diario'), icon: LayoutDashboard },
-              { id: 'report', label: t('nav.report', 'Reporte & Progreso'), icon: LineChart },
-              { id: 'profile', label: t('nav.profile', 'Perfil'), icon: User },
+              { id: 'dashboard', label: t('nav.diary', 'Diary'), icon: LayoutDashboard },
+              { id: 'report', label: t('nav.report', 'Report & Progress'), icon: LineChart },
+              { id: 'profile', label: t('nav.profile', 'Profile'), icon: User },
             ]}
             activeTab={fitTab}
             onChange={setFitTab}
@@ -102,7 +102,7 @@ export default function FitApp({
 
       {/* Tab Content */}
       {fitTab === 'dashboard' && (
-        <>
+        <div className="space-y-6 sm:space-y-7">
           {/* Macro Rings */}
           <MacroRing
             current={{
@@ -138,7 +138,7 @@ export default function FitApp({
             setIsLoading={setIsLoading}
             setToastMessage={setToastMessage}
           />
-        </>
+        </div>
       )}
 
       {fitTab === 'report' && (

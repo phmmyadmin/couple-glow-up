@@ -11,12 +11,13 @@ i18n
   .init({
     resources: {
       es: { translation: es },
-      en: { translation: en }
+      en: { translation: en },
     },
-    fallbackLng: 'es',
+    lng: 'en',
+    fallbackLng: 'en',
     interpolation: {
-      escapeValue: false
-    }
+      escapeValue: false,
+    },
   });
 
 export default i18n;

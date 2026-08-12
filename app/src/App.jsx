@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Plus, Heart } from 'lucide-react';
+import { Plus, Heart } from 'lucide-react';
 
 import FitApp from './modules/fit/FitApp';
 import ShoppingApp from './modules/shopping/ShoppingApp';
@@ -74,6 +74,8 @@ export default function App() {
       const activeProf = currentProfiles.find((p) => p.id === currentProfileId);
       if (activeProf && activeProf.language) {
         i18n.changeLanguage(activeProf.language);
+      } else {
+        i18n.changeLanguage('en');
       }
 
       if (currentProfileId) {
@@ -97,10 +99,11 @@ export default function App() {
           setSelectedDate(getLocalDateStr());
         }
       })
-      .catch((err) => console.error('Error al cargar food_log.json', err));
+      .catch((err) => console.error('Error loading food_log.json', err));
   };
 
   useEffect(() => {
+    i18n.changeLanguage('en');
     loadData();
   }, []);
 
@@ -112,6 +115,8 @@ export default function App() {
     const targetProfile = profiles.find((p) => p.id === newProfileId);
     if (targetProfile && targetProfile.language) {
       i18n.changeLanguage(targetProfile.language);
+    } else {
+      i18n.changeLanguage('en');
     }
     setData(null);
     loadData(newProfileId);
@@ -124,7 +129,7 @@ export default function App() {
       <Toast message={toastMessage} />
 
       {/* App Header */}
-      <header className="app-header">
+      <header className="app-header mb-6 sm:mb-8">
         <div>
           <h1 className="app-title flex items-center gap-2">
             <span>Couple Glow Up</span>
@@ -132,14 +137,14 @@ export default function App() {
           </h1>
 
           {profiles.length > 0 && (
-            <div className="flex items-center gap-2 mt-1.5">
-              <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1 shadow-sm">
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm">
                 <Avatar profile={activeProfile} size="sm" />
                 <select
-                  aria-label="Seleccionar perfil activo"
+                  aria-label="Select Active Profile"
                   value={activeProfileId || ''}
                   onChange={(e) => handleProfileChange(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer pr-1"
+                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer pr-1"
                 >
                   {profiles.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -155,19 +160,19 @@ export default function App() {
                 icon={Plus}
                 onClick={() => setIsNewProfileModalOpen(true)}
               >
-                Nuevo
+                New
               </Button>
             </div>
           )}
 
-          <p className="app-subtitle mt-1">
-            {t('header.subtitle', 'Fit, Compras, Gym y Logros en Pareja')}
+          <p className="app-subtitle mt-1.5">
+            {t('header.subtitle', 'Fit, Shopping, Gym & Partner Feed')}
           </p>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="mt-4">
+      <main className="mt-6 mb-8 space-y-6 sm:space-y-7">
         {activeModule === 'feed' && (
           <FeedApp
             activeProfile={activeProfile}

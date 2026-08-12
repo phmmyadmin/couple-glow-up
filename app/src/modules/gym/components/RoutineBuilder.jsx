@@ -31,7 +31,7 @@ export default function RoutineBuilder({
 
   const handleOpenNew = () => {
     setEditingRoutine(null);
-    setRoutineName('Nueva Rutina');
+    setRoutineName('New Routine');
     setRoutineDesc('');
     setRoutineColor('#6366f1');
     setSelectedExercises([]);
@@ -105,33 +105,33 @@ export default function RoutineBuilder({
 
   if (isEditing) {
     return (
-      <Card className="space-y-4 p-5">
+      <Card className="space-y-5 p-5 sm:p-6 shadow-sm">
         <h3 className="text-base font-bold text-slate-900">
-          {editingRoutine ? 'Editar Rutina' : 'Crear Nueva Rutina'}
+          {editingRoutine ? 'Edit Routine' : 'Create New Routine'}
         </h3>
 
         <form onSubmit={handleSave} className="space-y-4">
           <Input
-            label="Nombre de la Rutina"
-            placeholder="Ej: Push Day, Full Body A..."
+            label="Routine Name"
+            placeholder="e.g., Push Day, Full Body A..."
             value={routineName}
             onChange={(e) => setRoutineName(e.target.value)}
             required
           />
 
           <Input
-            label="Descripción / Notas"
-            placeholder="Notas opcionales (ej: Enfoque en hipertrofia)"
+            label="Description / Notes"
+            placeholder="Optional notes (e.g., Hypertrophy focus)"
             value={routineDesc}
             onChange={(e) => setRoutineDesc(e.target.value)}
           />
 
           {/* Routine Color Picker */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-600">
-              Color de Etiqueta
+          <div className="space-y-2">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-700">
+              Tag Color
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {ROUTINE_COLORS.map((c) => (
                 <button
                   key={c}
@@ -149,17 +149,17 @@ export default function RoutineBuilder({
           </div>
 
           {/* Routine Exercises List */}
-          <div className="space-y-2.5 pt-2 border-t border-slate-200/80">
+          <div className="space-y-3 pt-3 border-t border-slate-200/80">
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Ejercicios Incluidos ({selectedExercises.length})
+              Included Exercises ({selectedExercises.length})
             </h4>
 
             {selectedExercises.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2 text-xs sm:text-sm"
+                className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 text-xs sm:text-sm"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     {/* Reorder Buttons */}
                     <div className="flex flex-col gap-0.5">
@@ -183,14 +183,14 @@ export default function RoutineBuilder({
 
                     <span className="font-bold text-indigo-600 font-mono">{idx + 1}.</span>
                     <span className="font-bold text-slate-900">
-                      {item.exercise?.name_es || item.exercise?.name || 'Ejercicio'}
+                      {item.exercise?.name_es || item.exercise?.name || 'Exercise'}
                     </span>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => handleRemoveExercise(idx)}
-                    aria-label="Eliminar ejercicio de la rutina"
+                    aria-label="Remove exercise from routine"
                     className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -198,9 +198,9 @@ export default function RoutineBuilder({
                 </div>
 
                 {/* Target Sets & Reps Editable Controls */}
-                <div className="flex items-center gap-3 pt-1 border-t border-slate-200/60">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-500 font-medium">Series:</span>
+                <div className="flex items-center gap-4 pt-2 border-t border-slate-200/60">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-600 font-semibold">Sets:</span>
                     <input
                       type="number"
                       min="1"
@@ -209,12 +209,12 @@ export default function RoutineBuilder({
                       onChange={(e) =>
                         handleUpdateItemField(idx, 'target_sets', parseInt(e.target.value, 10))
                       }
-                      className="w-14 px-2 py-1 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
+                      className="w-16 px-2.5 py-1.5 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
                     />
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-500 font-medium">Reps:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-600 font-semibold">Reps:</span>
                     <input
                       type="number"
                       min="1"
@@ -223,7 +223,7 @@ export default function RoutineBuilder({
                       onChange={(e) =>
                         handleUpdateItemField(idx, 'target_reps', parseInt(e.target.value, 10))
                       }
-                      className="w-14 px-2 py-1 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
+                      className="w-16 px-2.5 py-1.5 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
                     />
                   </div>
                 </div>
@@ -234,19 +234,19 @@ export default function RoutineBuilder({
               type="button"
               variant="secondary"
               icon={Plus}
-              className="w-full justify-center"
+              className="w-full justify-center py-3"
               onClick={() => setIsSelectingExercise(true)}
             >
-              Añadir Ejercicio a la Rutina
+              Add Exercise to Routine
             </Button>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3">
+          <div className="flex justify-end gap-3 pt-3">
             <Button variant="ghost" onClick={() => setIsEditing(false)}>
-              Cancelar
+              Cancel
             </Button>
             <Button type="submit" variant="primary">
-              Guardar Rutina
+              Save Routine
             </Button>
           </div>
         </form>
@@ -255,53 +255,53 @@ export default function RoutineBuilder({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 sm:space-y-7">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
-          Mis Plantillas de Rutinas ({routines.length})
+          My Routine Templates ({routines.length})
         </h3>
         <Button variant="primary" size="sm" icon={Plus} onClick={handleOpenNew}>
-          Nueva Rutina
+          New Routine
         </Button>
       </div>
 
       {routines.length === 0 ? (
-        <Card className="text-center py-8 space-y-2">
-          <Dumbbell className="w-10 h-10 text-slate-300 mx-auto" />
-          <p className="text-sm text-slate-500 font-medium">No hay rutinas creadas aún. Crea una arriba.</p>
+        <Card className="text-center py-10 space-y-3">
+          <Dumbbell className="w-12 h-12 text-slate-300 mx-auto" />
+          <p className="text-sm text-slate-500 font-medium">No routine templates created yet. Create one above.</p>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-5 sm:space-y-6">
           {routines.map((routine) => (
             <Card
               key={routine.id}
-              className="space-y-3 p-4 border-l-4 hover:border-indigo-200"
+              className="space-y-4 p-5 sm:p-6 border-l-4 hover:border-indigo-200 shadow-sm"
               style={{ borderLeftColor: routine.color || '#6366f1' }}
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <h4 className="text-base font-bold text-slate-900">{routine.name}</h4>
                   {routine.description && (
-                    <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+                    <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
                       {routine.description}
                     </p>
                   )}
-                  <span className="inline-block text-[11px] font-mono font-semibold text-slate-500 mt-1">
-                    {routine.exercises?.length || 0} ejercicios
+                  <span className="inline-block text-xs font-mono font-semibold text-slate-500 mt-2">
+                    {routine.exercises?.length || 0} exercises
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => handleOpenEdit(routine)}
-                    aria-label={`Editar rutina ${routine.name}`}
+                    aria-label={`Edit routine ${routine.name}`}
                     className="p-2 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-indigo-50"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => onDeleteRoutine(routine.id)}
-                    aria-label={`Eliminar rutina ${routine.name}`}
+                    aria-label={`Delete routine ${routine.name}`}
                     className="p-2 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -312,10 +312,10 @@ export default function RoutineBuilder({
               <Button
                 variant="primary"
                 icon={Play}
-                className="w-full justify-center"
+                className="w-full justify-center py-3"
                 onClick={() => onStartRoutine(routine)}
               >
-                Iniciar Entrenamiento
+                Start Workout
               </Button>
             </Card>
           ))}

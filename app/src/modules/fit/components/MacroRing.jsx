@@ -8,8 +8,8 @@ export function SingleMacroRing({ value = 0, target = 100, unit = 'g', label = '
   const strokeDashoffset = circumference - (pct / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center gap-1.5 flex-1">
-      <div className="relative w-20 h-20 sm:w-22 sm:h-22">
+    <div className="flex flex-col items-center gap-2 flex-1">
+      <div className="relative w-20 h-20 sm:w-24 sm:h-24">
         <svg className="w-full h-full" viewBox="0 0 88 88">
           <circle
             cx="44"
@@ -33,27 +33,27 @@ export function SingleMacroRing({ value = 0, target = 100, unit = 'g', label = '
             transform="rotate(-90 44 44)"
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-xs font-bold text-slate-900">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-xs sm:text-sm font-bold text-slate-900">
           <span>{Math.round(value || 0)}</span>
           <span className="text-[10px] text-slate-400 font-normal">
             /{target}{unit}
           </span>
         </div>
       </div>
-      <span className="text-xs font-semibold text-slate-700">{label}</span>
+      <span className="text-xs sm:text-sm font-bold text-slate-700">{label}</span>
     </div>
   );
 }
 
 export default function MacroRing({ current = {}, targets = {} }) {
   return (
-    <Card className="p-4 sm:p-5">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-center justify-between">
+    <Card className="p-5 sm:p-7">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 items-center justify-between">
         <SingleMacroRing
           value={current.calories || 0}
           target={targets.calories || 2000}
           unit="kcal"
-          label="Calorías"
+          label="Calories"
           color="#EF4444"
           bgColor="#FEF2F2"
         />
@@ -61,7 +61,7 @@ export default function MacroRing({ current = {}, targets = {} }) {
           value={current.protein || 0}
           target={targets.protein || 150}
           unit="g"
-          label="Proteínas"
+          label="Protein"
           color="#3B82F6"
           bgColor="#EFF6FF"
         />
@@ -69,7 +69,7 @@ export default function MacroRing({ current = {}, targets = {} }) {
           value={current.carbs || 0}
           target={targets.carbs || 200}
           unit="g"
-          label="Carbos"
+          label="Carbs"
           color="#10B981"
           bgColor="#ECFDF5"
         />
@@ -77,7 +77,7 @@ export default function MacroRing({ current = {}, targets = {} }) {
           value={current.fats || 0}
           target={targets.fats || 60}
           unit="g"
-          label="Grasas"
+          label="Fats"
           color="#F59E0B"
           bgColor="#FFFBEB"
         />

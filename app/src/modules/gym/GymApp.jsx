@@ -66,7 +66,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
       setExercises((prev) => [localEx, ...prev]);
     }
     if (setToastMessage) {
-      setToastMessage('Ejercicio guardado');
+      setToastMessage('Exercise saved');
     }
   };
 
@@ -84,7 +84,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
       setRoutines((prev) => [...prev, localR]);
     }
     if (setToastMessage) {
-      setToastMessage('Rutina guardada');
+      setToastMessage('Routine saved');
     }
   };
 
@@ -92,7 +92,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     setRoutines((prev) => prev.filter((r) => r.id !== routineId));
     await deleteRoutineFromSupabase(routineId);
     if (setToastMessage) {
-      setToastMessage('Rutina eliminada');
+      setToastMessage('Routine deleted');
     }
   };
 
@@ -119,7 +119,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     setActiveRoutine(null);
 
     if (setToastMessage) {
-      setToastMessage('Entrenamiento registrado 🎉');
+      setToastMessage('Workout saved 🎉');
     }
   };
 
@@ -136,28 +136,28 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   }
 
   const tabItems = [
-    { id: 'workout', label: 'Entrenar', icon: Play },
-    { id: 'routines', label: 'Rutinas', icon: List, badge: routines.length },
-    { id: 'exercises', label: 'Ejercicios', icon: Dumbbell },
-    { id: 'history', label: 'Historial', icon: History, badge: workouts.length },
+    { id: 'workout', label: 'Workout', icon: Play },
+    { id: 'routines', label: 'Routines', icon: List, badge: routines.length },
+    { id: 'exercises', label: 'Exercises', icon: Dumbbell },
+    { id: 'history', label: 'History', icon: History, badge: workouts.length },
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 sm:space-y-7">
       {/* Gym Sub-Tabs */}
       <Tabs items={tabItems} activeTab={gymTab} onChange={setGymTab} />
 
       {/* Tab Views */}
       {gymTab === 'workout' && (
-        <div className="space-y-4">
-          <Card className="text-center space-y-4 py-8">
+        <div className="space-y-6 sm:space-y-7">
+          <Card className="text-center space-y-4 py-10 shadow-sm">
             <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto border border-indigo-100 shadow-sm">
               <Play className="w-8 h-8 fill-indigo-600" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Iniciar Entrenamiento Libre</h3>
+              <h3 className="text-base font-bold text-slate-900">Start Free Workout</h3>
               <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto mt-1 font-medium">
-                Registra series en vivo (peso/reps, tiempo, distancia), supersets y cálculo de 1RM Epley.
+                Log live sets (weight/reps, time, distance), rest timers & live volume.
               </p>
             </div>
             <Button
@@ -168,7 +168,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
                 setIsLiveSessionActive(true);
               }}
             >
-              Empezar Entrenamiento Vacío
+              Start Empty Workout
             </Button>
           </Card>
 

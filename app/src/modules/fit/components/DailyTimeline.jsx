@@ -7,10 +7,10 @@ import Card from '../../../shared/ui/Card';
 export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
   if (!intakes || intakes.length === 0) {
     return (
-      <Card className="text-center py-8 space-y-2">
-        <Utensils className="w-10 h-10 text-slate-300 mx-auto" />
+      <Card className="text-center py-10 space-y-3 my-4">
+        <Utensils className="w-12 h-12 text-slate-300 mx-auto" />
         <p className="text-sm text-slate-500 font-medium">
-          No hay comidas registradas para este día. Dicta o escribe abajo para añadir.
+          No food intakes recorded for this day. Type or dictate below to add.
         </p>
       </Card>
     );
@@ -74,13 +74,13 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
 
   const getFormatDisplay = (item) => {
     if (item.unit === 'g') return `${item.name} (${item.quantity}g)`;
-    if (item.unit === 'ud') return `${item.name} (${item.quantity} ud)`;
+    if (item.unit === 'ud') return `${item.name} (${item.quantity} pc)`;
     if (item.unit === 'porcion' && item.quantity !== 1) return `${item.name} (x${item.quantity})`;
     return item.name;
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 sm:space-y-7 my-4">
       {groupedMeals.map((meal, mealIdx) => {
         const groupTotalCalories = meal.items.reduce(
           (sum, item) => sum + (item.macros?.calories || 0),
@@ -90,34 +90,34 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
         return (
           <Card
             key={mealIdx}
-            className="p-4 border-l-4 border-l-indigo-600 space-y-3"
+            className="p-5 sm:p-6 border-l-4 border-l-indigo-600 space-y-4 shadow-sm"
           >
             {/* Group Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 truncate min-w-0">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 gap-3 flex-wrap">
+              <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-indigo-600 truncate min-w-0">
                 <Clock className="w-4 h-4 shrink-0" />
                 <span className="truncate">
-                  {meal.dishName ? `${meal.time} - ${meal.dishName}` : `Toma ${meal.time}`}
+                  {meal.dishName ? `${meal.time} - ${meal.dishName}` : `Intake ${meal.time}`}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span className="text-xs font-bold font-mono px-3 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
                   {groupTotalCalories} kcal
                 </span>
                 <span className="text-xs text-slate-500 font-medium">
-                  ({meal.items.length} {meal.items.length === 1 ? 'alimento' : 'alimentos'})
+                  ({meal.items.length} {meal.items.length === 1 ? 'food item' : 'food items'})
                 </span>
                 {onDeleteGroup && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm('¿Borrar todos los alimentos de esta toma?')) {
+                      if (window.confirm('Delete all items in this meal?')) {
                         onDeleteGroup(meal.items);
                       }
                     }}
-                    aria-label="Borrar toma completa"
-                    className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all"
+                    aria-label="Delete entire meal"
+                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -126,7 +126,7 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
             </div>
 
             {/* Individual Items */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               {meal.items.map((item, idx) => {
                 const displayTitle = getFormatDisplay(item);
                 const emoji = getFoodEmoji(item.name);
@@ -136,28 +136,28 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
                   <div
                     key={idx}
                     onClick={() => onItemClick && onItemClick(item, item.originalIndex)}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-indigo-200 cursor-pointer transition-all gap-3"
+                    className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-indigo-200 cursor-pointer transition-all gap-4"
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="text-xl shrink-0">{emoji}</span>
+                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                      <span className="text-2xl shrink-0">{emoji}</span>
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-xs sm:text-sm text-slate-900 truncate">
+                          <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
                             {displayTitle}
                           </span>
                           <span
-                            className="text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                            className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap"
                             style={{ backgroundColor: catInfo.bg, color: catInfo.color }}
                           >
                             {catInfo.emoji} {catInfo.label}
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 text-xs font-mono font-semibold">
+                        <div className="flex flex-wrap gap-2.5 text-xs font-mono font-semibold">
                           <span className="text-rose-500">{item.macros.calories} kcal</span>
                           <span className="text-blue-600">{item.macros.protein}g P</span>
                           <span className="text-emerald-600">{item.macros.carbs}g C</span>
-                          <span className="text-amber-600">{item.macros.fats}g G</span>
+                          <span className="text-amber-600">{item.macros.fats}g F</span>
                         </div>
                       </div>
                     </div>

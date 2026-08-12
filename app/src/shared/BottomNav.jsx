@@ -23,17 +23,17 @@ export default function BottomNav({ activeModule, setActiveModule, unreadCount =
     },
     {
       id: 'shopping',
-      label: t('nav.shopping', 'Compras'),
+      label: t('nav.shopping', 'Shopping'),
       icon: ShoppingCart,
     },
   ];
 
   return (
     <nav
-      aria-label="Navegación principal"
+      aria-label="Main Navigation"
       className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-lg"
     >
-      <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-around">
+      <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeModule === item.id;
@@ -58,7 +58,7 @@ export default function BottomNav({ activeModule, setActiveModule, unreadCount =
               >
                 <Icon className="w-5 h-5" />
               </div>
-              <span className="text-[11px] sm:text-xs mt-0.5 tracking-tight">
+              <span className="text-[11px] sm:text-xs mt-0.5 tracking-tight font-bold">
                 {item.label}
               </span>
 

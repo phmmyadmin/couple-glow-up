@@ -38,15 +38,15 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 sm:space-y-7">
       {/* Add Market Form */}
-      <Card className="p-5 sm:p-6">
+      <Card className="p-5 sm:p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <CardTitle icon={Store}>Añadir Mercado / Tienda</CardTitle>
+          <CardTitle icon={Store}>Add Store / Market</CardTitle>
 
           <div className="flex gap-3">
             <Select
-              aria-label="Icono del mercado"
+              aria-label="Store Icon"
               value={emojiInput}
               onChange={(e) => setEmojiInput(e.target.value)}
               className="w-24 text-base text-center font-emoji font-bold"
@@ -60,8 +60,8 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
 
             <Input
               type="text"
-              placeholder="Nombre de la tienda (ej: Mercadona, Carrefour...)"
-              aria-label="Nombre de la tienda"
+              placeholder="Store name (e.g., Trader Joe's, Target, Local Market...)"
+              aria-label="Store name"
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
               className="flex-1"
@@ -71,37 +71,37 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
               type="text"
-              placeholder="Ubicación u observación (opcional)"
-              aria-label="Ubicación"
+              placeholder="Location or note (optional)"
+              aria-label="Location"
               value={addressInput}
               onChange={(e) => setAddressInput(e.target.value)}
               className="flex-1"
             />
 
             <Button type="submit" icon={Plus} variant="primary" className="shrink-0">
-              Guardar Tienda
+              Save Store
             </Button>
           </div>
         </form>
       </Card>
 
       {/* Markets List */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
-          Tus Tiendas Registradas ({markets.length})
+          Your Saved Stores ({markets.length})
         </h3>
 
         {markets.length === 0 ? (
           <Card className="text-center py-10 space-y-3">
             <Store className="w-12 h-12 text-slate-300 mx-auto" />
-            <p className="text-sm text-slate-500 font-medium">No hay tiendas registradas aún.</p>
+            <p className="text-sm text-slate-500 font-medium">No stores registered yet.</p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
             {markets.map((market) => (
               <Card
                 key={market.id}
-                className="p-4 sm:p-5 flex items-center justify-between hover:border-indigo-200 gap-3"
+                className="p-5 flex items-center justify-between hover:border-indigo-200 gap-3 shadow-sm"
               >
                 <div className="flex items-center gap-3.5">
                   <span className="text-2xl p-2.5 bg-slate-100/90 rounded-2xl border border-slate-200 shrink-0">
@@ -120,7 +120,7 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
 
                 <button
                   onClick={() => confirmDelete(market)}
-                  aria-label={`Eliminar tienda ${market.name}`}
+                  aria-label={`Delete store ${market.name}`}
                   className="p-2 text-slate-400 hover:text-rose-600 transition-all rounded-xl hover:bg-rose-50"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -140,9 +140,9 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
             </div>
 
             <div className="text-center space-y-1.5">
-              <h3 className="text-base font-bold text-slate-900">¿Eliminar {deletingMarket.market.name}?</h3>
+              <h3 className="text-base font-bold text-slate-900">Delete {deletingMarket.market.name}?</h3>
               <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                Esta tienda tiene <strong>{deletingMarket.count} precios asociados</strong> registrados en la comparativa.
+                This store has <strong>{deletingMarket.count} associated price records</strong> in the price comparison module.
               </p>
             </div>
 
@@ -152,7 +152,7 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
                 className="flex-1"
                 onClick={() => setDeletingMarket(null)}
               >
-                Cancelar
+                Cancel
               </Button>
               <Button
                 variant="danger"
@@ -162,7 +162,7 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
                   setDeletingMarket(null);
                 }}
               >
-                Eliminar
+                Delete
               </Button>
             </div>
           </div>

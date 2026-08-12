@@ -29,7 +29,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
   const [items, setItems] = useState([
     {
       id: 'm1',
-      name: 'Pechuga de pollo',
+      name: 'Chicken breast',
       quantity: 1,
       unit: 'kg',
       category: 'carnes',
@@ -38,7 +38,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     },
     {
       id: 'm2',
-      name: 'Aguacates',
+      name: 'Avocados',
       quantity: 3,
       unit: 'ud',
       category: 'frutas',
@@ -48,23 +48,23 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
   ]);
 
   const [markets, setMarkets] = useState([
-    { id: 'mk1', name: 'Mercadona', emoji: '🏪', address: 'Localidad' },
-    { id: 'mk2', name: 'Wet Market', emoji: '🥦', address: 'Mercado local' },
+    { id: 'mk1', name: 'Supermarket A', emoji: '🏪', address: 'Downtown' },
+    { id: 'mk2', name: 'Wet Market', emoji: '🥦', address: 'Local market' },
   ]);
 
   const [productPrices, setProductPrices] = useState([
     {
       id: 'pr1',
-      product_name: 'Pechuga de pollo',
+      product_name: 'Chicken breast',
       market_id: 'mk1',
       price: 6.95,
       currency: 'EUR',
       unit: 'kg',
-      markets: { name: 'Mercadona', emoji: '🏪' },
+      markets: { name: 'Supermarket A', emoji: '🏪' },
     },
     {
       id: 'pr2',
-      product_name: 'Pechuga de pollo',
+      product_name: 'Chicken breast',
       market_id: 'mk2',
       price: 5.50,
       currency: 'EUR',
@@ -129,7 +129,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     }
 
     if (setToastMessage) {
-      setToastMessage('Producto añadido a la lista');
+      setToastMessage('Item added to list');
     }
   };
 
@@ -153,7 +153,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     setItems((prev) => prev.filter((i) => i.id !== itemId));
     await deleteShoppingItemFromSupabase(itemId);
     if (setToastMessage) {
-      setToastMessage('Producto eliminado');
+      setToastMessage('Item deleted');
     }
   };
 
@@ -166,7 +166,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
       setMarkets((prev) => [...prev, local]);
     }
     if (setToastMessage) {
-      setToastMessage('Tienda guardada correctamente');
+      setToastMessage('Store saved successfully');
     }
   };
 
@@ -174,7 +174,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     setMarkets((prev) => prev.filter((m) => m.id !== marketId));
     await deleteMarketFromSupabase(marketId);
     if (setToastMessage) {
-      setToastMessage('Tienda eliminada');
+      setToastMessage('Store deleted');
     }
   };
 
@@ -187,18 +187,18 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
 
     setProductPrices((prev) => [...prev.filter((p) => p.id !== priceWithRel.id), priceWithRel]);
     if (setToastMessage) {
-      setToastMessage('Precio registrado en comparativa');
+      setToastMessage('Price recorded');
     }
   };
 
   const tabItems = [
-    { id: 'list', label: 'Lista Activa', icon: ShoppingCart, badge: items.filter(i => !i.is_checked).length },
-    { id: 'markets', label: 'Mercados', icon: Store, badge: markets.length },
-    { id: 'prices', label: 'Comparativa', icon: Tag },
+    { id: 'list', label: 'Active List', icon: ShoppingCart, badge: items.filter(i => !i.is_checked).length },
+    { id: 'markets', label: 'Stores', icon: Store, badge: markets.length },
+    { id: 'prices', label: 'Price Comparison', icon: Tag },
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 sm:space-y-7">
       {/* Sub Tabs */}
       <Tabs items={tabItems} activeTab={shopTab} onChange={setShopTab} />
 
