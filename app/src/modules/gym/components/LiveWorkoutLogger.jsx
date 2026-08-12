@@ -11,6 +11,7 @@ export default function LiveWorkoutLogger({
   onCancel,
   activeProfile,
   initialRoutine = null,
+  onAddCustomExercise,
 }) {
   const [workoutName, setWorkoutName] = useState(
     initialRoutine?.name || 'Workout of the Day'
@@ -203,7 +204,7 @@ export default function LiveWorkoutLogger({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <ExerciseLibrary exercises={exercises} onSelectExercise={handleAddExercise} />
+        <ExerciseLibrary exercises={exercises} onSelectExercise={handleAddExercise} onAddCustomExercise={onAddCustomExercise} />
       </div>
     );
   }

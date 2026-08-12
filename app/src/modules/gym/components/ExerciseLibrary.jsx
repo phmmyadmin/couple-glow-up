@@ -59,14 +59,16 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
     e.preventDefault();
     if (!customName.trim()) return;
 
-    onAddCustomExercise({
-      name: customName.trim(),
-      name_es: customName.trim(),
-      muscle_group: customMuscle,
-      exercise_type: customType,
-      equipment_category: customEquipment,
-      is_custom: true,
-    });
+    if (onAddCustomExercise) {
+      onAddCustomExercise({
+        name: customName.trim(),
+        name_es: customName.trim(),
+        muscle_group: customMuscle,
+        exercise_type: customType,
+        equipment_category: customEquipment,
+        is_custom: true,
+      });
+    }
 
     setCustomName('');
     setIsModalOpen(false);

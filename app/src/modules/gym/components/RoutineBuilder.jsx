@@ -20,6 +20,7 @@ export default function RoutineBuilder({
   onSaveRoutine,
   onDeleteRoutine,
   onStartRoutine,
+  onAddCustomExercise,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState(null);
@@ -99,6 +100,7 @@ export default function RoutineBuilder({
       <ExerciseLibrary
         exercises={exercises}
         onSelectExercise={handleAddExerciseToRoutine}
+        onAddCustomExercise={onAddCustomExercise}
       />
     );
   }

@@ -158,6 +158,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
         onCancel={() => setIsLiveSessionActive(false)}
         activeProfile={activeProfile}
         initialRoutine={activeRoutine}
+        onAddCustomExercise={handleAddCustomExercise}
       />
     );
   }
@@ -205,6 +206,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
             onSaveRoutine={handleSaveRoutine}
             onDeleteRoutine={handleDeleteRoutine}
             onStartRoutine={handleStartRoutine}
+            onAddCustomExercise={handleAddCustomExercise}
           />
         </div>
       )}
@@ -216,6 +218,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
           onSaveRoutine={handleSaveRoutine}
           onDeleteRoutine={handleDeleteRoutine}
           onStartRoutine={handleStartRoutine}
+          onAddCustomExercise={handleAddCustomExercise}
         />
       )}
 
