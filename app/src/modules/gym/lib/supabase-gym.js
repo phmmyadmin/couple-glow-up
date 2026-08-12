@@ -147,6 +147,35 @@ export async function saveWorkoutSessionToSupabase(workoutObj, sets) {
   }
 }
 
+export async function deleteWorkoutFromSupabase(workoutId) {
+  if (!supabase || !workoutId) return false;
+  try {
+    const { error } = await supabase.from('workouts').delete().eq('id', workoutId);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error deleting workout:', err);
+    return false;
+  }
+}
+
+export async function updateWorkoutInSupabase(workoutId, updates) {
+  if (!supabase || !workoutId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .update(updates)
+      .eq('id', workoutId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error updating workout:', err);
+    return null;
+  }
+}
+
 // ── PERSONAL RECORDS ──
 export async function fetchPersonalRecordsFromSupabase(profileId) {
   if (!supabase || !profileId) return [];

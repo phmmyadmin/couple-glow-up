@@ -198,33 +198,75 @@ export default function RoutineBuilder({
                 </div>
 
                 {/* Target Sets & Reps Editable Controls */}
-                <div className="flex items-center gap-4 pt-2 border-t border-slate-200/60">
+                <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-slate-200/60">
+                  {/* Sets Control */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-600 font-semibold">Sets:</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="20"
-                      value={item.target_sets || 3}
-                      onChange={(e) =>
-                        handleUpdateItemField(idx, 'target_sets', parseInt(e.target.value, 10))
-                      }
-                      className="w-16 px-2.5 py-1.5 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
-                    />
+                    <div className="flex items-center rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleUpdateItemField(idx, 'target_sets', Math.max(1, (item.target_sets || 3) - 1))
+                        }
+                        className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={item.target_sets || 3}
+                        onChange={(e) =>
+                          handleUpdateItemField(idx, 'target_sets', parseInt(e.target.value, 10) || 1)
+                        }
+                        className="w-12 py-1 text-xs text-center font-mono font-bold focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleUpdateItemField(idx, 'target_sets', (item.target_sets || 3) + 1)
+                        }
+                        className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
 
+                  {/* Reps Control */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-600 font-semibold">Reps:</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={item.target_reps || 10}
-                      onChange={(e) =>
-                        handleUpdateItemField(idx, 'target_reps', parseInt(e.target.value, 10))
-                      }
-                      className="w-16 px-2.5 py-1.5 text-xs text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
-                    />
+                    <div className="flex items-center rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleUpdateItemField(idx, 'target_reps', Math.max(1, (item.target_reps || 10) - 1))
+                        }
+                        className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={item.target_reps || 10}
+                        onChange={(e) =>
+                          handleUpdateItemField(idx, 'target_reps', parseInt(e.target.value, 10) || 1)
+                        }
+                        className="w-12 py-1 text-xs text-center font-mono font-bold focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleUpdateItemField(idx, 'target_reps', (item.target_reps || 10) + 1)
+                        }
+                        className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

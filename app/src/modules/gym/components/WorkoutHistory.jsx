@@ -1,14 +1,44 @@
 import React, { useState } from 'react';
-import { History, Trophy, Calendar, Clock, Flame, ChevronDown, ChevronUp, Search, Dumbbell } from 'lucide-react';
+import { History, Trophy, Calendar, Clock, Flame, ChevronDown, ChevronUp, Search, Dumbbell, Trash2, Edit3, Save, X } from 'lucide-react';
 import Card from '../../../shared/ui/Card';
+import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
 
-export default function WorkoutHistory({ workouts, personalRecords }) {
+export default function WorkoutHistory({ workouts, personalRecords, onDeleteWorkout, onUpdateWorkout }) {
   const [expandedWorkoutId, setExpandedWorkoutId] = useState(null);
   const [searchFilter, setSearchFilter] = useState('');
 
+  // Editing state
+  const [editingWorkout, setEditingWorkout] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editDuration, setEditDuration] = useState(30);
+
   const toggleExpand = (id) => {
     setExpandedWorkoutId((prev) => (prev === id ? null : id));
+  };
+
+  const handleStartEdit = (e, workout) => {
+    e.stopPropagation();
+    setEditingWorkout(workout);
+    setEditName(workout.name);
+    setEditDuration(workout.duration_minutes || 30);
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    if (!editName.trim() || !editingWorkout) return;
+    onUpdateWorkout(editingWorkout.id, {
+      name: editName.trim(),
+      duration_minutes: parseInt(editDuration, 10) || 30,
+    });
+    setEditingWorkout(null);
+  };
+
+  const handleDelete = (e, workout) => {
+    e.stopPropagation();
+    if (window.confirm(`Delete workout "${workout.name}"?`)) {
+      onDeleteWorkout(workout.id);
+    }
   };
 
   const filteredWorkouts = workouts.filter((w) =>
@@ -114,12 +144,29 @@ export default function WorkoutHistory({ workouts, personalRecords }) {
                     </div>
                   </div>
 
-                  {workout.estimated_volume_kg > 0 && (
-                    <span className="text-xs font-mono font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl border border-indigo-100 flex items-center gap-1.5 shrink-0">
-                      <Flame className="w-4 h-4 text-indigo-500" />
-                      <span>{workout.estimated_volume_kg.toLocaleString()} kg</span>
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {workout.estimated_volume_kg > 0 && (
+                      <span className="text-xs font-mono font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl border border-indigo-100 flex items-center gap-1.5">
+                        <Flame className="w-4 h-4 text-indigo-500" />
+                        <span>{workout.estimated_volume_kg.toLocaleString()} kg</span>
+                      </span>
+                    )}
+
+                    <button
+                      onClick={(e) => handleStartEdit(e, workout)}
+                      aria-label="Edit workout details"
+                      className="p-2 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-indigo-50"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(e, workout)}
+                      aria-label="Delete workout record"
+                      className="p-2 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Expandable Breakdown of Exercises & Sets */}
@@ -156,6 +203,49 @@ export default function WorkoutHistory({ workouts, personalRecords }) {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Edit Workout Modal */}
+      {editingWorkout && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900">Edit Workout Details</h3>
+              <button
+                onClick={() => setEditingWorkout(null)}
+                className="p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <Input
+                label="Workout Name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                required
+              />
+
+              <Input
+                label="Duration (minutes)"
+                type="number"
+                value={editDuration}
+                onChange={(e) => setEditDuration(e.target.value)}
+                required
+              />
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="ghost" onClick={() => setEditingWorkout(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" icon={Save}>
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </Card>
         </div>
       )}
     </div>

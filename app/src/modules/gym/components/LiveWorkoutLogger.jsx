@@ -134,7 +134,7 @@ export default function LiveWorkoutLogger({
               const updated = { ...s, [field]: value };
               // Auto launch rest timer if checking a set as completed
               if (field === 'is_checked' && value === true) {
-                startRestTimer(90);
+                startRestTimer(defaultRestSeconds);
               }
               return updated;
             }
@@ -208,6 +208,20 @@ export default function LiveWorkoutLogger({
     );
   }
 
+  // Configurable Default Rest Target
+  const [defaultRestSeconds, setDefaultRestSeconds] = useState(90);
+  const [isEditingTime, setIsEditingTime] = useState(false);
+  const [customMinutesInput, setCustomMinutesInput] = useState('');
+
+  const handleApplyCustomMinutes = (e) => {
+    e.preventDefault();
+    const mins = parseInt(customMinutesInput, 10);
+    if (!isNaN(mins) && mins >= 0) {
+      setSecondsElapsed(mins * 60);
+    }
+    setIsEditingTime(false);
+  };
+
   return (
     <div className="space-y-6 sm:space-y-7">
       {/* Rest Timer Floating Banner */}
@@ -256,12 +270,65 @@ export default function LiveWorkoutLogger({
           </div>
         </div>
 
-        {/* Live Metrics Row */}
-        <div className="flex items-center justify-between text-xs sm:text-sm text-slate-300 pt-2 border-t border-slate-800 font-mono">
-          <span className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-indigo-400" />
-            <span>Time: <strong>{formatTimer(secondsElapsed)}</strong></span>
-          </span>
+        {/* Live Metrics & Editable Timer Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-slate-300 pt-3 border-t border-slate-800 font-mono">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-indigo-400" />
+              <span>Time: <strong>{formatTimer(secondsElapsed)}</strong></span>
+            </span>
+
+            {!isEditingTime ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomMinutesInput(Math.floor(secondsElapsed / 60).toString());
+                  setIsEditingTime(true);
+                }}
+                className="text-[11px] font-sans font-semibold text-indigo-300 hover:text-indigo-200 bg-slate-800 px-2 py-0.5 rounded border border-slate-700"
+              >
+                Edit Time
+              </button>
+            ) : (
+              <form onSubmit={handleApplyCustomMinutes} className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min="0"
+                  max="600"
+                  value={customMinutesInput}
+                  onChange={(e) => setCustomMinutesInput(e.target.value)}
+                  className="w-14 px-1.5 py-0.5 text-xs text-center bg-slate-800 text-white rounded border border-indigo-500 font-mono"
+                  placeholder="mins"
+                />
+                <span className="text-xs text-slate-400">m</span>
+                <button type="submit" className="px-2 py-0.5 text-xs bg-indigo-600 rounded font-sans font-bold">
+                  Set
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* Configurable Rest Timer Target */}
+          <div className="flex items-center gap-2">
+            <Timer className="w-4 h-4 text-indigo-400" />
+            <span className="text-slate-400 text-xs font-sans">Rest target:</span>
+            <div className="flex items-center gap-1">
+              {[30, 60, 90, 120, 180].map((sec) => (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => setDefaultRestSeconds(sec)}
+                  className={`px-2 py-0.5 text-[11px] font-sans font-bold rounded transition-all ${
+                    defaultRestSeconds === sec
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {sec}s
+                </button>
+              ))}
+            </div>
+          </div>
 
           <span className="flex items-center gap-2 text-indigo-300">
             <Flame className="w-4 h-4 text-amber-400" />

@@ -18,6 +18,8 @@ import {
   deleteRoutineFromSupabase,
   fetchWorkoutsFromSupabase,
   saveWorkoutSessionToSupabase,
+  deleteWorkoutFromSupabase,
+  updateWorkoutInSupabase,
   fetchPersonalRecordsFromSupabase,
 } from './lib/supabase-gym';
 
@@ -123,6 +125,24 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     }
   };
 
+  const handleDeleteWorkout = async (workoutId) => {
+    setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+    await deleteWorkoutFromSupabase(workoutId);
+    if (setToastMessage) {
+      setToastMessage('Workout deleted');
+    }
+  };
+
+  const handleUpdateWorkout = async (workoutId, updates) => {
+    setWorkouts((prev) =>
+      prev.map((w) => (w.id === workoutId ? { ...w, ...updates } : w))
+    );
+    await updateWorkoutInSupabase(workoutId, updates);
+    if (setToastMessage) {
+      setToastMessage('Workout updated');
+    }
+  };
+
   if (isLiveSessionActive) {
     return (
       <LiveWorkoutLogger
@@ -203,6 +223,8 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
         <WorkoutHistory
           workouts={workouts}
           personalRecords={personalRecords}
+          onDeleteWorkout={handleDeleteWorkout}
+          onUpdateWorkout={handleUpdateWorkout}
         />
       )}
     </div>
