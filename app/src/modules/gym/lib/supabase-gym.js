@@ -7,7 +7,7 @@ export async function fetchExercisesFromSupabase() {
     const { data, error } = await supabase
       .from('exercises')
       .select('*')
-      .order('name_es', { ascending: true });
+      .order('name', { ascending: true });
     if (error) throw error;
     return data || [];
   } catch (err) {

@@ -183,7 +183,7 @@ export default function RoutineBuilder({
 
                     <span className="font-bold text-indigo-600 font-mono">{idx + 1}.</span>
                     <span className="font-bold text-slate-900">
-                      {item.exercise?.name_es || item.exercise?.name || 'Exercise'}
+                      {item.exercise?.name || item.exercise?.name_es || 'Exercise'}
                     </span>
                   </div>
 

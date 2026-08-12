@@ -30,8 +30,7 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
 
   const filteredExercises = exercises.filter((e) => {
     const matchesSearch =
-      (e.name_es || e.name).toLowerCase().includes(search.toLowerCase()) ||
-      e.name.toLowerCase().includes(search.toLowerCase());
+      (e.name || e.name_es || '').toLowerCase().includes(search.toLowerCase());
     const matchesMuscle = selectedMuscle === 'all' || e.muscle_group === selectedMuscle;
     return matchesSearch && matchesMuscle;
   });
@@ -129,7 +128,7 @@ export default function ExerciseLibrary({ exercises, onAddCustomExercise, onSele
                     </div>
                     <div className="space-y-0.5 min-w-0">
                       <h4 className="text-base font-bold text-slate-900 truncate">
-                        {exercise.name_es || exercise.name}
+                        {exercise.name || exercise.name_es}
                       </h4>
                       <p className="text-xs text-slate-500 font-medium capitalize flex items-center gap-2">
                         <span>{exercise.muscle_group}</span>

@@ -377,7 +377,7 @@ export default function LiveWorkoutLogger({
 
                     <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full bg-indigo-600"></span>
-                      <span>{item.exercise.name_es || item.exercise.name}</span>
+                      <span>{item.exercise.name || item.exercise.name_es}</span>
                     </h4>
                   </div>
 

@@ -63,7 +63,7 @@ export default function WorkoutHistory({ workouts, personalRecords, onDeleteWork
               >
                 <div>
                   <h4 className="font-bold text-slate-900">
-                    {pr.exercises?.name_es || pr.exercises?.name || 'Exercise'}
+                    {pr.exercises?.name || pr.exercises?.name_es || 'Exercise'}
                   </h4>
                   <span className="text-xs text-slate-500 font-mono capitalize">
                     {pr.record_type.replace('_', ' ')}
@@ -187,7 +187,7 @@ export default function WorkoutHistory({ workouts, personalRecords, onDeleteWork
                           >
                             <span className="font-bold text-slate-900 font-sans flex items-center gap-2">
                               <Dumbbell className="w-4 h-4 text-indigo-600" />
-                              <span>{set.exercises?.name_es || set.exercises?.name || `Set ${idx + 1}`}</span>
+                              <span>{set.exercises?.name || set.exercises?.name_es || `Set ${idx + 1}`}</span>
                             </span>
                             <span className="text-slate-700 font-semibold bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-xs">
                               {set.weight_kg ? `${set.weight_kg} kg × ` : ''}
