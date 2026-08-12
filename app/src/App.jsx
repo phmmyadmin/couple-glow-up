@@ -172,9 +172,6 @@ export default function App() {
             </div>
           )}
 
-          <p className="app-subtitle mt-1.5">
-            {t('header.subtitle', 'Fit, Shopping, Gym & Partner Feed')}
-          </p>
         </div>
       </header>
 
