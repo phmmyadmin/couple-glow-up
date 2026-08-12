@@ -444,8 +444,11 @@ export default function ExerciseLibrary({
 
       {/* Edit Exercise Modal */}
       {editingExerciseModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200">
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setEditingExerciseModal(null)}
+        >
+          <Card className="max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Edit3 className="w-5 h-5 text-indigo-600" />
@@ -562,9 +565,11 @@ export default function ExerciseLibrary({
         const svgWidth = Math.max(320, exData.chartPoints.length * pointSpacing);
 
         const points = exData.chartPoints.map((p, idx) => {
-          const targetVal = activeMetric === 'volume' ? p.valVolume : p.val1RM;
+          const rawVal = activeMetric === 'volume' ? p.valVolume : p.val1RM;
+          const targetVal = (typeof rawVal === 'number' && !isNaN(rawVal)) ? rawVal : 0;
           const x = exData.chartPoints.length === 1 ? svgWidth / 2 : 35 + idx * pointSpacing;
-          const y = 125 - ((targetVal - minVal) / range) * 85;
+          const rawY = 125 - ((targetVal - minVal) / range) * 85;
+          const y = isFinite(rawY) ? rawY : 125;
           return { x, y, targetVal, date: p.date };
         });
 
@@ -572,9 +577,21 @@ export default function ExerciseLibrary({
           ? points.reduce((acc, pt, i) => (i === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`), '')
           : '';
 
+        const areaPathStr = points.length > 1
+          ? `${svgPathStr} L ${points[points.length - 1].x} 125 L ${points[0].x} 125 Z`
+          : '';
+
+        const closeHistoryModal = () => {
+          setSelectedExerciseForHistory(null);
+          if (onCloseHistoryModal) onCloseHistoryModal();
+        };
+
         return (
-          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <Card className="max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+          <div
+            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={closeHistoryModal}
+          >
+            <Card className="max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -591,10 +608,7 @@ export default function ExerciseLibrary({
                 </div>
 
                 <button
-                  onClick={() => {
-                    setSelectedExerciseForHistory(null);
-                    if (onCloseHistoryModal) onCloseHistoryModal();
-                  }}
+                  onClick={closeHistoryModal}
                   className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
                 >
                   <X className="w-5 h-5" />

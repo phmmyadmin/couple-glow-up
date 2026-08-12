@@ -743,7 +743,7 @@ export default function LiveWorkoutLogger({
 
                         return (
                           <div
-                            key={set.id}
+                            key={set.id || `set-${exIdx}-${setIdx}`}
                             className={`grid grid-cols-12 gap-2 items-center p-2 rounded-xl transition-all ${
                               set.is_checked
                                 ? 'bg-emerald-50/80 border border-emerald-200'
