@@ -58,6 +58,13 @@ def normalize_name(title):
     t = re.sub(r'\s*\([^)]*\)', '', t).strip()
     return t
 
+def format_sql_timestamp(val):
+    if not val or val == "now()":
+        return "now()"
+    if isinstance(val, (int, float)) or (isinstance(val, str) and val.isdigit()):
+        return f"to_timestamp({val})"
+    return f"'{val}'::timestamptz"
+
 def convert_hevy_json_to_sql(input_json="data/hevy_workouts.json", output_sql="data/hevy_migration.sql", profile_id=None):
     if not os.path.exists(input_json):
         print(f"⚠️  Input file '{input_json}' not found. Please run fetch_hevy_workouts.py first or specify valid JSON file.")
@@ -75,8 +82,6 @@ def convert_hevy_json_to_sql(input_json="data/hevy_workouts.json", output_sql="d
     sql_statements.append("-- HEVY WORKOUTS MIGRATION SCRIPT FOR COUPLE GLOW UP")
     sql_statements.append(f"-- Generated from {input_json} ({len(workouts_data)} workouts)")
     sql_statements.append("-- ============================================================================\n")
-
-    created_custom_exercises = set()
 
     for w_idx, workout in enumerate(workouts_data):
         w_title = clean_str(workout.get("title") or workout.get("name") or f"Hevy Workout #{w_idx+1}")
@@ -106,8 +111,8 @@ def convert_hevy_json_to_sql(input_json="data/hevy_workouts.json", output_sql="d
 
         # Insert Workout row
         prof_val = "target_profile_id"
-        start_val = f"'{started_at}'::timestamptz" if started_at != "now()" else "now()"
-        finish_val = f"'{finished_at}'::timestamptz" if finished_at != "now()" else "now()"
+        start_val = format_sql_timestamp(started_at)
+        finish_val = format_sql_timestamp(finished_at)
 
         sql_statements.append(f"""  INSERT INTO public.workouts (id, profile_id, name, started_at, finished_at, duration_minutes, estimated_volume_kg)
   VALUES ({w_id_var}, {prof_val}, '{w_title}', {start_val}, {finish_val}, {duration_mins}, {estimated_vol});""")
@@ -128,9 +133,9 @@ def convert_hevy_json_to_sql(input_json="data/hevy_workouts.json", output_sql="d
             sql_statements.append(f"  SELECT id INTO target_exercise_id FROM public.exercises WHERE LOWER(name) = LOWER('{ex_clean_name}') OR LOWER(name_es) = LOWER('{ex_clean_name}') LIMIT 1;")
             
             sql_statements.append("  IF target_exercise_id IS NULL THEN")
-            muscle_g = cat_match["muscle"] if cat_match else "other"
-            ex_t = cat_match["type"] if cat_match else "weight_reps"
-            equip_cat = cat_match["equip"] if cat_match else "dumbbell"
+            muscle_g = ex_item.get("muscle_group") or (cat_match["muscle"] if cat_match else "other")
+            ex_t = ex_item.get("exercise_type") or (cat_match["type"] if cat_match else "weight_reps")
+            equip_cat = ex_item.get("equipment_category") or (cat_match["equip"] if cat_match else "dumbbell")
 
             sql_statements.append(f"""    INSERT INTO public.exercises (name, name_es, exercise_type, muscle_group, equipment_category, is_custom)
     VALUES ('{ex_clean_name}', '{ex_clean_name}', '{ex_t}', '{muscle_g}', '{equip_cat}', true)
@@ -144,10 +149,21 @@ def convert_hevy_json_to_sql(input_json="data/hevy_workouts.json", output_sql="d
                 if indicator not in ["normal", "warmup", "dropset", "failure"]:
                     indicator = "normal"
 
-                weight = s_item.get("weight_kg") or s_item.get("weight") or 0
-                reps = s_item.get("reps") or 0
-                duration = s_item.get("duration_seconds") or s_item.get("duration") or "NULL"
-                distance = s_item.get("distance_meters") or s_item.get("distance") or "NULL"
+                weight = s_item.get("weight_kg")
+                if weight is None or weight == "":
+                    weight = "NULL"
+                
+                reps = s_item.get("reps")
+                if reps is None or reps == "":
+                    reps = "NULL"
+                
+                duration = s_item.get("duration_seconds")
+                if duration is None or duration == "":
+                    duration = "NULL"
+
+                distance = s_item.get("distance_meters")
+                if distance is None or distance == "":
+                    distance = "NULL"
 
                 sql_statements.append(f"""  INSERT INTO public.workout_sets (workout_id, exercise_id, set_index, indicator, weight_kg, reps, duration_seconds, distance_meters)
   VALUES ({w_id_var}, target_exercise_id, {set_counter}, '{indicator}', {weight}, {reps}, {duration}, {distance});""")
