@@ -125,24 +125,6 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
 
   return (
     <div className="space-y-6 sm:space-y-7 pb-6">
-      {/* Feed Header Banner Card */}
-      <Card className="bg-gradient-to-r from-indigo-50/90 via-purple-50/90 to-pink-50/90 border-indigo-100 p-5 sm:p-6 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="flex -space-x-2">
-            <Avatar profile={profiles[0]} size="md" />
-            <Avatar profile={profiles[1]} size="md" />
-          </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-              <span>Couple Glow Up Feed</span>
-              <Heart className="w-4.5 h-4.5 text-rose-500 fill-rose-500" />
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-0.5">
-              Shared wall for workouts, shopping & partner achievements
-            </p>
-          </div>
-        </div>
-      </Card>
 
       {/* Quick Note Post Input */}
       <Card className="p-4 sm:p-5 shadow-sm">
