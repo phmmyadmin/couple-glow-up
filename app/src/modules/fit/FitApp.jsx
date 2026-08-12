@@ -36,10 +36,29 @@ export default function FitApp({
   const daysList = data?.days || data?.dailyLogs || [];
   const activeDateData = daysList.find((d) => d.date === selectedDate) || daysList[daysList.length - 1];
 
-  const totalCalories = activeDateData?.intakes?.reduce((sum, item) => sum + (item.calories || 0), 0) || 0;
-  const totalProtein = activeDateData?.intakes?.reduce((sum, item) => sum + (item.protein || 0), 0) || 0;
-  const totalCarbs = activeDateData?.intakes?.reduce((sum, item) => sum + (item.carbs || 0), 0) || 0;
-  const totalFats = activeDateData?.intakes?.reduce((sum, item) => sum + (item.fats || 0), 0) || 0;
+  const totalCalories =
+    activeDateData?.intakes?.reduce(
+      (sum, item) => sum + (item.macros?.calories ?? item.calories ?? 0),
+      0
+    ) || activeDateData?.dailyTotals?.calories || 0;
+
+  const totalProtein =
+    activeDateData?.intakes?.reduce(
+      (sum, item) => sum + (item.macros?.protein ?? item.protein ?? 0),
+      0
+    ) || activeDateData?.dailyTotals?.protein || 0;
+
+  const totalCarbs =
+    activeDateData?.intakes?.reduce(
+      (sum, item) => sum + (item.macros?.carbs ?? item.carbs ?? 0),
+      0
+    ) || activeDateData?.dailyTotals?.carbs || 0;
+
+  const totalFats =
+    activeDateData?.intakes?.reduce(
+      (sum, item) => sum + (item.macros?.fats ?? item.fats ?? 0),
+      0
+    ) || activeDateData?.dailyTotals?.fats || 0;
 
   const targetMacros =
     activeProfile?.target_macros ||
