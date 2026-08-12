@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
-import { Tag, Plus, ArrowUpDown, Award } from 'lucide-react';
+import { Tag, Plus, ArrowUpDown, Award, Trash2, Edit3, X, Check } from 'lucide-react';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
 
-export default function PriceComparator({ markets, productPrices, onSavePrice }) {
+export default function PriceComparator({ markets, productPrices, onSavePrice, onDeletePrice }) {
   const [productNameInput, setProductNameInput] = useState('');
   const [selectedMarketId, setSelectedMarketId] = useState(markets[0]?.id || '');
   const [priceInput, setPriceInput] = useState('');
-  const [currencyInput, setCurrencyInput] = useState('PHP');
+  const [currencyInput, setCurrencyInput] = useState('EUR');
   const [unitInput, setUnitInput] = useState('kg');
+
+  // Editing state
+  const [editingPriceId, setEditingPriceId] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!productNameInput.trim() || !selectedMarketId || !priceInput) return;
 
     onSavePrice({
+      id: editingPriceId || null,
       product_name: productNameInput.trim(),
       market_id: selectedMarketId,
       price: parseFloat(priceInput),
@@ -23,8 +27,28 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
       unit: unitInput,
     });
 
+    handleReset();
+  };
+
+  const handleStartEdit = (p) => {
+    setEditingPriceId(p.id);
+    setProductNameInput(p.product_name || p.products?.name || '');
+    setSelectedMarketId(p.market_id);
+    setPriceInput(p.price.toString());
+    setCurrencyInput(p.currency || 'EUR');
+    setUnitInput(p.unit || 'kg');
+  };
+
+  const handleReset = () => {
+    setEditingPriceId(null);
     setProductNameInput('');
     setPriceInput('');
+  };
+
+  const handleDelete = (priceId) => {
+    if (window.confirm('Delete this price record?')) {
+      onDeletePrice(priceId);
+    }
   };
 
   const groupedPrices = productPrices.reduce((acc, item) => {
@@ -39,7 +63,20 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
       {/* Price Form */}
       <Card className="p-5 sm:p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <CardTitle icon={Tag}>Link Product Price</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle icon={Tag}>
+              {editingPriceId ? 'Edit Product Price' : 'Link Product Price'}
+            </CardTitle>
+            {editingPriceId && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1"
+              >
+                <X className="w-4 h-4" /> Cancel Edit
+              </button>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
@@ -48,12 +85,14 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
               aria-label="Product name"
               value={productNameInput}
               onChange={(e) => setProductNameInput(e.target.value)}
+              required
             />
 
             <Select
               aria-label="Select Store"
               value={selectedMarketId}
               onChange={(e) => setSelectedMarketId(e.target.value)}
+              required
             >
               <option value="" disabled>
                 Select Store...
@@ -75,6 +114,7 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
               value={priceInput}
               onChange={(e) => setPriceInput(e.target.value)}
               className="flex-1 font-mono font-bold"
+              required
             />
 
             <div className="flex gap-2">
@@ -84,8 +124,8 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
                 onChange={(e) => setCurrencyInput(e.target.value)}
                 className="w-28 font-bold"
               >
-                <option value="PHP">₱ PHP</option>
                 <option value="EUR">€ EUR</option>
+                <option value="PHP">₱ PHP</option>
                 <option value="USD">$ USD</option>
               </Select>
 
@@ -101,8 +141,8 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
                 <option value="pack">/ pack</option>
               </Select>
 
-              <Button type="submit" icon={Plus} variant="primary" className="shrink-0">
-                Save
+              <Button type="submit" icon={editingPriceId ? Check : Plus} variant="primary" className="shrink-0">
+                {editingPriceId ? 'Update Price' : 'Save'}
               </Button>
             </div>
           </div>
@@ -112,7 +152,7 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
       {/* Comparison Matrix */}
       <div className="space-y-4">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
-          Recorded Price Comparisons
+          Recorded Price Comparisons ({Object.keys(groupedPrices).length} products)
         </h3>
 
         {Object.keys(groupedPrices).length === 0 ? (
@@ -128,9 +168,14 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
 
               return (
                 <Card key={productName} className="space-y-4 p-5 sm:p-6 shadow-sm">
-                  <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <span className="text-lg">🏷️</span>
-                    <span>{productName}</span>
+                  <h4 className="text-base font-bold text-slate-900 flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className="text-lg">🏷️</span>
+                      <span>{productName}</span>
+                    </span>
+                    <span className="text-xs text-slate-500 font-mono font-semibold">
+                      {priceList.length} {priceList.length === 1 ? 'store' : 'stores'}
+                    </span>
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -148,21 +193,40 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
                               : 'bg-slate-50 border border-slate-200 text-slate-700'
                           }`}
                         >
-                          <span className="flex items-center gap-2.5">
+                          <div className="flex items-center gap-2.5">
                             <span className="text-lg">{marketEmoji}</span>
                             <span className="font-bold">{marketName}</span>
-                          </span>
+                          </div>
 
-                          <div className="flex items-center gap-2 font-mono font-bold">
-                            <span>
-                              {p.price} {p.currency} <span className="text-xs font-normal text-slate-500">/{p.unit}</span>
-                            </span>
-                            {isCheapest && (
-                              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-sans px-2.5 py-1 rounded-full border border-emerald-300 font-bold flex items-center gap-1">
-                                <Award className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Best Price</span>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 font-mono font-bold">
+                              <span>
+                                {p.price} {p.currency} <span className="text-xs font-normal text-slate-500">/{p.unit}</span>
                               </span>
-                            )}
+                              {isCheapest && (
+                                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-sans px-2.5 py-0.5 rounded-full border border-emerald-300 font-bold flex items-center gap-1">
+                                  <Award className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Cheapest</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleStartEdit(p)}
+                                aria-label="Edit price"
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(p.id)}
+                                aria-label="Delete price"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );

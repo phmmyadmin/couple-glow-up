@@ -192,16 +192,39 @@ export async function fetchProductPrices() {
 export async function saveProductPrice(priceObj) {
   if (!supabase) return null;
   try {
-    const { data, error } = await supabase
-      .from('product_prices')
-      .upsert(priceObj, { onConflict: 'product_id,market_id' })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
+    if (!priceObj.id) {
+      const { data, error } = await supabase
+        .from('product_prices')
+        .insert(priceObj)
+        .select('*, markets(*)')
+        .single();
+      if (error) throw error;
+      return data;
+    } else {
+      const { data, error } = await supabase
+        .from('product_prices')
+        .update(priceObj)
+        .eq('id', priceObj.id)
+        .select('*, markets(*)')
+        .single();
+      if (error) throw error;
+      return data;
+    }
   } catch (err) {
     console.error('Error saving product price:', err);
     return null;
+  }
+}
+
+export async function deleteProductPriceFromSupabase(priceId) {
+  if (!supabase || !priceId) return false;
+  try {
+    const { error } = await supabase.from('product_prices').delete().eq('id', priceId);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error deleting product price:', err);
+    return false;
   }
 }
 

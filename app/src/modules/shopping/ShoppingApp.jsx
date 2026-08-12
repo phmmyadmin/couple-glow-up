@@ -18,6 +18,7 @@ import {
   deleteMarketFromSupabase,
   fetchProductPrices,
   saveProductPrice,
+  deleteProductPriceFromSupabase,
   subscribeToShoppingItems,
 } from './lib/supabase-shopping';
 
@@ -191,6 +192,14 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     }
   };
 
+  const handleDeletePrice = async (priceId) => {
+    setProductPrices((prev) => prev.filter((p) => p.id !== priceId));
+    await deleteProductPriceFromSupabase(priceId);
+    if (setToastMessage) {
+      setToastMessage('Price deleted');
+    }
+  };
+
   const tabItems = [
     { id: 'list', label: 'Active List', icon: ShoppingCart, badge: items.filter(i => !i.is_checked).length },
     { id: 'markets', label: 'Stores', icon: Store, badge: markets.length },
@@ -212,6 +221,9 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
           activeProfile={activeProfile}
           profiles={profiles}
           markets={markets}
+          productPrices={productPrices}
+          onSavePrice={handleSavePrice}
+          onDeletePrice={handleDeletePrice}
         />
       )}
 
@@ -229,6 +241,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
           markets={markets}
           productPrices={productPrices}
           onSavePrice={handleSavePrice}
+          onDeletePrice={handleDeletePrice}
         />
       )}
     </div>

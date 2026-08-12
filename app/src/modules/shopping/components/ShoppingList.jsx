@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, Trash2, ShoppingBag } from 'lucide-react';
+import { Plus, Check, Trash2, ShoppingBag, Store, Award, Edit3, X, Tag } from 'lucide-react';
 import Avatar from '../../../shared/Avatar';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
@@ -23,12 +23,24 @@ export default function ShoppingList({
   onDeleteItem,
   activeProfile,
   profiles,
+  markets = [],
+  productPrices = [],
+  onSavePrice,
+  onDeletePrice,
 }) {
   const [nameInput, setNameInput] = useState('');
   const [quantityInput, setQuantityInput] = useState('1');
   const [unitInput, setUnitInput] = useState('ud');
   const [selectedCategory, setSelectedCategory] = useState('frutas');
   const [filterCategory, setFilterCategory] = useState('all');
+
+  // Interactive Market Price Modal for an item
+  const [inspectingItem, setInspectingItem] = useState(null);
+  const [modalMarketId, setModalMarketId] = useState(markets[0]?.id || '');
+  const [modalPriceInput, setModalPriceInput] = useState('');
+  const [modalCurrencyInput, setModalCurrencyInput] = useState('EUR');
+  const [modalUnitInput, setModalUnitInput] = useState('kg');
+  const [editingModalPriceId, setEditingModalPriceId] = useState(null);
 
   const handleAdd = (e) => {
     e.preventDefault();
@@ -45,6 +57,56 @@ export default function ShoppingList({
 
     setNameInput('');
     setQuantityInput('1');
+  };
+
+  // Helper to match prices for an item
+  const getItemPrices = (itemName) => {
+    if (!itemName || productPrices.length === 0) return [];
+    const cleanName = itemName.trim().toLowerCase();
+    return productPrices.filter((p) => {
+      const pName = (p.product_name || p.products?.name || '').trim().toLowerCase();
+      return pName === cleanName || pName.includes(cleanName) || cleanName.includes(pName);
+    });
+  };
+
+  const getCheapestPrice = (priceList) => {
+    if (!priceList || priceList.length === 0) return null;
+    const sorted = [...priceList].sort((a, b) => a.price - b.price);
+    return sorted[0];
+  };
+
+  const handleOpenMarketModal = (item) => {
+    setInspectingItem(item);
+    setEditingModalPriceId(null);
+    setModalPriceInput('');
+    if (markets.length > 0 && !modalMarketId) {
+      setModalMarketId(markets[0].id);
+    }
+  };
+
+  const handleSaveModalPrice = (e) => {
+    e.preventDefault();
+    if (!inspectingItem || !modalMarketId || !modalPriceInput) return;
+
+    onSavePrice({
+      id: editingModalPriceId || null,
+      product_name: inspectingItem.name,
+      market_id: modalMarketId,
+      price: parseFloat(modalPriceInput),
+      currency: modalCurrencyInput,
+      unit: modalUnitInput,
+    });
+
+    setEditingModalPriceId(null);
+    setModalPriceInput('');
+  };
+
+  const handleStartEditModalPrice = (p) => {
+    setEditingModalPriceId(p.id);
+    setModalMarketId(p.market_id);
+    setModalPriceInput(p.price.toString());
+    setModalCurrencyInput(p.currency || 'EUR');
+    setModalUnitInput(p.unit || 'kg');
   };
 
   const filteredItems = items.filter((item) => {
@@ -161,41 +223,74 @@ export default function ShoppingList({
                 const addedByProfile = profiles.find((p) => p.id === item.added_by);
                 const catObj = CATEGORIES.find((c) => c.id === item.category);
 
+                const itemPrices = getItemPrices(item.name);
+                const cheapest = getCheapestPrice(itemPrices);
+
                 return (
                   <Card
                     key={item.id}
-                    className="p-4 sm:p-5 flex items-center justify-between hover:border-indigo-200/80 gap-4 shadow-sm"
+                    className="p-4 sm:p-5 space-y-3 hover:border-indigo-200/80 shadow-sm"
                   >
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <button
-                        onClick={() => onToggleItem(item.id, true)}
-                        aria-label={`Mark ${item.name} as purchased`}
-                        className="w-8 h-8 rounded-xl border-2 border-slate-300 hover:border-indigo-600 flex items-center justify-center transition-all bg-white shadow-sm shrink-0"
-                      >
-                        <Check className="w-4 h-4 text-transparent hover:text-indigo-600" />
-                      </button>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <button
+                          onClick={() => onToggleItem(item.id, true)}
+                          aria-label={`Mark ${item.name} as purchased`}
+                          className="w-8 h-8 rounded-xl border-2 border-slate-300 hover:border-indigo-600 flex items-center justify-center transition-all bg-white shadow-sm shrink-0"
+                        >
+                          <Check className="w-4 h-4 text-transparent hover:text-indigo-600" />
+                        </button>
 
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-base">{catObj?.emoji || '📦'}</span>
-                          <span className="text-sm sm:text-base font-bold text-slate-900 truncate">
-                            {item.name}
-                          </span>
-                          <span className="text-xs font-mono text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg font-bold">
-                            {item.quantity} {item.unit}
-                          </span>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-base">{catObj?.emoji || '📦'}</span>
+                            <span className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                              {item.name}
+                            </span>
+                            <span className="text-xs font-mono text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg font-bold">
+                              {item.quantity} {item.unit}
+                            </span>
+                          </div>
                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {addedByProfile && <Avatar profile={addedByProfile} size="sm" />}
+                        <button
+                          onClick={() => onDeleteItem(item.id)}
+                          aria-label={`Delete ${item.name}`}
+                          className="p-2 text-slate-400 hover:text-rose-600 transition-all rounded-xl hover:bg-rose-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
-                      {addedByProfile && <Avatar profile={addedByProfile} size="sm" />}
+                    {/* Market Price Indicator / Inspector Trigger */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                      {cheapest ? (
+                        <button
+                          onClick={() => handleOpenMarketModal(item)}
+                          className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 transition-all"
+                        >
+                          <Award className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>
+                            Cheapest at {cheapest.markets?.emoji || '🏪'} {cheapest.markets?.name}:{' '}
+                            <strong>
+                              {cheapest.price} {cheapest.currency}/{cheapest.unit}
+                            </strong>
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 font-medium italic">No market prices recorded</span>
+                      )}
+
                       <button
-                        onClick={() => onDeleteItem(item.id)}
-                        aria-label={`Delete ${item.name}`}
-                        className="p-2 text-slate-400 hover:text-rose-600 transition-all rounded-xl hover:bg-rose-50"
+                        onClick={() => handleOpenMarketModal(item)}
+                        className="font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-100"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Store className="w-3.5 h-3.5" />
+                        <span>Compare / Edit Prices ({itemPrices.length})</span>
                       </button>
                     </div>
                   </Card>
@@ -257,6 +352,150 @@ export default function ShoppingList({
           </div>
         )}
       </div>
+
+      {/* Market Prices Comparison Modal */}
+      {inspectingItem && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="max-w-lg w-full p-6 space-y-5 shadow-xl border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Tag className="w-4.5 h-4.5 text-indigo-600" />
+                  <span>Market Prices for "{inspectingItem.name}"</span>
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">Compare, edit or record new prices across stores.</p>
+              </div>
+
+              <button
+                onClick={() => setInspectingItem(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Existing Prices List */}
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Store Prices
+              </h4>
+
+              {getItemPrices(inspectingItem.name).length === 0 ? (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center text-xs text-slate-500">
+                  No prices recorded for this product yet. Add one below!
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {getItemPrices(inspectingItem.name)
+                    .sort((a, b) => a.price - b.price)
+                    .map((p, idx) => (
+                      <div
+                        key={p.id || idx}
+                        className={`flex items-center justify-between p-3 rounded-xl text-xs ${
+                          idx === 0
+                            ? 'bg-emerald-50 border border-emerald-200 text-emerald-900 font-semibold'
+                            : 'bg-slate-50 border border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{p.markets?.emoji || '🏪'}</span>
+                          <span className="font-bold">{p.markets?.name || 'Store'}</span>
+                          {idx === 0 && (
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-sans px-2 py-0.5 rounded-full font-bold">
+                              Cheapest 🏆
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-sm">
+                            {p.price} {p.currency} /{p.unit}
+                          </span>
+
+                          <button
+                            onClick={() => handleStartEditModalPrice(p)}
+                            className="p-1 text-slate-400 hover:text-indigo-600"
+                            aria-label="Edit price"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => onDeletePrice(p.id)}
+                            className="p-1 text-slate-400 hover:text-rose-600"
+                            aria-label="Delete price"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Price Input Form */}
+            <form onSubmit={handleSaveModalPrice} className="space-y-3 pt-3 border-t border-slate-100">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                {editingModalPriceId ? 'Edit Price' : 'Add Store Price'}
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Select
+                  value={modalMarketId}
+                  onChange={(e) => setModalMarketId(e.target.value)}
+                  required
+                >
+                  <option value="" disabled>
+                    Select Store...
+                  </option>
+                  {markets.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.emoji} {m.name}
+                    </option>
+                  ))}
+                </Select>
+
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="Price (e.g. 3.99)"
+                  value={modalPriceInput}
+                  onChange={(e) => setModalPriceInput(e.target.value)}
+                  className="font-mono font-bold"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Select
+                  value={modalCurrencyInput}
+                  onChange={(e) => setModalCurrencyInput(e.target.value)}
+                  className="w-24 font-bold"
+                >
+                  <option value="EUR">€ EUR</option>
+                  <option value="PHP">₱ PHP</option>
+                  <option value="USD">$ USD</option>
+                </Select>
+
+                <Select
+                  value={modalUnitInput}
+                  onChange={(e) => setModalUnitInput(e.target.value)}
+                  className="w-24 font-bold"
+                >
+                  <option value="kg">/ kg</option>
+                  <option value="ud">/ pc</option>
+                  <option value="L">/ L</option>
+                  <option value="pack">/ pack</option>
+                </Select>
+
+                <Button type="submit" variant="primary" icon={Plus} className="flex-1 justify-center">
+                  {editingModalPriceId ? 'Save Edit' : 'Add Price'}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
