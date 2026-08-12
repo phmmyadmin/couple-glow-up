@@ -43,6 +43,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   // Active workout logging session state
   const [isLiveSessionActive, setIsLiveSessionActive] = useState(false);
   const [activeRoutine, setActiveRoutine] = useState(null);
+  const [targetWorkoutId, setTargetWorkoutId] = useState(null);
 
   useEffect(() => {
     async function loadGymData() {
@@ -177,6 +178,18 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     }
   };
 
+  const handleGoToWorkout = (workoutId) => {
+    setTargetWorkoutId(workoutId);
+    handleGymTabChange('history');
+  };
+
+  const tabItems = [
+    { id: 'workout', label: 'Workout', icon: Play },
+    { id: 'routines', label: 'Routines', icon: List, badge: routines.length },
+    { id: 'exercises', label: 'Exercises', icon: Dumbbell },
+    { id: 'history', label: 'History', icon: History, badge: workouts.length },
+  ];
+
   if (isLiveSessionActive) {
     return (
       <LiveWorkoutLogger
@@ -189,20 +202,6 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
       />
     );
   }
-
-  const tabItems = [
-    { id: 'workout', label: 'Workout', icon: Play },
-    { id: 'routines', label: 'Routines', icon: List, badge: routines.length },
-    { id: 'exercises', label: 'Exercises', icon: Dumbbell },
-    { id: 'history', label: 'History', icon: History, badge: workouts.length },
-  ];
-
-  const [targetWorkoutId, setTargetWorkoutId] = useState(null);
-
-  const handleGoToWorkout = (workoutId) => {
-    setTargetWorkoutId(workoutId);
-    handleGymTabChange('history');
-  };
 
   return (
     <div className="space-y-6 sm:space-y-7">
