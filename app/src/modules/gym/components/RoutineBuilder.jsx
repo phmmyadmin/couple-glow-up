@@ -95,19 +95,16 @@ export default function RoutineBuilder({
     setIsEditing(false);
   };
 
-  if (isSelectingExercise) {
-    return (
-      <ExerciseLibrary
-        exercises={exercises}
-        onSelectExercise={handleAddExerciseToRoutine}
-        onAddCustomExercise={onAddCustomExercise}
-      />
-    );
-  }
-
-  if (isEditing) {
-    return (
-      <Card className="space-y-5 p-5 sm:p-6 shadow-sm">
+  return (
+    <div className="space-y-6 sm:space-y-7">
+      {isSelectingExercise ? (
+        <ExerciseLibrary
+          exercises={exercises}
+          onSelectExercise={handleAddExerciseToRoutine}
+          onAddCustomExercise={onAddCustomExercise}
+        />
+      ) : isEditing ? (
+        <Card className="space-y-5 p-5 sm:p-6 shadow-sm">
         <h3 className="text-base font-bold text-slate-900">
           {editingRoutine ? 'Edit Routine' : 'Create New Routine'}
         </h3>
@@ -295,11 +292,8 @@ export default function RoutineBuilder({
           </div>
         </form>
       </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-6 sm:space-y-7">
+      ) : (
+        <>
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
           My Routine Templates ({routines.length})
@@ -364,6 +358,8 @@ export default function RoutineBuilder({
             </Card>
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   );

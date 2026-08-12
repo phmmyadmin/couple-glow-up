@@ -230,30 +230,28 @@ export default function LiveWorkoutLogger({
     setIsEditingTimeModal(false);
   };
 
-  if (isSelectingExercise) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-slate-900">Select Exercise for Workout</h3>
-          <button
-            onClick={() => setIsSelectingExercise(false)}
-            aria-label="Close exercise selector"
-            className="p-1.5 text-slate-500 hover:text-slate-900 rounded-xl hover:bg-slate-100"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <ExerciseLibrary
-          exercises={exercises}
-          onSelectExercise={handleAddExercise}
-          onAddCustomExercise={onAddCustomExercise}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 sm:space-y-7">
+      {isSelectingExercise ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-slate-900">Select Exercise for Workout</h3>
+            <button
+              onClick={() => setIsSelectingExercise(false)}
+              aria-label="Close exercise selector"
+              className="p-1.5 text-slate-500 hover:text-slate-900 rounded-xl hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <ExerciseLibrary
+            exercises={exercises}
+            onSelectExercise={handleAddExercise}
+            onAddCustomExercise={onAddCustomExercise}
+          />
+        </div>
+      ) : (
+        <>
       {/* Rest Timer Floating Banner (Apple Minimalist Glass Card) */}
       {isRestTimerActive && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-white/95 backdrop-blur-md text-slate-900 px-5 py-3 rounded-2xl shadow-xl border border-indigo-200/90 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
@@ -589,6 +587,8 @@ export default function LiveWorkoutLogger({
             </form>
           </Card>
         </div>
+      )}
+        </>
       )}
     </div>
   );
