@@ -37,7 +37,14 @@ const addDays = (dateStr, days) => {
 
 export default function App() {
   const { t, i18n } = useTranslation();
-  const [activeModule, setActiveModule] = useState('fit');
+  const [activeModule, setActiveModule] = useState(() => {
+    return localStorage.getItem('glowup_active_module') || 'fit';
+  });
+
+  const handleSetActiveModule = (mod) => {
+    setActiveModule(mod);
+    localStorage.setItem('glowup_active_module', mod);
+  };
 
   const [data, setData] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -218,7 +225,7 @@ export default function App() {
       </main>
 
       {/* Global Bottom Navigation */}
-      <BottomNav activeModule={activeModule} setActiveModule={setActiveModule} />
+      <BottomNav activeModule={activeModule} setActiveModule={handleSetActiveModule} />
 
       {/* New Profile Modal */}
       <NewProfileModal

@@ -24,7 +24,14 @@ import {
 
 export default function ShoppingApp({ activeProfile, profiles, setToastMessage }) {
   const { t } = useTranslation();
-  const [shopTab, setShopTab] = useState('list');
+  const [shopTab, setShopTab] = useState(() => {
+    return localStorage.getItem('glowup_shop_tab') || 'list';
+  });
+
+  const handleShopTabChange = (tab) => {
+    setShopTab(tab);
+    localStorage.setItem('glowup_shop_tab', tab);
+  };
 
   const [activeList, setActiveList] = useState(null);
   const [items, setItems] = useState([
@@ -209,7 +216,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
   return (
     <div className="space-y-6 sm:space-y-7">
       {/* Sub Tabs */}
-      <Tabs items={tabItems} activeTab={shopTab} onChange={setShopTab} />
+      <Tabs items={tabItems} activeTab={shopTab} onChange={handleShopTabChange} />
 
       {/* Tab Views */}
       {shopTab === 'list' && (

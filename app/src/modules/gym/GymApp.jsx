@@ -25,7 +25,14 @@ import {
 
 export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   const { t } = useTranslation();
-  const [gymTab, setGymTab] = useState('workout');
+  const [gymTab, setGymTab] = useState(() => {
+    return localStorage.getItem('glowup_gym_tab') || 'workout';
+  });
+
+  const handleGymTabChange = (tab) => {
+    setGymTab(tab);
+    localStorage.setItem('glowup_gym_tab', tab);
+  };
 
   const [exercises, setExercises] = useState([]);
   const [routines, setRoutines] = useState([]);
@@ -165,7 +172,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   return (
     <div className="space-y-6 sm:space-y-7">
       {/* Gym Sub-Tabs */}
-      <Tabs items={tabItems} activeTab={gymTab} onChange={setGymTab} />
+      <Tabs items={tabItems} activeTab={gymTab} onChange={handleGymTabChange} />
 
       {/* Tab Views */}
       {gymTab === 'workout' && (

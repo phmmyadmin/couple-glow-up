@@ -27,7 +27,14 @@ export default function FitApp({
   addDays,
 }) {
   const { t } = useTranslation();
-  const [fitTab, setFitTab] = useState('dashboard'); // 'dashboard', 'report', 'profile'
+  const [fitTab, setFitTab] = useState(() => {
+    return localStorage.getItem('glowup_fit_tab') || 'dashboard';
+  });
+
+  const handleFitTabChange = (tab) => {
+    setFitTab(tab);
+    localStorage.setItem('glowup_fit_tab', tab);
+  };
 
   // Drawer editing state
   const [editingItem, setEditingItem] = useState(null);
@@ -119,7 +126,7 @@ export default function FitApp({
               { id: 'profile', label: t('nav.profile', 'Profile'), icon: User },
             ]}
             activeTab={fitTab}
-            onChange={setFitTab}
+            onChange={handleFitTabChange}
           />
         </div>
       </div>
