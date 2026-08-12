@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X, ArrowUp, ArrowDown, Timer, Flame } from 'lucide-react';
+import { Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X, ArrowUp, ArrowDown, Timer, Flame, Edit3, Save } from 'lucide-react';
 import { calculate1RM } from '../lib/supabase-gym';
 import ExerciseLibrary from './ExerciseLibrary';
-import Card from '../../../shared/ui/Card';
+import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
+import { Input } from '../../../shared/ui/Input';
 
 export default function LiveWorkoutLogger({
   exercises,
@@ -23,6 +24,11 @@ export default function LiveWorkoutLogger({
   // Rest Timer State
   const [restTimerSeconds, setRestTimerSeconds] = useState(0);
   const [isRestTimerActive, setIsRestTimerActive] = useState(false);
+  const [defaultRestSeconds, setDefaultRestSeconds] = useState(90);
+
+  // Duration Edit Modal / Inline State
+  const [isEditingTimeModal, setIsEditingTimeModal] = useState(false);
+  const [editMinutesInput, setEditMinutesInput] = useState('');
 
   // Timer interval for main session duration
   useEffect(() => {
@@ -51,7 +57,7 @@ export default function LiveWorkoutLogger({
     return () => clearInterval(interval);
   }, [isRestTimerActive, restTimerSeconds]);
 
-  const startRestTimer = (seconds = 90) => {
+  const startRestTimer = (seconds = defaultRestSeconds) => {
     setRestTimerSeconds(seconds);
     setIsRestTimerActive(true);
   };
@@ -73,6 +79,30 @@ export default function LiveWorkoutLogger({
     return sumEx + exVolume;
   }, 0);
 
+  // Pre-fill exercises if started from routine
+  useEffect(() => {
+    if (initialRoutine && initialRoutine.items) {
+      const formattedEx = initialRoutine.items.map((item, idx) => {
+        const targetSetsCount = item.target_sets || 3;
+        const initialSets = Array.from({ length: targetSetsCount }).map((_, setIdx) => ({
+          id: `${Date.now()}-${idx}-${setIdx}`,
+          indicator: 'normal',
+          weight_kg: 20,
+          reps: item.target_reps || 10,
+          is_checked: false,
+        }));
+
+        return {
+          id: `${Date.now()}-${idx}`,
+          exercise: item.exercise,
+          sets: initialSets,
+        };
+      });
+
+      setWorkoutExercises(formattedEx);
+    }
+  }, [initialRoutine]);
+
   // Add exercise to active session
   const handleAddExercise = (exercise) => {
     const newEx = {
@@ -84,8 +114,6 @@ export default function LiveWorkoutLogger({
           indicator: 'normal',
           weight_kg: 20,
           reps: 10,
-          duration_seconds: 60,
-          distance_meters: 1000,
           is_checked: false,
         },
       ],
@@ -94,44 +122,61 @@ export default function LiveWorkoutLogger({
     setIsSelectingExercise(false);
   };
 
-  const handleMoveExercise = (index, direction) => {
-    const newIdx = index + direction;
-    if (newIdx < 0 || newIdx >= workoutExercises.length) return;
-    const updated = [...workoutExercises];
-    const temp = updated[index];
-    updated[index] = updated[newIdx];
-    updated[newIdx] = temp;
-    setWorkoutExercises(updated);
+  const handleRemoveExercise = (exIndex) => {
+    setWorkoutExercises((prev) => prev.filter((_, idx) => idx !== exIndex));
   };
 
-  // Set management helpers
-  const handleAddSet = (exerciseId) => {
-    setWorkoutExercises((prev) =>
-      prev.map((item) => {
-        if (item.id === exerciseId) {
+  const handleMoveExercise = (exIndex, direction) => {
+    const targetIdx = exIndex + direction;
+    if (targetIdx < 0 || targetIdx >= workoutExercises.length) return;
+    setWorkoutExercises((prev) => {
+      const copy = [...prev];
+      const temp = copy[exIndex];
+      copy[exIndex] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      return copy;
+    });
+  };
+
+  const handleAddSet = (exIndex) => {
+    setWorkoutExercises((prev) => {
+      return prev.map((item, idx) => {
+        if (idx === exIndex) {
           const lastSet = item.sets[item.sets.length - 1];
           const newSet = {
             id: Date.now().toString(),
             indicator: 'normal',
             weight_kg: lastSet ? lastSet.weight_kg : 20,
             reps: lastSet ? lastSet.reps : 10,
-            duration_seconds: lastSet ? lastSet.duration_seconds : 60,
-            distance_meters: lastSet ? lastSet.distance_meters : 1000,
             is_checked: false,
           };
           return { ...item, sets: [...item.sets, newSet] };
         }
         return item;
-      })
-    );
+      });
+    });
   };
 
-  const handleUpdateSet = (exerciseId, setId, field, value) => {
-    setWorkoutExercises((prev) =>
-      prev.map((item) => {
-        if (item.id === exerciseId) {
-          const updatedSets = item.sets.map((s) => {
-            if (s.id === setId) {
+  const handleRemoveSet = (exIndex, setIndex) => {
+    setWorkoutExercises((prev) => {
+      return prev.map((item, idx) => {
+        if (idx === exIndex) {
+          return {
+            ...item,
+            sets: item.sets.filter((_, sIdx) => sIdx !== setIndex),
+          };
+        }
+        return item;
+      });
+    });
+  };
+
+  const handleUpdateSetField = (exIndex, setIndex, field, value) => {
+    setWorkoutExercises((prev) => {
+      return prev.map((item, idx) => {
+        if (idx === exIndex) {
+          const updatedSets = item.sets.map((s, sIdx) => {
+            if (sIdx === setIndex) {
               const updated = { ...s, [field]: value };
               // Auto launch rest timer if checking a set as completed
               if (field === 'is_checked' && value === true) {
@@ -144,58 +189,52 @@ export default function LiveWorkoutLogger({
           return { ...item, sets: updatedSets };
         }
         return item;
-      })
-    );
-  };
-
-  const handleDeleteSet = (exerciseId, setId) => {
-    setWorkoutExercises((prev) =>
-      prev.map((item) => {
-        if (item.id === exerciseId) {
-          return { ...item, sets: item.sets.filter((s) => s.id !== setId) };
-        }
-        return item;
-      })
-    );
+      });
+    });
   };
 
   const handleFinish = () => {
-    const startedAt = new Date(Date.now() - secondsElapsed * 1000).toISOString();
-    const finishedAt = new Date().toISOString();
-
     const allSets = [];
     workoutExercises.forEach((item) => {
-      item.sets.forEach((set) => {
-        allSets.push({
-          exercise_id: item.exercise.id,
-          indicator: set.indicator,
-          weight_kg: set.weight_kg,
-          reps: set.reps,
-          duration_seconds: set.duration_seconds,
-          distance_meters: set.distance_meters,
-          is_checked: set.is_checked,
-        });
+      item.sets.forEach((s) => {
+        if (s.is_checked) {
+          allSets.push({
+            ...s,
+            exercise_id: item.exercise.id,
+          });
+        }
       });
     });
 
+    const durationMins = Math.max(1, Math.round(secondsElapsed / 60));
+
     onSaveWorkout(
       {
-        profile_id: activeProfile?.id || null,
         name: workoutName,
-        started_at: startedAt,
-        finished_at: finishedAt,
-        duration_minutes: Math.ceil(secondsElapsed / 60),
+        profile_id: activeProfile?.id || null,
+        duration_minutes: durationMins,
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
         estimated_volume_kg: totalLiveVolumeKg,
       },
       allSets
     );
   };
 
+  const handleApplyCustomTime = (e) => {
+    e.preventDefault();
+    const mins = parseInt(editMinutesInput, 10);
+    if (!isNaN(mins) && mins >= 0) {
+      setSecondsElapsed(mins * 60);
+    }
+    setIsEditingTimeModal(false);
+  };
+
   if (isSelectingExercise) {
     return (
-      <div className="space-y-6 sm:space-y-7">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-slate-900">Select Exercise</h3>
+          <h3 className="text-base font-bold text-slate-900">Select Exercise for Workout</h3>
           <button
             onClick={() => setIsSelectingExercise(false)}
             aria-label="Close exercise selector"
@@ -204,125 +243,109 @@ export default function LiveWorkoutLogger({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <ExerciseLibrary exercises={exercises} onSelectExercise={handleAddExercise} onAddCustomExercise={onAddCustomExercise} />
+        <ExerciseLibrary
+          exercises={exercises}
+          onSelectExercise={handleAddExercise}
+          onAddCustomExercise={onAddCustomExercise}
+        />
       </div>
     );
   }
 
-  // Configurable Default Rest Target
-  const [defaultRestSeconds, setDefaultRestSeconds] = useState(90);
-  const [isEditingTime, setIsEditingTime] = useState(false);
-  const [customMinutesInput, setCustomMinutesInput] = useState('');
-
-  const handleApplyCustomMinutes = (e) => {
-    e.preventDefault();
-    const mins = parseInt(customMinutesInput, 10);
-    if (!isNaN(mins) && mins >= 0) {
-      setSecondsElapsed(mins * 60);
-    }
-    setIsEditingTime(false);
-  };
-
   return (
     <div className="space-y-6 sm:space-y-7">
-      {/* Rest Timer Floating Banner */}
+      {/* Rest Timer Floating Banner (Apple Minimalist Glass Card) */}
       {isRestTimerActive && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white px-5 py-3 rounded-2xl shadow-xl border border-indigo-400 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
-          <Timer className="w-5 h-5 text-indigo-200 animate-pulse" />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-white/95 backdrop-blur-md text-slate-900 px-5 py-3 rounded-2xl shadow-xl border border-indigo-200/90 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
+          <Timer className="w-5 h-5 text-indigo-600 animate-pulse" />
           <div className="text-xs sm:text-sm font-semibold">
-            <span>Resting: </span>
-            <span className="font-mono font-bold text-base text-white">{formatTimer(restTimerSeconds)}</span>
+            <span className="text-slate-500">Rest Timer: </span>
+            <span className="font-mono font-extrabold text-base text-indigo-700">{formatTimer(restTimerSeconds)}</span>
           </div>
-          <div className="flex items-center gap-2 border-l border-indigo-400/50 pl-3">
-            <button
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="py-1 px-2.5 text-xs font-bold"
               onClick={() => setRestTimerSeconds((p) => p + 30)}
-              className="px-2 py-1 text-xs font-bold bg-indigo-500 hover:bg-indigo-400 rounded-lg"
             >
               +30s
-            </button>
+            </Button>
             <button
               onClick={() => setIsRestTimerActive(false)}
-              className="p-1 text-indigo-200 hover:text-white"
+              className="p-1 text-slate-400 hover:text-slate-700"
+              aria-label="Dismiss rest timer"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4.5 h-4.5" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Live Timer & Header Card */}
-      <Card className="bg-slate-900 text-white border-slate-800 shadow-md p-5 sm:p-6 space-y-4">
+      {/* Live Session Header Card */}
+      <Card className="p-5 sm:p-6 space-y-5 shadow-sm">
         <div className="flex items-center justify-between gap-3">
-          <input
-            type="text"
-            value={workoutName}
-            aria-label="Workout name"
-            onChange={(e) => setWorkoutName(e.target.value)}
-            className="bg-transparent text-base sm:text-lg font-bold text-white border-b border-slate-700 focus:outline-none focus:border-indigo-400 flex-1"
-          />
+          <div className="flex items-center gap-2 flex-1">
+            <Edit3 className="w-4 h-4 text-indigo-500 shrink-0" />
+            <input
+              type="text"
+              value={workoutName}
+              aria-label="Workout name"
+              onChange={(e) => setWorkoutName(e.target.value)}
+              className="text-lg sm:text-xl font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-600 focus:outline-none flex-1 font-heading"
+            />
+          </div>
 
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white" onClick={onCancel}>
+            <Button variant="ghost" size="sm" onClick={onCancel}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" onClick={handleFinish}>
-              Finish
+            <Button variant="primary" size="sm" icon={Check} onClick={handleFinish}>
+              Finish Workout
             </Button>
           </div>
         </div>
 
-        {/* Live Metrics & Editable Timer Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-slate-300 pt-3 border-t border-slate-800 font-mono">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-indigo-400" />
-              <span>Time: <strong>{formatTimer(secondsElapsed)}</strong></span>
-            </span>
-
-            {!isEditingTime ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomMinutesInput(Math.floor(secondsElapsed / 60).toString());
-                  setIsEditingTime(true);
-                }}
-                className="text-[11px] font-sans font-semibold text-indigo-300 hover:text-indigo-200 bg-slate-800 px-2 py-0.5 rounded border border-slate-700"
-              >
-                Edit Time
-              </button>
-            ) : (
-              <form onSubmit={handleApplyCustomMinutes} className="flex items-center gap-1">
-                <input
-                  type="number"
-                  min="0"
-                  max="600"
-                  value={customMinutesInput}
-                  onChange={(e) => setCustomMinutesInput(e.target.value)}
-                  className="w-14 px-1.5 py-0.5 text-xs text-center bg-slate-800 text-white rounded border border-indigo-500 font-mono"
-                  placeholder="mins"
-                />
-                <span className="text-xs text-slate-400">m</span>
-                <button type="submit" className="px-2 py-0.5 text-xs bg-indigo-600 rounded font-sans font-bold">
-                  Set
-                </button>
-              </form>
-            )}
+        {/* Live Metrics Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
+          {/* Duration Badge & Edit Trigger */}
+          <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-indigo-600" />
+              <div className="text-xs">
+                <span className="text-slate-500 font-medium">Duration: </span>
+                <span className="font-mono font-bold text-slate-900">{formatTimer(secondsElapsed)}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setEditMinutesInput(Math.floor(secondsElapsed / 60).toString());
+                setIsEditingTimeModal(true);
+              }}
+              className="p-1 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-white"
+              aria-label="Edit duration"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* Configurable Rest Timer Target */}
-          <div className="flex items-center gap-2">
-            <Timer className="w-4 h-4 text-indigo-400" />
-            <span className="text-slate-400 text-xs font-sans">Rest target:</span>
-            <div className="flex items-center gap-1">
+          {/* Configurable Rest Target Selector */}
+          <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-xl flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-xs text-slate-600 font-semibold shrink-0">
+              <Timer className="w-4 h-4 text-indigo-600" />
+              <span>Rest target:</span>
+            </div>
+            <div className="flex items-center gap-1 bg-slate-200/60 p-0.5 rounded-lg overflow-x-auto">
               {[30, 60, 90, 120, 180].map((sec) => (
                 <button
                   key={sec}
                   type="button"
                   onClick={() => setDefaultRestSeconds(sec)}
-                  className={`px-2 py-0.5 text-[11px] font-sans font-bold rounded transition-all ${
+                  className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all ${
                     defaultRestSeconds === sec
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      ? 'bg-white text-indigo-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   {sec}s
@@ -331,16 +354,22 @@ export default function LiveWorkoutLogger({
             </div>
           </div>
 
-          <span className="flex items-center gap-2 text-indigo-300">
-            <Flame className="w-4 h-4 text-amber-400" />
-            <span>Volume: <strong>{totalLiveVolumeKg.toLocaleString()} kg</strong></span>
-          </span>
+          {/* Live Volume Counter */}
+          <div className="bg-amber-50 border border-amber-200/80 p-3 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-amber-500" />
+              <span className="text-xs text-amber-900 font-medium">Volume:</span>
+            </div>
+            <span className="font-mono font-extrabold text-sm text-amber-900">
+              {totalLiveVolumeKg.toLocaleString()} kg
+            </span>
+          </div>
         </div>
       </Card>
 
       {/* Exercises List in Session */}
       {workoutExercises.length === 0 ? (
-        <Card className="text-center py-10 space-y-3">
+        <Card className="text-center py-10 space-y-3 shadow-sm">
           <Dumbbell className="w-12 h-12 text-slate-300 mx-auto" />
           <p className="text-sm text-slate-500 font-medium">Add your first exercise to start logging.</p>
           <Button icon={Plus} variant="primary" onClick={() => setIsSelectingExercise(true)}>
@@ -348,21 +377,20 @@ export default function LiveWorkoutLogger({
           </Button>
         </Card>
       ) : (
-        <div className="space-y-6 sm:space-y-7">
+        <div className="space-y-5 sm:space-y-6">
           {workoutExercises.map((item, exIdx) => {
-            const exType = item.exercise.exercise_type;
-
             return (
-              <Card key={item.id} className="space-y-4 p-5 sm:p-6 shadow-sm">
+              <Card key={item.id} className="p-5 sm:p-6 space-y-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    {/* Reorder Arrows */}
+                  <div className="flex items-center gap-3">
+                    {/* Reorder Buttons */}
                     <div className="flex flex-col gap-0.5">
                       <button
                         type="button"
                         disabled={exIdx === 0}
                         onClick={() => handleMoveExercise(exIdx, -1)}
                         className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                        aria-label="Move up"
                       >
                         <ArrowUp className="w-3.5 h-3.5" />
                       </button>
@@ -371,6 +399,7 @@ export default function LiveWorkoutLogger({
                         disabled={exIdx === workoutExercises.length - 1}
                         onClick={() => handleMoveExercise(exIdx, 1)}
                         className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                        aria-label="Move down"
                       >
                         <ArrowDown className="w-3.5 h-3.5" />
                       </button>
@@ -382,150 +411,101 @@ export default function LiveWorkoutLogger({
                     </h4>
                   </div>
 
-                  <span className="text-xs text-slate-500 font-semibold capitalize">
-                    {item.exercise.muscle_group}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg text-slate-600 font-semibold capitalize">
+                      {item.exercise.muscle_group}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveExercise(exIdx)}
+                      aria-label="Remove exercise from workout"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Sets Table */}
-                <div className="space-y-3">
-                  <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-400 uppercase text-center px-1">
-                    <span className="col-span-1">#</span>
-                    <span className="col-span-3">Type</span>
-                    <span className="col-span-3">
-                      {exType === 'weight_reps'
-                        ? 'Kg'
-                        : exType === 'distance_duration'
-                        ? 'Meters'
-                        : 'Seconds'}
-                    </span>
-                    <span className="col-span-3">
-                      {exType === 'weight_reps' || exType === 'reps_only' ? 'Reps' : 'Time'}
-                    </span>
-                    <span className="col-span-2">✓</span>
+                <div className="space-y-2.5 pt-1">
+                  <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider px-2">
+                    <span className="col-span-1 text-center">Set</span>
+                    <span className="col-span-4 text-center">Weight (kg)</span>
+                    <span className="col-span-4 text-center">Reps</span>
+                    <span className="col-span-2 text-center">1RM (Est)</span>
+                    <span className="col-span-1 text-center">Done</span>
                   </div>
 
-                  {item.sets.map((set, sIdx) => {
-                    const epley1RM =
-                      exType === 'weight_reps' && set.weight_kg && set.reps
-                        ? calculate1RM(set.weight_kg, set.reps)
-                        : null;
+                  {item.sets.map((set, setIdx) => {
+                    const est1RM = calculate1RM(set.weight_kg, set.reps);
 
                     return (
                       <div
                         key={set.id}
-                        className={`grid grid-cols-12 gap-2 items-center p-3 rounded-xl border text-xs sm:text-sm text-center transition-all ${
+                        className={`grid grid-cols-12 gap-2 items-center p-2 rounded-xl transition-all ${
                           set.is_checked
-                            ? 'bg-emerald-50/90 border-emerald-200 text-emerald-900 font-medium'
-                            : 'bg-slate-50 border-slate-200 text-slate-800'
+                            ? 'bg-emerald-50/80 border border-emerald-200'
+                            : 'bg-slate-50 border border-slate-200/80'
                         }`}
                       >
-                        {/* Set index */}
-                        <span className="col-span-1 font-mono font-bold text-slate-500 text-xs sm:text-sm">
-                          {sIdx + 1}
+                        <span className="col-span-1 text-center text-xs font-mono font-bold text-slate-600">
+                          {setIdx + 1}
                         </span>
 
-                        {/* Indicator selector */}
-                        <select
-                          aria-label="Set Type"
-                          value={set.indicator}
-                          onChange={(e) =>
-                            handleUpdateSet(item.id, set.id, 'indicator', e.target.value)
-                          }
-                          className="col-span-3 px-2 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-200 bg-white font-semibold"
-                        >
-                          <option value="normal">Normal</option>
-                          <option value="warmup">Warmup</option>
-                          <option value="dropset">Drop Set</option>
-                          <option value="failure">Failure</option>
-                        </select>
-
-                        {/* Primary Input */}
-                        <div className="col-span-3">
-                          {exType === 'weight_reps' && (
-                            <input
-                              type="number"
-                              step="any"
-                              aria-label="Weight in kg"
-                              value={set.weight_kg || ''}
-                              onChange={(e) =>
-                                handleUpdateSet(item.id, set.id, 'weight_kg', parseFloat(e.target.value))
-                              }
-                              className="w-full px-2 py-1.5 text-xs sm:text-sm text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
-                            />
-                          )}
-                          {exType === 'distance_duration' && (
-                            <input
-                              type="number"
-                              aria-label="Distance in meters"
-                              value={set.distance_meters || ''}
-                              onChange={(e) =>
-                                handleUpdateSet(item.id, set.id, 'distance_meters', parseFloat(e.target.value))
-                              }
-                              className="w-full px-2 py-1.5 text-xs sm:text-sm text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
-                            />
-                          )}
-                          {(exType === 'duration_only' || exType === 'reps_only') && (
-                            <span className="text-xs text-slate-400 font-mono">-</span>
-                          )}
-                        </div>
-
-                        {/* Secondary Input with Discrete 1RM Badge */}
-                        <div className="col-span-3 flex items-center gap-1 justify-center">
-                          {(exType === 'weight_reps' || exType === 'reps_only') && (
-                            <input
-                              type="number"
-                              aria-label="Reps"
-                              value={set.reps || ''}
-                              onChange={(e) =>
-                                handleUpdateSet(item.id, set.id, 'reps', parseInt(e.target.value, 10))
-                              }
-                              className="w-full px-2 py-1.5 text-xs sm:text-sm text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
-                            />
-                          )}
-                          {(exType === 'distance_duration' || exType === 'duration_only') && (
-                            <input
-                              type="number"
-                              aria-label="Duration in seconds"
-                              value={set.duration_seconds || ''}
-                              onChange={(e) =>
-                                handleUpdateSet(item.id, set.id, 'duration_seconds', parseInt(e.target.value, 10))
-                              }
-                              className="w-full px-2 py-1.5 text-xs sm:text-sm text-center font-mono font-bold rounded-lg border border-slate-200 bg-white"
-                            />
-                          )}
-                          {epley1RM > 0 && (
-                            <span
-                              title={`Estimated 1RM (Epley): ${epley1RM} kg`}
-                              className="hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded font-bold shrink-0"
-                            >
-                              <Award className="w-3 h-3 text-indigo-600" />
-                              {epley1RM}k
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Checked checkbox & Delete */}
-                        <div className="col-span-2 flex items-center justify-center gap-1.5">
-                          <button
-                            onClick={() =>
-                              handleUpdateSet(item.id, set.id, 'is_checked', !set.is_checked)
+                        <div className="col-span-4">
+                          <input
+                            type="number"
+                            step="any"
+                            value={set.weight_kg ?? ''}
+                            onChange={(e) =>
+                              handleUpdateSetField(
+                                exIdx,
+                                setIdx,
+                                'weight_kg',
+                                parseFloat(e.target.value) || 0
+                              )
                             }
-                            aria-label="Mark set as completed"
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold transition-all ${
+                            className="w-full text-center py-1.5 text-xs font-mono font-bold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+
+                        <div className="col-span-4">
+                          <input
+                            type="number"
+                            value={set.reps ?? ''}
+                            onChange={(e) =>
+                              handleUpdateSetField(
+                                exIdx,
+                                setIdx,
+                                'reps',
+                                parseInt(e.target.value, 10) || 0
+                              )
+                            }
+                            className="w-full text-center py-1.5 text-xs font-mono font-bold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+
+                        <span className="col-span-2 text-center text-xs font-mono text-indigo-700 font-bold">
+                          {est1RM > 0 ? `${est1RM}kg` : '-'}
+                        </span>
+
+                        <div className="col-span-1 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleUpdateSetField(
+                                exIdx,
+                                setIdx,
+                                'is_checked',
+                                !set.is_checked
+                              )
+                            }
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
                               set.is_checked
-                                ? 'bg-emerald-500 text-white shadow-sm'
-                                : 'bg-white border border-slate-300 text-slate-400'
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'bg-white border-2 border-slate-300 text-transparent hover:border-emerald-600'
                             }`}
                           >
                             <Check className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSet(item.id, set.id)}
-                            aria-label="Delete set"
-                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -533,27 +513,81 @@ export default function LiveWorkoutLogger({
                   })}
                 </div>
 
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  icon={Plus}
-                  className="w-full justify-center py-2.5"
-                  onClick={() => handleAddSet(item.id)}
-                >
-                  Add Set
-                </Button>
+                <div className="flex justify-between items-center pt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    icon={Plus}
+                    onClick={() => handleAddSet(exIdx)}
+                  >
+                    Add Set
+                  </Button>
+
+                  {item.sets.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSet(exIdx, item.sets.length - 1)}
+                      className="text-xs font-medium text-slate-400 hover:text-rose-600"
+                    >
+                      Remove Last Set
+                    </button>
+                  )}
+                </div>
               </Card>
             );
           })}
 
           <Button
-            variant="outline"
+            variant="secondary"
             icon={Plus}
-            className="w-full justify-center py-3.5 border-dashed border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+            className="w-full justify-center py-3.5 font-bold"
             onClick={() => setIsSelectingExercise(true)}
           >
             Add Another Exercise
           </Button>
+        </div>
+      )}
+
+      {/* Edit Duration Modal */}
+      {isEditingTimeModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="max-w-sm w-full p-6 space-y-4 shadow-xl border border-slate-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-indigo-600" />
+                <span>Edit Workout Duration</span>
+              </h3>
+              <button
+                onClick={() => setIsEditingTimeModal(null)}
+                className="p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleApplyCustomTime} className="space-y-4">
+              <Input
+                label="Duration in Minutes"
+                type="number"
+                min="0"
+                max="600"
+                value={editMinutesInput}
+                onChange={(e) => setEditMinutesInput(e.target.value)}
+                className="font-mono font-bold"
+                required
+              />
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="ghost" onClick={() => setIsEditingTimeModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" icon={Save}>
+                  Apply Time
+                </Button>
+              </div>
+            </form>
+          </Card>
         </div>
       )}
     </div>
