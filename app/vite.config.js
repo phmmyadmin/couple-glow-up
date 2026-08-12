@@ -1,20 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Fit Tracker - Diario Nutricional',
-        short_name: 'FitTracker',
-        description: 'Control Nutricional & Déficit Calórico',
-        theme_color: '#4F46E5',
-        background_color: '#FAFAF7',
+        name: 'Couple Glow Up — App Integral para Parejas',
+        short_name: 'Couple Glow Up',
+        description: 'Fit, Compras, Gym y Logros en Pareja',
+        theme_color: '#F43F5E',
+        background_color: '#020617',
         display: 'standalone',
         orientation: 'portrait',
         scope: './',
