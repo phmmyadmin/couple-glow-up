@@ -126,7 +126,7 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <Toast message={toastMessage} />
+      <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
 
       {/* App Header */}
       <header className="app-header mb-6 sm:mb-8">
