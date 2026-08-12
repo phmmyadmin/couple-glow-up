@@ -1,0 +1,17 @@
+{
+  "short_name": "Couple Glow Up",
+  "name": "Couple Glow Up — App Integral para Parejas",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "./",
+  "scope": "./",
+  "background_color": "#020617",
+  "theme_color": "#F43F5E",
+  "display": "standalone",
+  "orientation": "portrait"
+}
