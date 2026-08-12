@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tag, Store, Plus, ArrowUpDown } from 'lucide-react';
+import { Tag, Plus, ArrowUpDown } from 'lucide-react';
 
 export default function PriceComparator({ markets, productPrices, onSavePrice }) {
   const [productNameInput, setProductNameInput] = useState('');
@@ -24,7 +24,6 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
     setPriceInput('');
   };
 
-  // Group prices by product_name
   const groupedPrices = productPrices.reduce((acc, item) => {
     const key = item.product_name || item.products?.name || 'Otros';
     if (!acc[key]) acc[key] = [];
@@ -35,9 +34,9 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
   return (
     <div className="space-y-4">
       {/* Price Form */}
-      <form onSubmit={handleSubmit} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
-        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <Tag className="w-4 h-4 text-amber-400" />
+      <form onSubmit={handleSubmit} className="health-card space-y-3">
+        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+          <Tag className="w-4 h-4 text-indigo-600" />
           <span>Vincular Precio por Producto</span>
         </h3>
 
@@ -47,13 +46,13 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
             placeholder="Nombre del producto (ej: Pechuga de pollo)"
             value={productNameInput}
             onChange={(e) => setProductNameInput(e.target.value)}
-            className="bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            className="edit-input"
           />
 
           <select
             value={selectedMarketId}
             onChange={(e) => setSelectedMarketId(e.target.value)}
-            className="bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-slate-200 focus:outline-none focus:border-amber-500"
+            className="edit-select"
           >
             <option value="" disabled>
               Selecciona tienda...
@@ -73,13 +72,13 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
             placeholder="Precio (ej: 4.50)"
             value={priceInput}
             onChange={(e) => setPriceInput(e.target.value)}
-            className="flex-1 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            className="edit-input flex-1 font-mono"
           />
 
           <select
             value={currencyInput}
             onChange={(e) => setCurrencyInput(e.target.value)}
-            className="bg-slate-950/80 border border-slate-800 rounded-xl px-2 py-2 text-xs font-semibold text-slate-300"
+            className="edit-select w-24"
           >
             <option value="PHP">₱ PHP</option>
             <option value="EUR">€ EUR</option>
@@ -89,7 +88,7 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
           <select
             value={unitInput}
             onChange={(e) => setUnitInput(e.target.value)}
-            className="bg-slate-950/80 border border-slate-800 rounded-xl px-2 py-2 text-xs font-semibold text-slate-300"
+            className="edit-select w-20"
           >
             <option value="kg">/ kg</option>
             <option value="ud">/ ud</option>
@@ -99,7 +98,7 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
 
           <button
             type="submit"
-            className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-semibold text-xs px-3 py-2 rounded-xl shadow-md transition-all active:scale-95"
+            className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3.5 py-2 rounded-xl shadow-sm transition-all active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Guardar</span>
@@ -109,28 +108,27 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
 
       {/* Comparison Matrix */}
       <div className="space-y-3">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
           Comparativa de Precios Registrados
         </h3>
 
         {Object.keys(groupedPrices).length === 0 ? (
-          <div className="bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-6 text-center space-y-2">
-            <ArrowUpDown className="w-8 h-8 text-slate-600 mx-auto" />
-            <p className="text-xs text-slate-500">No hay comparativas de precios aún.</p>
+          <div className="health-card text-center py-8 space-y-2">
+            <ArrowUpDown className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="text-xs text-slate-400">No hay comparativas de precios aún.</p>
           </div>
         ) : (
           <div className="space-y-3">
             {Object.entries(groupedPrices).map(([productName, priceList]) => {
-              // Find cheapest
               const sorted = [...priceList].sort((a, b) => a.price - b.price);
               const cheapestId = sorted[0]?.id;
 
               return (
                 <div
                   key={productName}
-                  className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 space-y-2 shadow-sm"
+                  className="health-card space-y-2 p-3.5"
                 >
-                  <h4 className="text-xs font-bold text-slate-100 flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-slate-900 flex items-center gap-2">
                     <span>🏷️</span> {productName}
                   </h4>
 
@@ -143,23 +141,23 @@ export default function PriceComparator({ markets, productPrices, onSavePrice })
                       return (
                         <div
                           key={p.id || Math.random()}
-                          className={`flex items-center justify-between p-2 rounded-xl text-xs ${
+                          className={`flex items-center justify-between p-2.5 rounded-xl text-xs ${
                             isCheapest
-                              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
-                              : 'bg-slate-950/60 border border-slate-800/80 text-slate-300'
+                              ? 'bg-emerald-50 border border-emerald-200 text-emerald-900 font-medium'
+                              : 'bg-slate-50 border border-slate-200 text-slate-700'
                           }`}
                         >
                           <span className="flex items-center gap-1.5">
                             <span>{marketEmoji}</span>
-                            <span className="font-medium">{marketName}</span>
+                            <span className="font-semibold">{marketName}</span>
                           </span>
 
                           <div className="flex items-center gap-2 font-mono font-bold">
                             <span>
-                              {p.price} {p.currency} <span className="text-[10px] font-normal text-slate-400">/{p.unit}</span>
+                              {p.price} {p.currency} <span className="text-[10px] font-normal text-slate-500">/{p.unit}</span>
                             </span>
                             {isCheapest && (
-                              <span className="text-[9px] bg-emerald-500/20 text-emerald-400 font-sans px-1.5 py-0.5 rounded-full border border-emerald-500/40">
+                              <span className="text-[9px] bg-emerald-100 text-emerald-700 font-sans px-1.5 py-0.5 rounded-full border border-emerald-300 font-bold">
                                 🏅 Más barato
                               </span>
                             )}

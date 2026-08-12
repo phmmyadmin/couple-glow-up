@@ -36,7 +36,7 @@ const addDays = (dateStr, days) => {
 
 export default function App() {
   const { t, i18n } = useTranslation();
-  const [activeModule, setActiveModule] = useState('shopping'); // Default to shopping so user sees it right away!
+  const [activeModule, setActiveModule] = useState('fit'); // Default fit / tab
 
   const [data, setData] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -119,22 +119,22 @@ export default function App() {
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 selection:bg-rose-500 selection:text-white">
+    <div className="min-h-screen bg-[#FAFAF7] text-[#18181B] font-sans pb-24">
       <Toast message={toastMessage} />
 
-      {/* Global Header */}
-      <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 px-4 py-3 max-w-lg mx-auto shadow-lg">
+      {/* Fit-Tracker Header */}
+      <header className="sticky top-0 z-30 bg-[#FAFAF7]/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 max-w-md mx-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-pink-500/20">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm">
               <Heart className="w-4 h-4 fill-white" />
             </div>
             <div>
-              <h1 className="text-base font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-rose-300 bg-clip-text text-transparent">
+              <h1 className="text-base font-bold text-slate-900 tracking-tight">
                 Couple Glow Up
               </h1>
-              <p className="text-[10px] text-slate-400 font-medium -mt-0.5">
-                {t('header.subtitle', 'Juntos en cada meta')}
+              <p className="text-[11px] text-slate-500 font-medium -mt-0.5">
+                {t('header.subtitle', 'Control Nutricional & Déficit Calórico')}
               </p>
             </div>
           </div>
@@ -142,15 +142,15 @@ export default function App() {
           {/* Profile Switcher */}
           <div className="flex items-center gap-2">
             {profiles.length > 0 && (
-              <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-800 rounded-full p-1 pl-2">
+              <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-full p-1 pl-2 shadow-sm">
                 <Avatar profile={activeProfile} size="sm" />
                 <select
                   value={activeProfileId || ''}
                   onChange={(e) => handleProfileChange(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-200 focus:outline-none pr-1 cursor-pointer"
+                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none pr-1 cursor-pointer"
                 >
                   {profiles.map((p) => (
-                    <option key={p.id} value={p.id} className="bg-slate-900 text-white">
+                    <option key={p.id} value={p.id} className="bg-white text-slate-900">
                       {p.name}
                     </option>
                   ))}
@@ -160,7 +160,7 @@ export default function App() {
 
             <button
               onClick={() => setIsNewProfileModalOpen(true)}
-              className="p-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-all hover:bg-slate-800"
+              className="p-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 transition-all shadow-sm"
               title={t('header.newProfile', '+ Nuevo Perfil')}
             >
               <Plus className="w-4 h-4" />
@@ -170,7 +170,7 @@ export default function App() {
       </header>
 
       {/* Main Content Container */}
-      <main className="max-w-lg mx-auto px-3 pt-3">
+      <main className="max-w-md mx-auto px-3 pt-3">
         {activeModule === 'feed' && (
           <FeedApp
             activeProfile={activeProfile}

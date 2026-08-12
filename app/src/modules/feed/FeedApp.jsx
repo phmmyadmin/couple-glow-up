@@ -54,17 +54,17 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
 
   return (
     <div className="space-y-4 pb-4">
-      <div className="bg-gradient-to-r from-pink-500/10 via-rose-500/10 to-amber-500/10 border border-pink-500/20 rounded-3xl p-4 flex items-center justify-between shadow-lg">
+      <div className="health-card bg-gradient-to-r from-indigo-50 to-pink-50 border-indigo-100 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex -space-x-2">
             <Avatar profile={profiles[0]} size="md" />
             <Avatar profile={profiles[1]} size="md" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
-              Couple Glow Up Feed <Heart className="w-3.5 h-3.5 text-pink-400 fill-pink-400" />
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              Couple Glow Up Feed <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 font-medium">
               Muro compartido de logros, entrenamientos y comidas
             </p>
           </div>
@@ -73,32 +73,29 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
 
       <div className="space-y-3">
         {feedEvents.map((event) => (
-          <div
-            key={event.id}
-            className="bg-slate-900/70 backdrop-blur-md border border-slate-800/80 rounded-2xl p-4 space-y-3 shadow-lg"
-          >
+          <div key={event.id} className="health-card p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <Avatar profile={event.profile} size="md" />
                 <div>
-                  <h4 className="text-xs font-semibold text-slate-200">{event.title}</h4>
-                  <span className="text-[10px] text-slate-400">{event.created_at}</span>
+                  <h4 className="text-xs font-bold text-slate-900">{event.title}</h4>
+                  <span className="text-[10px] text-slate-400 font-medium">{event.created_at}</span>
                 </div>
               </div>
-              <span className="text-xl p-1 bg-slate-800/50 rounded-xl border border-slate-700/40">
+              <span className="text-xl p-1 bg-slate-100 rounded-xl border border-slate-200">
                 {event.emoji}
               </span>
             </div>
 
-            <p className="text-xs text-slate-300 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/40 font-mono">
+            <p className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono">
               {event.description}
             </p>
 
             <div className="flex items-center justify-between pt-1">
               <div className="flex items-center gap-1.5">
                 {event.reactions.map((r) => (
-                  <span key={r.id} className="px-2 py-0.5 rounded-full bg-slate-800 text-xs text-slate-300">
-                    {r.emoji} <span className="text-[10px] font-bold text-pink-400">{r.count}</span>
+                  <span key={r.id} className="px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-xs text-slate-700 font-medium">
+                    {r.emoji} <span className="text-[10px] font-bold text-indigo-600">{r.count}</span>
                   </span>
                 ))}
               </div>
@@ -108,7 +105,7 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
                   <button
                     key={emoji}
                     onClick={() => handleReaction(event.id, emoji)}
-                    className="p-1 hover:bg-slate-800 rounded text-sm"
+                    className="p-1 hover:bg-slate-100 rounded-lg text-sm transition-transform active:scale-125"
                   >
                     {emoji}
                   </button>

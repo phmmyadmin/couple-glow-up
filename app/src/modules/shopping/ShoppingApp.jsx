@@ -72,7 +72,6 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     },
   ]);
 
-  // Load data from Supabase if connected
   useEffect(() => {
     async function loadData() {
       const list = await fetchOrCreateActiveList();
@@ -98,7 +97,6 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     loadData();
   }, []);
 
-  // Realtime subscription for shopping items
   useEffect(() => {
     if (!activeList) return;
 
@@ -112,7 +110,6 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     return () => unsubscribe();
   }, [activeList]);
 
-  // ── ITEM ACTIONS ──
   const handleAddItem = async (newItem) => {
     const itemWithList = {
       ...newItem,
@@ -123,7 +120,6 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     if (saved) {
       setItems((prev) => [saved, ...prev]);
     } else {
-      // Local fallback
       const localItem = {
         ...newItem,
         id: Date.now().toString(),
@@ -132,12 +128,11 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     }
 
     if (setToastMessage) {
-      setToastMessage('Producto añadido a la lista');
+      setToastMessage('Producto añadido');
     }
   };
 
   const handleToggleItem = async (itemId, isChecked) => {
-    // Optimistic UI update
     setItems((prev) =>
       prev.map((i) =>
         i.id === itemId
@@ -161,7 +156,6 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     }
   };
 
-  // ── MARKET ACTIONS ──
   const handleSaveMarket = async (marketObj) => {
     const saved = await saveMarket(marketObj);
     if (saved) {
@@ -183,7 +177,6 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     }
   };
 
-  // ── PRICE ACTIONS ──
   const handleSavePrice = async (priceObj) => {
     const saved = await saveProductPrice(priceObj);
     const targetMarket = markets.find((m) => m.id === priceObj.market_id);
@@ -199,45 +192,31 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
 
   return (
     <div className="space-y-4">
-      {/* Sub navigation */}
-      <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-3 border border-slate-800/80 shadow-lg">
-        <div className="grid grid-cols-3 gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800/50">
-          <button
-            onClick={() => setShopTab('list')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-              shopTab === 'list'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShoppingCart className="w-3.5 h-3.5" />
-            <span>Lista Activa</span>
-          </button>
+      {/* Sub-Pills in Fit-Tracker style */}
+      <div className="tab-group">
+        <button
+          onClick={() => setShopTab('list')}
+          className={`tab-item ${shopTab === 'list' ? 'active' : ''}`}
+        >
+          <ShoppingCart className="w-4 h-4" />
+          <span>Lista Activa</span>
+        </button>
 
-          <button
-            onClick={() => setShopTab('markets')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-              shopTab === 'markets'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Store className="w-3.5 h-3.5" />
-            <span>Mercados ({markets.length})</span>
-          </button>
+        <button
+          onClick={() => setShopTab('markets')}
+          className={`tab-item ${shopTab === 'markets' ? 'active' : ''}`}
+        >
+          <Store className="w-4 h-4" />
+          <span>Mercados ({markets.length})</span>
+        </button>
 
-          <button
-            onClick={() => setShopTab('prices')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-              shopTab === 'prices'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Tag className="w-3.5 h-3.5" />
-            <span>Precios</span>
-          </button>
-        </div>
+        <button
+          onClick={() => setShopTab('prices')}
+          className={`tab-item ${shopTab === 'prices' ? 'active' : ''}`}
+        >
+          <Tag className="w-4 h-4" />
+          <span>Precios</span>
+        </button>
       </div>
 
       {/* Tab Views */}
