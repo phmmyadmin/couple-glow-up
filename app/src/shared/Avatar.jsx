@@ -2,11 +2,13 @@ import React from 'react';
 
 export default function Avatar({ profile, size = 'md', className = '' }) {
   const sizeClasses = {
+    xs: 'w-6 h-6 text-[10px]',
     sm: 'w-7 h-7 text-xs',
     md: 'w-9 h-9 text-sm',
     lg: 'w-12 h-12 text-base',
   };
 
+  const currentSizeClass = sizeClasses[size] || sizeClasses.md;
   const initial = profile?.name ? profile.name.charAt(0).toUpperCase() : '?';
   const isFemale = profile?.gender === 'female';
 
@@ -19,14 +21,14 @@ export default function Avatar({ profile, size = 'md', className = '' }) {
       <img
         src={profile.avatar_url}
         alt={profile.name}
-        className={`${sizeClasses[size]} rounded-full object-cover ring-2 ring-white/20 ${className}`}
+        className={`${currentSizeClass} shrink-0 aspect-square rounded-full object-cover ring-2 ring-white/20 ${className}`}
       />
     );
   }
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full ${gradientClass} flex items-center justify-center font-bold text-white shadow-md ring-2 ring-white/10 ${className}`}
+      className={`${currentSizeClass} shrink-0 aspect-square rounded-full ${gradientClass} flex items-center justify-center font-bold text-white shadow-md ring-2 ring-white/10 ${className}`}
     >
       {initial}
     </div>
