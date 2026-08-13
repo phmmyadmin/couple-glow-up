@@ -9,19 +9,26 @@ export function parseFoodTextLocal(text) {
     .replace(/^(?:Comida|Desayuno|Cena|Snack|Merienda)\s*\d*:\s*/i, '')
     .trim();
 
-  // Detect batch vs eaten portion pattern: "de un plato de 555g ... me como 130g"
+  // Detect batch vs eaten portion pattern: "de un plato de 555 gramos de avena ... me como 130 gramos"
   let portionRatio = 1;
-  const batchMatch = text.match(/de\s+(?:un\s+plato|una\s+receta|un\s+bowl|un\s+guiso)?\s*(?:de\s+)?(\d+(?:\.\d+)?)\s*g.*?\bme\s+(?:como|comí|comi|serví|servi)\s+(\d+(?:\.\d+)?)\s*g/i);
+  let batchDishName = null;
+
+  const batchMatch = text.match(/de\s+(?:un\s+plato|una\s+receta|un\s+bowl|un\s+guiso)?\s*(?:de\s+)?(\d+(?:\.\d+)?)\s*g(?:ramos|r)?.*?\bme\s+(?:como|comí|comi|serví|servi)\s+(\d+(?:\.\d+)?)\s*g(?:ramos|r)?/i);
+
   if (batchMatch) {
     const totalBatchWeight = parseFloat(batchMatch[1]);
     const eatenWeight = parseFloat(batchMatch[2]);
     if (totalBatchWeight > 0 && eatenWeight > 0) {
       portionRatio = eatenWeight / totalBatchWeight;
+      batchDishName = `Plato Preparado (Porción ${eatenWeight}g de ${totalBatchWeight}g)`;
     }
+
+    // Strip "de un plato de 555 gramos de [alimento]," prefix cleanly!
+    cleaned = cleaned.replace(/de\s+(?:un\s+plato|una\s+receta|un\s+bowl|un\s+guiso)?\s*(?:de\s+)?\d+\s*g(?:ramos|r)?(?:\s+de\s+[a-záéíóúñ\s]+)?[,;]?/i, '');
   }
 
-  // Remove batch header segment if present
-  cleaned = cleaned.replace(/de\s+(?:un\s+plato|una\s+receta|un\s+bowl|un\s+guiso)?\s*(?:de\s+)?\d+\s*g\s*(?:de\s+)?/i, '');
+  // Strip trailing "me como 130 gramos" / "me comí 130g"
+  cleaned = cleaned.replace(/\bme\s+(?:como|comí|comi|serví|servi)\s+\d+\s*g(?:ramos|r)?/gi, '').trim();
 
   // Split by commas, semicolons, newlines, +, " y ", " e "
   const rawSegments = cleaned.split(/[,;\n\+]|\s+(?:y|e)\s+/i).map(s => s.trim()).filter(Boolean);
@@ -29,15 +36,15 @@ export function parseFoodTextLocal(text) {
 
   for (const seg of rawSegments) {
     let lower = seg.toLowerCase().trim();
-    if (!lower || lower.startsWith('me como') || lower.startsWith('me comi') || lower.startsWith('me servi')) continue;
+    if (!lower) continue;
 
     let quantity = 1;
     let unit = 'ud';
     let cleanName = seg;
 
     // Check grams pattern: "100g pollo" or "pollo 100g" or "100 gramos de yogurt"
-    const gramsMatch = lower.match(/^(\d+(?:\.\d+)?)\s*g(?:ramos)?\s+(?:de\s+)?(.+)$/i) ||
-                       lower.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*g(?:ramos)?$/i);
+    const gramsMatch = lower.match(/^(\d+(?:\.\d+)?)\s*g(?:ramos|r)?\s+(?:de\s+)?(.+)$/i) ||
+                       lower.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*g(?:ramos|r)?$/i);
 
     // Check unit pattern: "2 plátanos" or "plátano 2" or "1 platano"
     const qtyMatch = lower.match(/^(\d+(?:\.\d+)?)\s+(?:de\s+)?(.+)$/i) ||
@@ -63,7 +70,7 @@ export function parseFoodTextLocal(text) {
       unit = 'ud';
     }
 
-    cleanName = cleanName.replace(/^(?:de\s+)/i, '').replace(/me\s+(?:como|comí|comi|serví|servi)\s+\d+\s*g?/i, '').trim();
+    cleanName = cleanName.replace(/^(?:de\s+)/i, '').trim();
     if (!cleanName) continue;
     cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
 
@@ -90,6 +97,7 @@ export function parseFoodTextLocal(text) {
 
     matches.push({
       name: cleanName || seg,
+      dishName: batchDishName,
       quantity: finalQty,
       unit: unit,
       category: category,

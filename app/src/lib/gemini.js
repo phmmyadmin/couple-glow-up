@@ -1,11 +1,12 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+const isValidApiKey = apiKey && typeof apiKey === 'string' && apiKey.startsWith('AIzaSy');
+const genAI = isValidApiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export async function parseFoodWithGemini(userText) {
-  if (!genAI || !apiKey) {
-    console.warn('VITE_GEMINI_API_KEY not configured. Falling back to generic parser.');
+  if (!genAI || !isValidApiKey) {
+    console.info('VITE_GEMINI_API_KEY no configurada o no válida (debe empezar por AIzaSy...). Usando parser nutricional inteligente.');
     return null;
   }
 
