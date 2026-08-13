@@ -859,8 +859,11 @@ export default function ExerciseLibrary({
 
       {/* Create Custom Exercise Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200">
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <Card className="max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200 cursor-default" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">Create Custom Exercise</h3>
               <button

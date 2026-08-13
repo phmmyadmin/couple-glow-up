@@ -79,9 +79,10 @@ export default function NewProfileModal({ isOpen, onClose, onProfileCreated }) {
   };
 
   return (
-    <div className="bottom-sheet-overlay" style={{ alignItems: 'center' }}>
+    <div className="bottom-sheet-overlay cursor-pointer" style={{ alignItems: 'center' }} onClick={onClose}>
       <div 
-        className="health-card" 
+        className="health-card cursor-default" 
+        onClick={(e) => e.stopPropagation()}
         style={{ 
           maxWidth: '520px', 
           width: '90%', 

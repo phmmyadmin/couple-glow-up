@@ -355,8 +355,11 @@ export default function ShoppingList({
 
       {/* Market Prices Comparison Modal */}
       {inspectingItem && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="max-w-lg w-full p-6 space-y-5 shadow-xl border border-slate-200">
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setInspectingItem(null)}
+        >
+          <Card className="max-w-lg w-full p-6 space-y-5 shadow-xl border border-slate-200 cursor-default" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">

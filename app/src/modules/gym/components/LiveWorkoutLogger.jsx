@@ -931,8 +931,11 @@ export default function LiveWorkoutLogger({
 
       {/* Edit Duration Modal */}
       {isEditingTimeModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="max-w-sm w-full p-6 space-y-4 shadow-xl border border-slate-200">
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setIsEditingTimeModal(null)}
+        >
+          <Card className="max-w-sm w-full p-6 space-y-4 shadow-xl border border-slate-200 cursor-default" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-indigo-600" />
