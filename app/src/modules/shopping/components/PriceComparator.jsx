@@ -15,6 +15,15 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  React.useEffect(() => {
+    if (markets.length > 0) {
+      const isValid = markets.some((m) => m.id === selectedMarketId);
+      if (!isValid) {
+        setSelectedMarketId(markets[0].id);
+      }
+    }
+  }, [markets]);
+
   // Derive unique list of all known products (default catalog + market prices)
   const allProductSuggestions = React.useMemo(() => {
     const defaultCatalog = [

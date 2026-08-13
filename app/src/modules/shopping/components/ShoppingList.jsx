@@ -221,12 +221,25 @@ export default function ShoppingList({
     return sorted[0];
   };
 
+  React.useEffect(() => {
+    if (markets.length > 0) {
+      const isValid = markets.some((m) => m.id === modalMarketId);
+      if (!isValid) {
+        setModalMarketId(markets[0].id);
+      }
+    }
+  }, [markets]);
+
   const handleOpenMarketModal = (item) => {
     setInspectingItem(item);
     setEditingModalPriceId(null);
     setModalPriceInput('');
-    if (markets.length > 0 && !modalMarketId) {
-      setModalMarketId(markets[0].id);
+    const validMarket = markets.find((m) => m.id === modalMarketId) || markets[0];
+    if (validMarket) {
+      setModalMarketId(validMarket.id);
+    }
+    if (item && item.unit) {
+      setModalUnitInput(item.unit);
     }
   };
 
