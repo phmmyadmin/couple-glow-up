@@ -34,6 +34,54 @@ export default function ShoppingList({
   const [unitInput, setUnitInput] = useState('ud');
   const [selectedCategory, setSelectedCategory] = useState('frutas');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Derive unique list of all known products (default catalog + existing items + market prices)
+  const allProductSuggestions = React.useMemo(() => {
+    const defaultCatalog = [
+      'Pechuga de pollo',
+      'Leche entera',
+      'Huevos frescos',
+      'Arroz blanco',
+      'Avena integral',
+      'Pan integral',
+      'Aguacate',
+      'Zanahorias',
+      'Manzanas',
+      'Plátanos',
+      'Tofu',
+      'Atún en lata',
+      'Queso fresco',
+      'Yogur natural',
+      'Aceite de oliva',
+      'Café molido',
+      'Pasta / Spaghettis',
+      'Chicken breast',
+      'Fresh Milk',
+      'Eggs',
+      'Salmon',
+      'Broccoli',
+    ];
+
+    const set = new Set(defaultCatalog);
+    (items || []).forEach((i) => {
+      if (i.name && i.name.trim()) set.add(i.name.trim());
+    });
+    (productPrices || []).forEach((p) => {
+      const pName = p.product_name || p.products?.name;
+      if (pName && pName.trim()) set.add(pName.trim());
+    });
+
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [items, productPrices]);
+
+  const filteredSuggestions = React.useMemo(() => {
+    const query = nameInput.trim().toLowerCase();
+    if (!query) return [];
+    return allProductSuggestions
+      .filter((prod) => prod.toLowerCase().includes(query) && prod.toLowerCase() !== query)
+      .slice(0, 7);
+  }, [nameInput, allProductSuggestions]);
 
   // Interactive Market Price Modal for an item
   const [inspectingItem, setInspectingItem] = useState(null);
@@ -153,14 +201,54 @@ export default function ShoppingList({
       <Card className="p-5 sm:p-6 shadow-sm">
         <form onSubmit={handleAdd} className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
-            <Input
-              type="text"
-              placeholder="e.g., Chicken breast, Milk..."
-              aria-label="Product name"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              className="flex-1"
-            />
+            <div className="relative flex-1">
+              <Input
+                type="text"
+                placeholder="e.g., Chicken breast, Milk..."
+                aria-label="Product name"
+                value={nameInput}
+                onChange={(e) => {
+                  setNameInput(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                className="w-full"
+                list="existing-products-list"
+                autoComplete="off"
+              />
+
+              <datalist id="existing-products-list">
+                {allProductSuggestions.map((prod, i) => (
+                  <option key={i} value={prod} />
+                ))}
+              </datalist>
+
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-56 overflow-y-auto transition-all animate-in fade-in slide-in-from-top-2">
+                  {filteredSuggestions.map((prod, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setNameInput(prod);
+                        setShowSuggestions(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-xs sm:text-sm text-slate-700 transition-colors flex items-center justify-between group cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 shrink-0" />
+                        <span className="truncate">{prod}</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 group-hover:text-indigo-600 font-bold px-2 py-0.5 rounded-full bg-slate-100 group-hover:bg-indigo-100 shrink-0">
+                        Select
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="flex gap-2">
               <Input
                 type="number"
