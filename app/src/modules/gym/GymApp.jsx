@@ -396,7 +396,11 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
           </Card>
 
           <RoutineBuilder
+            activeProfile={activeProfile}
+            profiles={profiles}
+            setToastMessage={setToastMessage}
             routines={routines}
+            setRoutines={setRoutines}
             exercises={exercises}
             onSaveRoutine={handleSaveRoutine}
             onDeleteRoutine={handleDeleteRoutine}
@@ -408,7 +412,11 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
 
       {gymTab === 'routines' && (
         <RoutineBuilder
+          activeProfile={activeProfile}
+          profiles={profiles}
+          setToastMessage={setToastMessage}
           routines={routines}
+          setRoutines={setRoutines}
           exercises={exercises}
           onSaveRoutine={handleSaveRoutine}
           onDeleteRoutine={handleDeleteRoutine}

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, Dumbbell, Play, Edit3, ArrowUp, ArrowDown, Timer, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, Dumbbell, Play, Edit3, ArrowUp, ArrowDown, Timer, ChevronRight, Loader2 } from 'lucide-react';
 import ExerciseLibrary from './ExerciseLibrary';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
+import Avatar from '../../../shared/Avatar';
+import { fetchRoutinesFromSupabase, saveRoutineToSupabase } from '../lib/supabase-gym';
 
 const ROUTINE_COLORS = [
   '#6366f1', // Indigo
@@ -23,7 +25,11 @@ const SET_INDICATORS = [
 
 export default function RoutineBuilder({
   routines,
+  setRoutines,
   exercises,
+  activeProfile,
+  profiles,
+  setToastMessage,
   onSaveRoutine,
   onDeleteRoutine,
   onStartRoutine,
@@ -33,6 +39,55 @@ export default function RoutineBuilder({
   const [editingRoutine, setEditingRoutine] = useState(null);
   const [routineName, setRoutineName] = useState('');
   const [routineDesc, setRoutineDesc] = useState('');
+
+  // Partner Routines State & Copy
+  const partnerProfiles = (profiles || []).filter((p) => p.id !== activeProfile?.id);
+  const [partnerRoutinesMap, setPartnerRoutinesMap] = useState({});
+  const [copyingRoutineId, setCopyingRoutineId] = useState(null);
+
+  useEffect(() => {
+    async function loadPartnerRoutines() {
+      if (!partnerProfiles || partnerProfiles.length === 0) return;
+      const map = {};
+      for (const partner of partnerProfiles) {
+        const pRoutines = await fetchRoutinesFromSupabase(partner.id);
+        map[partner.id] = pRoutines;
+      }
+      setPartnerRoutinesMap(map);
+    }
+
+    loadPartnerRoutines();
+  }, [activeProfile?.id, profiles]);
+
+  const handleCopyPartnerRoutine = async (routine, partnerName) => {
+    if (!activeProfile?.id) return;
+    setCopyingRoutineId(routine.id);
+
+    try {
+      const routineCopy = {
+        profile_id: activeProfile.id,
+        name: routine.name,
+        description: routine.description || null,
+        color: routine.color || '#6366f1',
+        exercises: routine.exercises || [],
+      };
+
+      const saved = await saveRoutineToSupabase(routineCopy);
+      if (saved) {
+        const freshRoutines = await fetchRoutinesFromSupabase(activeProfile.id);
+        if (typeof setRoutines === 'function') {
+          setRoutines(freshRoutines);
+        }
+        if (typeof setToastMessage === 'function') {
+          setToastMessage(`Saved "${routine.name}" from ${partnerName}'s routines!`);
+        }
+      }
+    } catch (err) {
+      console.error('Error copying partner routine:', err);
+    } finally {
+      setCopyingRoutineId(null);
+    }
+  };
   const [routineColor, setRoutineColor] = useState('#6366f1');
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [isSelectingExercise, setIsSelectingExercise] = useState(false);
@@ -557,6 +612,96 @@ export default function RoutineBuilder({
                   </Button>
                 </Card>
               ))}
+            </div>
+          )}
+
+          {/* Partner Routines Section */}
+          {partnerProfiles && partnerProfiles.length > 0 && !isEditing && !isSelectingExercise && (
+            <div className="pt-6 border-t-2 border-dashed border-slate-200 space-y-5">
+              {partnerProfiles.map((partner) => {
+                const partnerRoutines = partnerRoutinesMap[partner.id] || [];
+
+                return (
+                  <div key={partner.id} className="space-y-4">
+                    <div className="flex items-center gap-2 px-1">
+                      <Avatar profile={partner} size="sm" />
+                      <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        {partner.name}'s Routine Templates ({partnerRoutines.length})
+                      </h3>
+                    </div>
+
+                    {partnerRoutines.length === 0 ? (
+                      <Card className="p-4 text-center text-xs text-slate-400 font-medium bg-slate-50/60 border-dashed">
+                        {partner.name} has not created any routine templates yet.
+                      </Card>
+                    ) : (
+                      <div className="space-y-4">
+                        {partnerRoutines.map((routine) => {
+                          const isCopying = copyingRoutineId === routine.id;
+
+                          return (
+                            <Card
+                              key={routine.id}
+                              className="space-y-4 p-4 sm:p-5 bg-slate-50/90 border-slate-200/90 border-l-4 shadow-2xs"
+                              style={{ borderLeftColor: routine.color || '#6366f1' }}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <h4 className="text-base font-bold text-slate-900">{routine.name}</h4>
+                                  {routine.description && (
+                                    <p className="text-xs text-slate-500 font-medium mt-0.5">
+                                      {routine.description}
+                                    </p>
+                                  )}
+                                  <span className="inline-block text-xs font-mono font-semibold text-slate-500 mt-1">
+                                    {routine.exercises?.length || 0} exercises
+                                  </span>
+                                </div>
+
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  icon={isCopying ? Loader2 : Plus}
+                                  disabled={Boolean(copyingRoutineId)}
+                                  onClick={() => handleCopyPartnerRoutine(routine, partner.name)}
+                                  className="text-xs shrink-0"
+                                >
+                                  {isCopying ? 'Copying...' : 'Save to My Routines'}
+                                </Button>
+                              </div>
+
+                              {/* Exercise chips */}
+                              {routine.exercises && routine.exercises.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                  {routine.exercises.slice(0, 6).map((exItem, eIdx) => {
+                                    const name =
+                                      exItem.exercise?.name || exItem.exercise?.name_es || exItem.title || 'Exercise';
+                                    const setsCount = exItem.sets?.length || exItem.target_sets || 3;
+                                    return (
+                                      <span
+                                        key={eIdx}
+                                        className="bg-white text-slate-700 text-[11px] font-medium px-2 py-0.5 rounded-md border border-slate-200 flex items-center gap-1"
+                                      >
+                                        <span>{name}</span>
+                                        <span className="text-slate-400 font-mono text-[10px]">({setsCount}s)</span>
+                                      </span>
+                                    );
+                                  })}
+                                  {routine.exercises.length > 6 && (
+                                    <span className="text-[11px] font-medium text-slate-400 self-center">
+                                      +{routine.exercises.length - 6} more
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
