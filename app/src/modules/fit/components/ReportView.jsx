@@ -139,6 +139,7 @@ export default function ReportView({ data, setData, activeProfileId, activeProfi
   };
 
   const visibleDays = getVisibleDays();
+  const maxWeekOffset = Math.max(0, Math.ceil((dailyLogs?.length || 0) / 7) - 1);
 
   const formatShortDate = (dateStr) => {
     if (!dateStr) return '';
