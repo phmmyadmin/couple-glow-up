@@ -16,13 +16,19 @@ export async function fetchMarkets() {
   }
 }
 
+const isUuid = (id) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
 export async function saveMarket(market) {
   if (!supabase) return null;
   try {
-    if (!market.id) {
+    const payload = { ...market };
+    const targetId = isUuid(payload.id) ? payload.id : null;
+    if (!targetId) delete payload.id;
+
+    if (!targetId) {
       const { data, error } = await supabase
         .from('markets')
-        .insert(market)
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
@@ -30,8 +36,8 @@ export async function saveMarket(market) {
     } else {
       const { data, error } = await supabase
         .from('markets')
-        .update(market)
-        .eq('id', market.id)
+        .update(payload)
+        .eq('id', targetId)
         .select()
         .single();
       if (error) throw error;
@@ -218,10 +224,23 @@ export async function fetchProductPrices() {
 export async function saveProductPrice(priceObj) {
   if (!supabase) return null;
   try {
-    if (!priceObj.id) {
+    const payload = { ...priceObj };
+
+    // Clean non-UUID market_id
+    if (payload.market_id && !isUuid(payload.market_id)) {
+      delete payload.market_id;
+    }
+
+    // Clean non-UUID id for insertion vs update
+    const targetId = isUuid(payload.id) ? payload.id : null;
+    if (!targetId) {
+      delete payload.id;
+    }
+
+    if (!targetId) {
       const { data, error } = await supabase
         .from('product_prices')
-        .insert(priceObj)
+        .insert(payload)
         .select('*, markets(*)')
         .single();
       if (error) throw error;
@@ -229,8 +248,8 @@ export async function saveProductPrice(priceObj) {
     } else {
       const { data, error } = await supabase
         .from('product_prices')
-        .update(priceObj)
-        .eq('id', priceObj.id)
+        .update(payload)
+        .eq('id', targetId)
         .select('*, markets(*)')
         .single();
       if (error) throw error;

@@ -121,12 +121,18 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
     }
   };
 
-  const groupedPrices = productPrices.reduce((acc, item) => {
-    const key = item.product_name || item.products?.name || 'Others';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(item);
-    return acc;
-  }, {});
+  const allGroupedProducts = React.useMemo(() => {
+    const map = {};
+    allProductSuggestions.forEach((name) => {
+      map[name] = [];
+    });
+    (productPrices || []).forEach((p) => {
+      const key = p.product_name || p.products?.name || 'Others';
+      if (!map[key]) map[key] = [];
+      map[key].push(p);
+    });
+    return map;
+  }, [allProductSuggestions, productPrices]);
 
   return (
     <div className="space-y-6 sm:space-y-7">
@@ -266,17 +272,17 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
       {/* Comparison Matrix */}
       <div className="space-y-4">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
-          Recorded Price Comparisons ({Object.keys(groupedPrices).length} products)
+          Price Comparisons ({Object.keys(allGroupedProducts).length} products)
         </h3>
 
-        {Object.keys(groupedPrices).length === 0 ? (
+        {Object.keys(allGroupedProducts).length === 0 ? (
           <Card className="text-center py-10 space-y-3">
             <ArrowUpDown className="w-12 h-12 text-slate-300 mx-auto" />
-            <p className="text-sm text-slate-500 font-medium">No price comparisons recorded yet.</p>
+            <p className="text-sm text-slate-500 font-medium">No products found.</p>
           </Card>
         ) : (
           <div className="space-y-5 sm:space-y-6">
-            {Object.entries(groupedPrices).map(([productName, priceList]) => {
+            {Object.entries(allGroupedProducts).map(([productName, priceList]) => {
               const sorted = [...priceList].sort((a, b) => a.price - b.price);
               const cheapestId = sorted[0]?.id;
 
@@ -292,7 +298,24 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
                     </span>
                   </h4>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {priceList.length === 0 ? (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                      <span className="text-xs text-slate-500 font-medium">No prices recorded for this product yet.</span>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        icon={Plus}
+                        onClick={() => {
+                          setProductNameInput(productName);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      >
+                        Add Price
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {priceList.map((p) => {
                       const isCheapest = p.id === cheapestId;
                       const marketName = p.markets?.name || 'Store';
@@ -346,6 +369,7 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
                       );
                     })}
                   </div>
+                )}
                 </Card>
               );
             })}

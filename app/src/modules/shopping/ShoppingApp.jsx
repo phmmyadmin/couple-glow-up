@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Store, Tag } from 'lucide-react';
+import { ShoppingCart, Store, Tag, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import ShoppingList from './components/ShoppingList';
 import MarketManager from './components/MarketManager';
 import PriceComparator from './components/PriceComparator';
+import ProductsManager from './components/ProductsManager';
 import Tabs from '../../shared/ui/Tabs';
 
 import {
@@ -253,7 +254,8 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
   };
 
   const tabItems = [
-    { id: 'list', label: 'Active List', icon: ShoppingCart, badge: items.filter(i => !i.is_checked).length },
+    { id: 'list', label: 'Active List', icon: ShoppingCart, badge: items.filter((i) => !i.is_checked).length },
+    { id: 'products', label: 'Products', icon: Package },
     { id: 'markets', label: 'Stores', icon: Store, badge: markets.length },
     { id: 'prices', label: 'Price Comparison', icon: Tag },
   ];
@@ -280,6 +282,17 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
         />
       )}
 
+      {shopTab === 'products' && (
+        <ProductsManager
+          items={items}
+          productPrices={productPrices}
+          onAddItem={handleAddItem}
+          onOpenComparator={(prodName) => {
+            handleShopTabChange('prices');
+          }}
+        />
+      )}
+
       {shopTab === 'markets' && (
         <MarketManager
           markets={markets}
@@ -291,6 +304,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
 
       {shopTab === 'prices' && (
         <PriceComparator
+          items={items}
           markets={markets}
           productPrices={productPrices}
           onSavePrice={handleSavePrice}
