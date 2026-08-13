@@ -149,15 +149,21 @@ export default function ReportView({ data, activeProfileId, onUpdateProfile, sel
     e.preventDefault();
     if (!inputWeight || isNaN(inputWeight) || parseFloat(inputWeight) <= 0) return;
 
+    const profId = activeProfileId || activeProfile?.id;
     setIsSubmittingWeight(true);
     try {
-      if (supabase && activeProfileId) {
-        const res = await saveWeightToSupabase({ date: inputDate, time: inputTime, weight: parseFloat(inputWeight), profileId: activeProfileId });
+      if (supabase && profId) {
+        const res = await saveWeightToSupabase({ date: inputDate, time: inputTime, weight: parseFloat(inputWeight), profileId: profId });
         if (res && res.success) {
-          const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
-          if (freshData) onUpdateProfile(freshData.userProfile);
+          const freshData = await fetchDailyLogsFromSupabase(profId);
+          if (freshData && setData) {
+            setData(freshData);
+          }
+          if (freshData && onUpdateProfile) {
+            onUpdateProfile(freshData.userProfile);
+          }
           setInputWeight('');
-          setWeightFeedback(t('toast.weightSaved'));
+          setWeightFeedback(t('toast.weightSaved', 'Weight saved!'));
           setTimeout(() => setWeightFeedback(null), 3000);
           setShowWeightForm(false);
           return;
@@ -169,39 +175,68 @@ export default function ReportView({ data, activeProfileId, onUpdateProfile, sel
       const updatedHistory = [...history.filter(h => !(h.date === inputDate && h.time === inputTime)), newEntry];
       updatedHistory.sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
 
-      onUpdateProfile({
+      const updatedUserProfile = {
         ...userProfile,
         weightLog: { ...weightLog, history: updatedHistory }
-      });
+      };
+
+      if (setData && data) {
+        setData({
+          ...data,
+          userProfile: updatedUserProfile,
+        });
+      }
+
+      if (onUpdateProfile) {
+        onUpdateProfile(updatedUserProfile);
+      }
+
       setInputWeight('');
-      setWeightFeedback(t('toast.weightSaved'));
+      setWeightFeedback(t('toast.weightSaved', 'Weight saved!'));
       setTimeout(() => setWeightFeedback(null), 3000);
       setShowWeightForm(false);
     } catch (err) {
-      console.error(err);
+      console.error('Error adding weight:', err);
     } finally {
       setIsSubmittingWeight(false);
     }
   };
 
   const handleDeleteWeight = async (item, index) => {
+    const profId = activeProfileId || activeProfile?.id;
     try {
-      if (supabase && activeProfileId) {
-        const res = await deleteWeightFromSupabase({ date: item.date, time: item.time, profileId: activeProfileId });
+      if (supabase && profId) {
+        const res = await deleteWeightFromSupabase({ date: item.date, time: item.time, profileId: profId });
         if (res && res.success) {
-          const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
-          if (freshData) onUpdateProfile(freshData.userProfile);
+          const freshData = await fetchDailyLogsFromSupabase(profId);
+          if (freshData && setData) {
+            setData(freshData);
+          }
+          if (freshData && onUpdateProfile) {
+            onUpdateProfile(freshData.userProfile);
+          }
           return;
         }
       }
 
       const updatedHistory = history.filter((_, i) => i !== index);
-      onUpdateProfile({
+      const updatedUserProfile = {
         ...userProfile,
         weightLog: { ...weightLog, history: updatedHistory }
-      });
+      };
+
+      if (setData && data) {
+        setData({
+          ...data,
+          userProfile: updatedUserProfile,
+        });
+      }
+
+      if (onUpdateProfile) {
+        onUpdateProfile(updatedUserProfile);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error deleting weight:', err);
     }
   };
 

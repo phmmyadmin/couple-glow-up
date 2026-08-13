@@ -195,6 +195,8 @@ export default function FitApp({
           setData={setData}
           selectedDate={selectedDate}
           activeProfile={activeProfile}
+          activeProfileId={activeProfile?.id}
+          loadData={loadData}
           setToastMessage={setToastMessage}
         />
       )}
