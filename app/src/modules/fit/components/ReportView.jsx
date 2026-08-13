@@ -110,6 +110,15 @@ export default function ReportView({ data, setData, activeProfileId, activeProfi
 
   const activeMonthData = monthlyStats[selectedMonthIndex] || monthlyStats[0] || null;
 
+  // Weekly Data Configuration
+  const macrosConfig = {
+    calories: { label: t('diary.calories', 'Calories'), color: 'var(--color-calories)', target: targetMacros.calories },
+    protein: { label: t('diary.protein', 'Protein'), color: 'var(--color-protein)', target: targetMacros.protein },
+    carbs: { label: t('diary.carbs', 'Carbs'), color: 'var(--color-carbs)', target: targetMacros.carbs },
+    fats: { label: t('diary.fats', 'Fats'), color: 'var(--color-fats)', target: targetMacros.fats }
+  };
+  const currentConfig = macrosConfig[activeMacro] || macrosConfig.calories;
+
   // Weekly Data Grouping (7 days sliding window)
   const getVisibleDays = () => {
     if (dailyLogs.length === 0) return [];
