@@ -19,34 +19,13 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
   const [noteInput, setNoteInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  const [feedEvents, setFeedEvents] = useState([
-    {
-      id: '1',
-      profile: profiles[0] || { name: 'Pablo', gender: 'male' },
-      event_type: 'workout_completed',
-      title: `${profiles[0]?.name || 'Pablo'} completed a workout`,
-      description: 'Push Day · 45 min · 7,553 kg total volume',
-      emoji: '🏋️',
-      created_at: new Date(Date.now() - 7200000).toISOString(),
-      feed_reactions: [{ id: 'r1', emoji: '🔥', count: 1 }],
-    },
-    {
-      id: '2',
-      profile: profiles[1] || { name: 'Partner', gender: 'female' },
-      event_type: 'personal_record',
-      title: `🏆 ${profiles[1]?.name || 'Partner'} set a new personal record!`,
-      description: 'Chest Fly (Machine): 104.5 kg (1RM Epley)',
-      emoji: '🏆',
-      created_at: new Date(Date.now() - 18000000).toISOString(),
-      feed_reactions: [{ id: 'r2', emoji: '👏', count: 2 }],
-    },
-  ]);
+  const [feedEvents, setFeedEvents] = useState([]);
 
   useEffect(() => {
     async function loadFeed() {
       setIsLoading(true);
       const dbEvents = await fetchFeedEventsFromSupabase();
-      if (dbEvents && dbEvents.length > 0) {
+      if (Array.isArray(dbEvents)) {
         setFeedEvents(dbEvents);
       }
       setIsLoading(false);
@@ -55,7 +34,7 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
 
     const unsubscribe = subscribeToFeedEvents(async () => {
       const updatedEvents = await fetchFeedEventsFromSupabase();
-      if (updatedEvents && updatedEvents.length > 0) {
+      if (Array.isArray(updatedEvents)) {
         setFeedEvents(updatedEvents);
       }
     });

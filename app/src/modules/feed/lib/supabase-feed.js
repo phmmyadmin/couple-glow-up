@@ -75,14 +75,21 @@ export function subscribeToFeedEvents(onChange) {
 }
 
 export async function deleteFeedEventFromSupabase(eventId) {
-  if (!supabase) return false;
+  if (!supabase || !eventId) return false;
   try {
+    if (typeof eventId === 'string' && (eventId === '1' || eventId === '2' || eventId.startsWith('local-'))) {
+      return true;
+    }
+
     const { error } = await supabase
       .from('feed_events')
       .delete()
       .eq('id', eventId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error deleting feed_event from Supabase:', error);
+      throw error;
+    }
     return true;
   } catch (err) {
     console.error('Error deleting feed event:', err);
