@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, X, Check, Clock, Tag } from 'lucide-react';
 import { FOOD_CATEGORIES } from '../../../utils/category';
+import { supabase, updateIntakeInSupabase, deleteIntakeFromSupabase, fetchDailyLogsFromSupabase } from '../../../lib/supabase';
 
-export default function EditDrawer({ item, itemIndex, onClose, onDelete, onUpdate }) {
+export default function EditDrawer({
+  item,
+  index,
+  itemIndex,
+  selectedDate,
+  data,
+  setData,
+  activeProfileId,
+  onClose,
+  onDelete,
+  onUpdate,
+  setToastMessage,
+}) {
   const [quantity, setQuantity] = useState(1);
   const [initialQuantity, setInitialQuantity] = useState(1);
   const [time, setTime] = useState('12:00');
@@ -10,8 +23,8 @@ export default function EditDrawer({ item, itemIndex, onClose, onDelete, onUpdat
 
   useEffect(() => {
     if (item) {
-      setQuantity(item.quantity || 1);
-      setInitialQuantity(item.quantity || 1);
+      setQuantity(item.quantity || item.portion_qty || 1);
+      setInitialQuantity(item.quantity || item.portion_qty || 1);
       setTime(item.time || '12:00');
       setCategory(item.category || 'other');
     }
@@ -24,13 +37,90 @@ export default function EditDrawer({ item, itemIndex, onClose, onDelete, onUpdat
   
   const ratio = initialQuantity > 0 ? quantity / initialQuantity : 1;
 
-  const newCals = Math.round(item.macros.calories * ratio);
-  const newProt = Math.round(item.macros.protein * ratio * 10) / 10;
-  const newCarbs = Math.round(item.macros.carbs * ratio * 10) / 10;
-  const newFats = Math.round(item.macros.fats * ratio * 10) / 10;
+  const newCals = Math.round((item.macros?.calories || item.calories || 0) * ratio);
+  const newProt = Math.round((item.macros?.protein || item.protein || 0) * ratio * 10) / 10;
+  const newCarbs = Math.round((item.macros?.carbs || item.carbs || 0) * ratio * 10) / 10;
+  const newFats = Math.round((item.macros?.fats || item.fats || 0) * ratio * 10) / 10;
 
-  const handleSave = () => {
-    onUpdate(itemIndex, quantity, { calories: newCals, protein: newProt, carbs: newCarbs, fats: newFats }, time, category);
+  const handleSave = async () => {
+    const idx = index ?? itemIndex;
+    if (typeof onUpdate === 'function') {
+      onUpdate(idx, quantity, { calories: newCals, protein: newProt, carbs: newCarbs, fats: newFats }, time, category);
+      if (onClose) onClose();
+      return;
+    }
+
+    if (supabase && activeProfileId) {
+      const res = await updateIntakeInSupabase({
+        date: selectedDate,
+        index: idx,
+        item,
+        quantity,
+        macros: { calories: newCals, protein: newProt, carbs: newCarbs, fats: newFats },
+        category,
+        time,
+        profileId: activeProfileId,
+      });
+
+      if (res && res.success) {
+        const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
+        if (freshData && typeof setData === 'function') setData(freshData);
+      }
+    } else if (typeof setData === 'function' && data) {
+      const updatedLogs = [...(data.dailyLogs || [])];
+      const dayIdx = updatedLogs.findIndex((l) => l.date === selectedDate);
+      if (dayIdx >= 0 && updatedLogs[dayIdx].intakes) {
+        const updatedIntakes = [...updatedLogs[dayIdx].intakes];
+        if (updatedIntakes[idx]) {
+          updatedIntakes[idx] = {
+            ...updatedIntakes[idx],
+            quantity,
+            time,
+            category,
+            macros: { calories: newCals, protein: newProt, carbs: newCarbs, fats: newFats },
+          };
+          updatedLogs[dayIdx].intakes = updatedIntakes;
+          setData({ ...data, dailyLogs: updatedLogs });
+        }
+      }
+    }
+
+    if (typeof setToastMessage === 'function') setToastMessage('Ingesta actualizada');
+    if (onClose) onClose();
+  };
+
+  const handleDelete = async () => {
+    const idx = index ?? itemIndex;
+    if (typeof onDelete === 'function') {
+      onDelete(idx);
+      if (onClose) onClose();
+      return;
+    }
+
+    if (supabase && activeProfileId) {
+      const res = await deleteIntakeFromSupabase({
+        date: selectedDate,
+        index: idx,
+        item,
+        profileId: activeProfileId,
+      });
+
+      if (res && res.success) {
+        const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
+        if (freshData && typeof setData === 'function') setData(freshData);
+      }
+    } else if (typeof setData === 'function' && data) {
+      const updatedLogs = [...(data.dailyLogs || [])];
+      const dayIdx = updatedLogs.findIndex((l) => l.date === selectedDate);
+      if (dayIdx >= 0 && updatedLogs[dayIdx].intakes) {
+        const updatedIntakes = updatedLogs[dayIdx].intakes.filter((_, i) => i !== idx);
+        updatedLogs[dayIdx].intakes = updatedIntakes;
+        setData({ ...data, dailyLogs: updatedLogs });
+      }
+    }
+
+    if (typeof setToastMessage === 'function') setToastMessage('Ingesta eliminada');
+    if (onClose) onClose();
   };
 
   return (
@@ -195,7 +285,7 @@ export default function EditDrawer({ item, itemIndex, onClose, onDelete, onUpdat
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button
-            onClick={() => onDelete(itemIndex)}
+            onClick={handleDelete}
             style={{
               flex: 1,
               background: 'var(--color-calories-bg)',

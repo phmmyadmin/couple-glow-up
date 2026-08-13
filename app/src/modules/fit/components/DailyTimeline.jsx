@@ -4,7 +4,13 @@ import { getFoodEmoji } from '../../../utils/emoji';
 import { getCategoryInfo } from '../../../utils/category';
 import Card from '../../../shared/ui/Card';
 
-export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
+export default function DailyTimeline({ intakes, onItemClick, onEditItem, onDeleteGroup }) {
+  const handleItemSelect = (item, idx) => {
+    const callback = onEditItem || onItemClick;
+    if (typeof callback === 'function') {
+      callback(item, idx);
+    }
+  };
   if (!intakes || intakes.length === 0) {
     return (
       <Card className="text-center py-10 space-y-3 my-4">
@@ -138,8 +144,8 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
                 return (
                   <div
                     key={idx}
-                    onClick={() => onItemClick && onItemClick(item, item.originalIndex)}
-                    className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-indigo-200 cursor-pointer transition-all gap-4"
+                    onClick={() => handleItemSelect(item, item.originalIndex ?? idx)}
+                    className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-indigo-200 cursor-pointer transition-all gap-4 group"
                   >
                     <div className="flex items-center gap-3.5 min-w-0 flex-1">
                       <span className="text-2xl shrink-0">{emoji}</span>
@@ -165,7 +171,17 @@ export default function DailyTimeline({ intakes, onItemClick, onDeleteGroup }) {
                       </div>
                     </div>
 
-                    <Edit2 className="w-4 h-4 text-slate-400 shrink-0" />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleItemSelect(item, item.originalIndex ?? idx);
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg shrink-0 transition-colors cursor-pointer"
+                      title="Edit intake"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
                   </div>
                 );
               })}
