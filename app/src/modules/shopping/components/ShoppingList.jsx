@@ -214,15 +214,8 @@ export default function ShoppingList({
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 className="w-full"
-                list="existing-products-list"
                 autoComplete="off"
               />
-
-              <datalist id="existing-products-list">
-                {allProductSuggestions.map((prod, i) => (
-                  <option key={i} value={prod} />
-                ))}
-              </datalist>
 
               {showSuggestions && filteredSuggestions.length > 0 && (
                 <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-56 overflow-y-auto transition-all animate-in fade-in slide-in-from-top-2">

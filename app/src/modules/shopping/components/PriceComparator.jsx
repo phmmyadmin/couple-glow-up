@@ -163,15 +163,8 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 required
                 className="w-full"
-                list="comparator-products-list"
                 autoComplete="off"
               />
-
-              <datalist id="comparator-products-list">
-                {allProductSuggestions.map((prod, i) => (
-                  <option key={i} value={prod} />
-                ))}
-              </datalist>
 
               {showSuggestions && filteredSuggestions.length > 0 && (
                 <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-56 overflow-y-auto transition-all animate-in fade-in slide-in-from-top-2">
