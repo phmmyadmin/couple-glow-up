@@ -24,6 +24,33 @@ const MUSCLE_GROUPS = [
   { id: 'other', label: 'Other' },
 ];
 
+export function getMuscleGroupLabel(id) {
+  if (!id) return '';
+  const map = {
+    chest: 'Chest',
+    shoulders: 'Shoulders',
+    biceps: 'Biceps',
+    triceps: 'Triceps',
+    forearms: 'Forearms',
+    quadriceps: 'Quads',
+    hamstrings: 'Hamstrings',
+    glutes: 'Glutes',
+    calves: 'Calves',
+    lats: 'Lats',
+    upper_back: 'Upper Back',
+    lower_back: 'Lower Back',
+    abdominals: 'Core / Abs',
+    legs: 'Legs',
+    back: 'Back',
+    cardio: 'Cardio',
+    other: 'Other',
+  };
+  if (map[id]) return map[id];
+  return id
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
 const EQUIPMENT_TYPES = [
   { id: 'all', label: 'All Equipment' },
   { id: 'barbell', label: '🏋️ Barbell' },
@@ -393,8 +420,8 @@ export default function ExerciseLibrary({
                         {exercise.name || exercise.name_es}
                       </h4>
                       <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 font-medium">
-                        <span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md capitalize border border-indigo-100">
-                          {exercise.muscle_group}
+                        <span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md border border-indigo-100">
+                          {getMuscleGroupLabel(exercise.muscle_group)}
                         </span>
 
                         {secondaryList.length > 0 && (
@@ -403,9 +430,9 @@ export default function ExerciseLibrary({
                             {secondaryList.map((sec) => (
                               <span
                                 key={sec}
-                                className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[11px] font-semibold capitalize border border-slate-200/60"
+                                className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[11px] font-semibold border border-slate-200/60"
                               >
-                                {sec}
+                                {getMuscleGroupLabel(sec)}
                               </span>
                             ))}
                           </div>
@@ -611,8 +638,8 @@ export default function ExerciseLibrary({
                     <h3 className="text-lg font-bold text-slate-900">
                       {selectedExerciseForHistory.name || selectedExerciseForHistory.name_es}
                     </h3>
-                    <span className="text-xs bg-indigo-50 text-indigo-700 font-bold px-2.5 py-0.5 rounded-md capitalize border border-indigo-100">
-                      {selectedExerciseForHistory.muscle_group}
+                    <span className="text-xs bg-indigo-50 text-indigo-700 font-bold px-2.5 py-0.5 rounded-md border border-indigo-100">
+                      {getMuscleGroupLabel(selectedExerciseForHistory.muscle_group)}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 font-medium mt-1">
