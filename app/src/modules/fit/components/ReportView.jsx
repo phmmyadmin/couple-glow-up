@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, saveWeightToSupabase, deleteWeightFromSupabase, fetchDailyLogsFromSupabase } from '../../../lib/supabase';
 import { getCategoryInfo } from '../../../utils/category';
 
-export default function ReportView({ data, activeProfileId, onUpdateProfile, selectedDate, onSelectDate, onUpdateCategory }) {
+export default function ReportView({ data, setData, activeProfileId, activeProfile, onUpdateProfile, selectedDate, onSelectDate, onUpdateCategory, setToastMessage }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language.startsWith('es') ? 'es-ES' : 'en-US';
 
@@ -100,43 +100,42 @@ export default function ReportView({ data, activeProfileId, onUpdateProfile, sel
         }
         
         stats[monthKey].daysLogged += 1;
-        stats[monthKey].totalCaloriesConsumed += log.dailyTotals?.calories || 0;
-        stats[monthKey].intakesCount += (log.intakes || []).length;
+        stats[monthKey].totalCaloriesConsumed += (log.dailyTotals?.calories || 0);
+        stats[monthKey].intakesCount += (log.intakes?.length || 0);
       }
     });
 
     return Object.values(stats).sort((a, b) => b.key.localeCompare(a.key));
   }, [dailyLogs, maintenanceCalories, locale]);
 
-  const currentMonthData = monthlyStats[selectedMonthIndex] || {
-    name: 'Mes actual',
-    daysLogged: 0,
-    totalCaloriesConsumed: 0,
-    maintenanceCaloriesPerDay: maintenanceCalories
+  const activeMonthData = monthlyStats[selectedMonthIndex] || monthlyStats[0] || null;
+
+  // Weekly Data Grouping (7 days sliding window)
+  const getVisibleDays = () => {
+    if (dailyLogs.length === 0) return [];
+    
+    // Sort all logs by date
+    const sortedLogs = [...dailyLogs].sort((a, b) => a.date.localeCompare(b.date));
+    const targetDate = selectedDate || sortedLogs[sortedLogs.length - 1].date;
+    
+    // Find index of target date
+    const targetIdx = sortedLogs.findIndex(l => l.date === targetDate);
+    const endIdx = targetIdx !== -1 ? targetIdx : sortedLogs.length - 1;
+    
+    // Calculate window bounds with offset
+    const adjustedEndIdx = Math.max(6, endIdx + (weekOffset * 7));
+    const startIdx = Math.max(0, adjustedEndIdx - 6);
+    
+    return sortedLogs.slice(startIdx, Math.min(sortedLogs.length, adjustedEndIdx + 1));
   };
 
-  const currentMonthMaintenance = currentMonthData.daysLogged * currentMonthData.maintenanceCaloriesPerDay;
-  const currentMonthDeficit = currentMonthMaintenance - currentMonthData.totalCaloriesConsumed;
-  const currentMonthAvgCalories = currentMonthData.daysLogged > 0 ? Math.round(currentMonthData.totalCaloriesConsumed / currentMonthData.daysLogged) : 0;
-  const currentMonthEstimatedLostKg = currentMonthDeficit > 0 ? (currentMonthDeficit / 7700) : 0;
-
-  // Weekly Data Configuration
-  const macrosConfig = {
-    calories: { label: t('diary.calories'), color: 'var(--color-calories)', target: targetMacros.calories },
-    protein: { label: t('diary.protein'), color: 'var(--color-protein)', target: targetMacros.protein },
-    carbs: { label: t('diary.carbs'), color: 'var(--color-carbs)', target: targetMacros.carbs },
-    fats: { label: t('diary.fats'), color: 'var(--color-fats)', target: targetMacros.fats }
-  };
-  const currentConfig = macrosConfig[activeMacro];
-
-  const startIndex = Math.max(0, dailyLogs.length - 7 * (weekOffset + 1));
-  const endIndex = dailyLogs.length - 7 * weekOffset;
-  const visibleDays = dailyLogs.slice(startIndex, endIndex);
-  const maxWeekOffset = Math.max(0, Math.ceil(dailyLogs.length / 7) - 1);
+  const visibleDays = getVisibleDays();
 
   const formatShortDate = (dateStr) => {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const d = new Date(parts[0], parseInt(parts[1], 10) - 1, parts[2]);
     return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
   };
   
@@ -156,14 +155,16 @@ export default function ReportView({ data, activeProfileId, onUpdateProfile, sel
         const res = await saveWeightToSupabase({ date: inputDate, time: inputTime, weight: parseFloat(inputWeight), profileId: profId });
         if (res && res.success) {
           const freshData = await fetchDailyLogsFromSupabase(profId);
-          if (freshData && setData) {
+          if (freshData && typeof setData === 'function') {
             setData(freshData);
           }
-          if (freshData && onUpdateProfile) {
+          if (freshData && typeof onUpdateProfile === 'function') {
             onUpdateProfile(freshData.userProfile);
           }
           setInputWeight('');
-          setWeightFeedback(t('toast.weightSaved', 'Weight saved!'));
+          const successMsg = t('toast.weightSaved', '⚖️ Weight recorded!');
+          setWeightFeedback(successMsg);
+          if (typeof setToastMessage === 'function') setToastMessage(successMsg);
           setTimeout(() => setWeightFeedback(null), 3000);
           setShowWeightForm(false);
           return;
@@ -180,19 +181,21 @@ export default function ReportView({ data, activeProfileId, onUpdateProfile, sel
         weightLog: { ...weightLog, history: updatedHistory }
       };
 
-      if (setData && data) {
+      if (typeof setData === 'function' && data) {
         setData({
           ...data,
           userProfile: updatedUserProfile,
         });
       }
 
-      if (onUpdateProfile) {
+      if (typeof onUpdateProfile === 'function') {
         onUpdateProfile(updatedUserProfile);
       }
 
       setInputWeight('');
-      setWeightFeedback(t('toast.weightSaved', 'Weight saved!'));
+      const successMsg = t('toast.weightSaved', '⚖️ Weight recorded!');
+      setWeightFeedback(successMsg);
+      if (typeof setToastMessage === 'function') setToastMessage(successMsg);
       setTimeout(() => setWeightFeedback(null), 3000);
       setShowWeightForm(false);
     } catch (err) {
@@ -209,12 +212,16 @@ export default function ReportView({ data, activeProfileId, onUpdateProfile, sel
         const res = await deleteWeightFromSupabase({ date: item.date, time: item.time, profileId: profId });
         if (res && res.success) {
           const freshData = await fetchDailyLogsFromSupabase(profId);
-          if (freshData && setData) {
+          if (freshData && typeof setData === 'function') {
             setData(freshData);
           }
-          if (freshData && onUpdateProfile) {
+          if (freshData && typeof onUpdateProfile === 'function') {
             onUpdateProfile(freshData.userProfile);
           }
+          const delMsg = t('toast.weightDeleted', '🗑️ Weight entry deleted');
+          setWeightFeedback(delMsg);
+          if (typeof setToastMessage === 'function') setToastMessage(delMsg);
+          setTimeout(() => setWeightFeedback(null), 3000);
           return;
         }
       }
@@ -225,16 +232,21 @@ export default function ReportView({ data, activeProfileId, onUpdateProfile, sel
         weightLog: { ...weightLog, history: updatedHistory }
       };
 
-      if (setData && data) {
+      if (typeof setData === 'function' && data) {
         setData({
           ...data,
           userProfile: updatedUserProfile,
         });
       }
 
-      if (onUpdateProfile) {
+      if (typeof onUpdateProfile === 'function') {
         onUpdateProfile(updatedUserProfile);
       }
+
+      const delMsg = t('toast.weightDeleted', '🗑️ Weight entry deleted');
+      setWeightFeedback(delMsg);
+      if (typeof setToastMessage === 'function') setToastMessage(delMsg);
+      setTimeout(() => setWeightFeedback(null), 3000);
     } catch (err) {
       console.error('Error deleting weight:', err);
     }
