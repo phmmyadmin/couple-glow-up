@@ -4,7 +4,7 @@ import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
 
-export default function PriceComparator({ markets, productPrices, onSavePrice, onDeletePrice, onSaveMarket }) {
+export default function PriceComparator({ items = [], markets, productPrices, onSavePrice, onDeletePrice, onSaveMarket }) {
   const [productNameInput, setProductNameInput] = useState('');
   const [selectedMarketId, setSelectedMarketId] = useState(markets[0]?.id || '');
   const [priceInput, setPriceInput] = useState('');
@@ -24,7 +24,7 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
     }
   }, [markets]);
 
-  // Derive unique list of all known products (default catalog + market prices)
+  // Derive unique list of all known products (default catalog + shopping list items + market prices)
   const allProductSuggestions = React.useMemo(() => {
     const defaultCatalog = [
       'Chicken breast',
@@ -50,13 +50,16 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
     ];
 
     const set = new Set(defaultCatalog);
+    (items || []).forEach((i) => {
+      if (i.name && i.name.trim()) set.add(i.name.trim());
+    });
     (productPrices || []).forEach((p) => {
       const pName = p.product_name || p.products?.name;
       if (pName && pName.trim()) set.add(pName.trim());
     });
 
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [productPrices]);
+  }, [items, productPrices]);
 
   const filteredSuggestions = React.useMemo(() => {
     const query = productNameInput.trim().toLowerCase();
