@@ -8,40 +8,52 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
   const [nameInput, setNameInput] = useState('');
   const [addressInput, setAddressInput] = useState('');
   const [emojiInput, setEmojiInput] = useState('🏪');
-  const [editingMarketId, setEditingMarketId] = useState(null);
+
+  // Edit Store Modal state
+  const [editingMarket, setEditingMarket] = useState(null);
+  const [editNameInput, setEditNameInput] = useState('');
+  const [editAddressInput, setEditAddressInput] = useState('');
+  const [editEmojiInput, setEditEmojiInput] = useState('🏪');
 
   // Deletion safeguard state
   const [deletingMarket, setDeletingMarket] = useState(null);
 
   const EMOJI_OPTIONS = ['🏪', '🛒', '🥦', '🥩', '🥖', '🏬', '📍'];
 
-  const handleStartEdit = (market) => {
-    setEditingMarketId(market.id);
-    setNameInput(market.name || '');
-    setAddressInput(market.address || '');
-    setEmojiInput(market.emoji || '🏪');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleOpenEditModal = (market) => {
+    setEditingMarket(market);
+    setEditNameInput(market.name || '');
+    setEditAddressInput(market.address || '');
+    setEditEmojiInput(market.emoji || '🏪');
   };
 
-  const handleReset = () => {
-    setEditingMarketId(null);
-    setNameInput('');
-    setAddressInput('');
-    setEmojiInput('🏪');
+  const handleSaveEditMarket = (e) => {
+    e.preventDefault();
+    if (!editingMarket || !editNameInput.trim()) return;
+
+    onSaveMarket({
+      id: editingMarket.id,
+      name: editNameInput.trim(),
+      address: editAddressInput.trim() || null,
+      emoji: editEmojiInput,
+    });
+
+    setEditingMarket(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleAddSubmit = (e) => {
     e.preventDefault();
     if (!nameInput.trim()) return;
 
     onSaveMarket({
-      id: editingMarketId || null,
       name: nameInput.trim(),
       address: addressInput.trim() || null,
       emoji: emojiInput,
     });
 
-    handleReset();
+    setNameInput('');
+    setAddressInput('');
+    setEmojiInput('🏪');
   };
 
   const confirmDelete = (market) => {
@@ -55,23 +67,10 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
 
   return (
     <div className="space-y-6 sm:space-y-7">
-      {/* Add / Edit Market Form */}
+      {/* Add Market Form */}
       <Card className="p-5 sm:p-6 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center justify-between">
-            <CardTitle icon={Store}>
-              {editingMarketId ? 'Edit Store / Market' : 'Add Store / Market'}
-            </CardTitle>
-            {editingMarketId && (
-              <button
-                type="button"
-                onClick={handleReset}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1 cursor-pointer"
-              >
-                <X className="w-4 h-4" /> Cancel Edit
-              </button>
-            )}
-          </div>
+        <form onSubmit={handleAddSubmit} className="space-y-4">
+          <CardTitle icon={Store}>Add Store / Market</CardTitle>
 
           <div className="flex gap-3">
             <Select
@@ -108,8 +107,8 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
               className="flex-1"
             />
 
-            <Button type="submit" icon={editingMarketId ? Check : Plus} variant="primary" className="shrink-0">
-              {editingMarketId ? 'Update Store' : 'Save Store'}
+            <Button type="submit" icon={Plus} variant="primary" className="shrink-0">
+              Save Store
             </Button>
           </div>
         </form>
@@ -150,7 +149,7 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
-                    onClick={() => handleStartEdit(market)}
+                    onClick={() => handleOpenEditModal(market)}
                     aria-label={`Edit store ${market.name}`}
                     className="p-2 text-slate-400 hover:text-indigo-600 transition-all rounded-xl hover:bg-indigo-50 cursor-pointer"
                     title="Edit store"
@@ -170,6 +169,78 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
           </div>
         )}
       </div>
+
+      {/* Edit Store Modal */}
+      {editingMarket && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setEditingMarket(null)}
+        >
+          <Card
+            className="max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-indigo-600" />
+                <span>Edit Store</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingMarket(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditMarket} className="space-y-4">
+              <div className="flex gap-3">
+                <Select
+                  aria-label="Store Icon"
+                  value={editEmojiInput}
+                  onChange={(e) => setEditEmojiInput(e.target.value)}
+                  className="w-24 text-base text-center font-emoji font-bold"
+                >
+                  {EMOJI_OPTIONS.map((emoji) => (
+                    <option key={emoji} value={emoji}>
+                      {emoji}
+                    </option>
+                  ))}
+                </Select>
+
+                <Input
+                  type="text"
+                  placeholder="Store name"
+                  aria-label="Store name"
+                  value={editNameInput}
+                  onChange={(e) => setEditNameInput(e.target.value)}
+                  required
+                  className="flex-1"
+                />
+              </div>
+
+              <Input
+                type="text"
+                placeholder="Location or note (optional)"
+                aria-label="Location"
+                value={editAddressInput}
+                onChange={(e) => setEditAddressInput(e.target.value)}
+                className="w-full"
+              />
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100">
+                <Button type="button" variant="secondary" onClick={() => setEditingMarket(null)} className="flex-1 justify-center">
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" icon={Check} className="flex-1 justify-center">
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
 
       {/* Deletion Warning Modal */}
       {deletingMarket && (
