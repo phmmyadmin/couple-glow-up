@@ -73,3 +73,20 @@ export function subscribeToFeedEvents(onChange) {
     supabase.removeChannel(channel);
   };
 }
+
+export async function deleteFeedEventFromSupabase(eventId) {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('feed_events')
+      .delete()
+      .eq('id', eventId);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error deleting feed event:', err);
+    return false;
+  }
+}
+

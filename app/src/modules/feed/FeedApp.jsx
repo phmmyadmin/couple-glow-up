@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Send, MessageSquare } from 'lucide-react';
+import { Heart, Send, MessageSquare, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Avatar from '../../shared/Avatar';
 import Card from '../../shared/ui/Card';
@@ -10,6 +10,7 @@ import {
   fetchFeedEventsFromSupabase,
   createFeedEventInSupabase,
   addFeedReactionInSupabase,
+  deleteFeedEventFromSupabase,
   subscribeToFeedEvents,
 } from './lib/supabase-feed';
 
@@ -61,6 +62,14 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
 
     return () => unsubscribe();
   }, []);
+
+  const handleDeletePost = async (eventId) => {
+    setFeedEvents((prev) => prev.filter((e) => e.id !== eventId));
+    await deleteFeedEventFromSupabase(eventId);
+    if (setToastMessage) {
+      setToastMessage('Post deleted from feed');
+    }
+  };
 
   const handlePostNote = async (e) => {
     e.preventDefault();
@@ -173,9 +182,20 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
                       <span className="text-xs text-slate-400 font-medium">{timeAgo}</span>
                     </div>
                   </div>
-                  <span className="text-2xl p-2 bg-slate-100/80 rounded-2xl border border-slate-200 shrink-0">
-                    {event.emoji}
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePost(event.id)}
+                      className="p-1.5 text-slate-300 hover:text-rose-600 rounded-xl hover:bg-rose-50 transition-colors"
+                      title="Delete post"
+                      aria-label="Delete post"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <span className="text-xl sm:text-2xl p-2 bg-slate-100/80 rounded-2xl border border-slate-200">
+                      {event.emoji}
+                    </span>
+                  </div>
                 </div>
 
                 <p className="text-xs sm:text-sm text-slate-700 bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80 font-mono font-semibold">

@@ -23,6 +23,7 @@ import {
   fetchPersonalRecordsFromSupabase,
   evaluateAndSavePRs,
 } from './lib/supabase-gym';
+import { createFeedEventInSupabase } from '../feed/lib/supabase-feed';
 
 export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   const { t } = useTranslation();
@@ -233,7 +234,18 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     // Standard online save success
     setWorkouts((prev) => [saved, ...prev]);
 
-    // Evaluate PRs
+    // 1. Publish Workout Event to Feed
+    const mins = Math.round((saved.duration_seconds || 0) / 60);
+    const volumeStr = saved.total_volume_kg > 0 ? ` · ${saved.total_volume_kg.toLocaleString()} kg total volume` : '';
+    await createFeedEventInSupabase({
+      profile_id: activeProfile?.id || null,
+      event_type: 'workout_completed',
+      title: `${activeProfile?.name || 'Partner'} completed a workout`,
+      description: `${saved.name || 'Workout'} · ${mins} min${volumeStr}`,
+      emoji: '🏋️',
+    });
+
+    // 2. Evaluate PRs and Publish PR Events to Feed
     const newPRs = await evaluateAndSavePRs(activeProfile?.id, sets, saved.id);
     if (newPRs.length > 0) {
       setPersonalRecords((prev) => {
@@ -247,6 +259,19 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
         }
         return updated;
       });
+
+      for (const pr of newPRs) {
+        const exObj = exercises.find((e) => e.id === pr.exercise_id);
+        const exName = exObj ? (exObj.name || exObj.name_es) : 'Exercise';
+        await createFeedEventInSupabase({
+          profile_id: activeProfile?.id || null,
+          event_type: 'personal_record',
+          title: `🏆 ${activeProfile?.name || 'Partner'} set a new PR!`,
+          description: `${exName}: ${pr.value} (${pr.record_type.replace('_', ' ')})`,
+          emoji: '🏆',
+        });
+      }
+
       if (setToastMessage) {
         setToastMessage(`🏆 ${newPRs.length} new PR${newPRs.length > 1 ? 's' : ''}! 🎉 Workout saved!`);
       }
