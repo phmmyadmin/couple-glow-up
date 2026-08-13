@@ -181,52 +181,46 @@ export default function App() {
     <div className="app-container">
       <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
 
-      {/* Sleek, Compact & Cute Header */}
+      {/* Sleek, Compact Header: Logo Left, Profiles Right */}
       <header className="app-header mb-4 sm:mb-5 pt-1 pb-3 border-b border-slate-100 flex items-center justify-between gap-3">
-        {/* Left: Title & Profile Selector */}
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-          <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-1.5 font-heading">
-            <span>Couple Glow Up</span>
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-50 border border-rose-200 text-rose-500 shadow-2xs">
-              <Heart className="w-3 h-3 fill-rose-500 text-rose-500 animate-pulse" />
-            </span>
-          </h1>
-
-          {profiles.length > 0 && (
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-2xl px-2.5 py-1 shadow-2xs">
-              <Avatar profile={activeProfile} size="xs" />
-              <select
-                aria-label="Select Active Profile"
-                value={activeProfileId || ''}
-                onChange={(e) => handleProfileChange(e.target.value)}
-                className="bg-transparent text-xs font-extrabold text-slate-800 focus:outline-none cursor-pointer pr-1"
-              >
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="button"
-                onClick={() => setIsNewProfileModalOpen(true)}
-                className="p-1 rounded-lg text-indigo-600 hover:bg-indigo-50 font-bold text-xs flex items-center gap-0.5 transition-colors cursor-pointer"
-                title="Add new profile"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Right: Cute Compact App Logo Badge */}
+        {/* Left: Cute Compact GlowUp Logo Badge */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-indigo-50 via-rose-50 to-amber-50 border border-indigo-100/80 shadow-2xs shrink-0">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-          <span className="text-xs font-black bg-gradient-to-r from-indigo-600 to-rose-600 bg-clip-text text-transparent">
+          <Sparkles className="w-4 h-4 text-indigo-500" />
+          <span className="text-sm font-black bg-gradient-to-r from-indigo-600 via-rose-500 to-amber-500 bg-clip-text text-transparent tracking-tight font-heading">
             GlowUp ✨
           </span>
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-rose-100/60 text-rose-500 ml-0.5">
+            <Heart className="w-2.5 h-2.5 fill-rose-500 text-rose-500 animate-pulse" />
+          </span>
         </div>
+
+        {/* Right: Profile Selector */}
+        {profiles.length > 0 && (
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-2xl px-2.5 py-1 shadow-2xs shrink-0">
+            <Avatar profile={activeProfile} size="xs" />
+            <select
+              aria-label="Select Active Profile"
+              value={activeProfileId || ''}
+              onChange={(e) => handleProfileChange(e.target.value)}
+              className="bg-transparent text-xs font-extrabold text-slate-800 focus:outline-none cursor-pointer pr-1"
+            >
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={() => setIsNewProfileModalOpen(true)}
+              className="p-1 rounded-lg text-indigo-600 hover:bg-indigo-50 font-bold text-xs flex items-center gap-0.5 transition-colors cursor-pointer"
+              title="Add new profile"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Main Content Area */}
