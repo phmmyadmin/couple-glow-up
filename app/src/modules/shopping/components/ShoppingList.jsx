@@ -83,6 +83,78 @@ export default function ShoppingList({
       .slice(0, 7);
   }, [nameInput, allProductSuggestions]);
 
+  // Smart unit and category detection based on history or product keywords
+  const detectProductUnitAndCategory = (name) => {
+    if (!name || !name.trim()) return null;
+    const clean = name.trim().toLowerCase();
+
+    // 1. Check history / recorded prices first
+    const historicalPrice = (productPrices || []).find((p) => {
+      const pName = (p.product_name || p.products?.name || '').toLowerCase().trim();
+      return pName === clean || pName.includes(clean) || clean.includes(pName);
+    });
+
+    const historicalItem = (items || []).find((i) => {
+      const iName = (i.name || '').toLowerCase().trim();
+      return iName === clean || iName.includes(clean) || clean.includes(iName);
+    });
+
+    let foundUnit = historicalPrice?.unit || historicalItem?.unit;
+    let foundCategory = historicalItem?.category;
+
+    // 2. Keyword-based category and unit rules if not found in history
+    if (!foundCategory || !foundUnit) {
+      if (/chicken|pollo|beef|ternera|pork|cerdo|turkey|pavo|fish|pescado|salmon|salmón|tuna|atún|meat|carne|tofu|seitan|tempeh|steak|hamburguesa|burger/.test(clean)) {
+        if (!foundCategory) foundCategory = 'carnes';
+        if (!foundUnit) foundUnit = 'kg';
+      } else if (/egg|huevo|huevos|milk|leche|cheese|queso|yogurt|yogur|butter|mantequilla|kefir|kéfir|cream|nata/.test(clean)) {
+        if (!foundCategory) foundCategory = 'lacteos';
+        if (!foundUnit) {
+          if (/milk|leche/.test(clean)) foundUnit = 'L';
+          else if (/egg|huevo|huevos/.test(clean)) foundUnit = 'pack';
+          else foundUnit = 'ud';
+        }
+      } else if (/banana|plátano|platano|apple|manzana|orange|naranja|strawberry|fresa|grape|uva|avocado|aguacate|lemon|limón|carrot|zanahoria|tomato|tomate|lettuce|lechuga|spinach|espinacas|broccoli|brócoli|potato|patata|onion|cebolla|cucumber|pepino|fruit|verdura/.test(clean)) {
+        if (!foundCategory) foundCategory = 'frutas';
+        if (!foundUnit) {
+          if (/avocado|aguacate|lettuce|lechuga/.test(clean)) foundUnit = 'ud';
+          else foundUnit = 'kg';
+        }
+      } else if (/bread|pan|oatmeal|avena|rice|arroz|pasta|spaghetti|macaroni|macarrones|cereal|cereales|flour|harina|biscuit|galletas|croissant/.test(clean)) {
+        if (!foundCategory) foundCategory = 'panaderia';
+        if (!foundUnit) {
+          if (/rice|arroz|oatmeal|avena|pasta|spaghetti|flour|harina/.test(clean)) foundUnit = 'kg';
+          else foundUnit = 'ud';
+        }
+      } else if (/water|agua|juice|zumo|jugo|coffee|café|cafe|tea|té|beer|cerveza|wine|vino|soda|refresco|coca|pepsi|drink|bebida/.test(clean)) {
+        if (!foundCategory) foundCategory = 'bebidas';
+        if (!foundUnit) {
+          if (/water|agua|juice|zumo|jugo|milk|leche/.test(clean)) foundUnit = 'L';
+          else foundUnit = 'ud';
+        }
+      } else if (/soap|jabón|shampoo|champú|detergent|detergente|bleach|lejía|paper|papel|cleaner|limpiador|sponge|esponja|wipe|toallitas|limpieza/.test(clean)) {
+        if (!foundCategory) foundCategory = 'limpieza';
+        if (!foundUnit) foundUnit = 'ud';
+      }
+    }
+
+    return {
+      unit: foundUnit,
+      category: foundCategory,
+    };
+  };
+
+  const handleProductSelect = (prodName) => {
+    setNameInput(prodName);
+    setShowSuggestions(false);
+
+    const detected = detectProductUnitAndCategory(prodName);
+    if (detected) {
+      if (detected.unit) setUnitInput(detected.unit);
+      if (detected.category) setSelectedCategory(detected.category);
+    }
+  };
+
   // Interactive Market Price Modal for an item
   const [inspectingItem, setInspectingItem] = useState(null);
   const [modalMarketId, setModalMarketId] = useState(markets[0]?.id || '');
@@ -208,8 +280,14 @@ export default function ShoppingList({
                 aria-label="Product name"
                 value={nameInput}
                 onChange={(e) => {
-                  setNameInput(e.target.value);
+                  const val = e.target.value;
+                  setNameInput(val);
                   setShowSuggestions(true);
+                  const detected = detectProductUnitAndCategory(val);
+                  if (detected) {
+                    if (detected.unit) setUnitInput(detected.unit);
+                    if (detected.category) setSelectedCategory(detected.category);
+                  }
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
@@ -225,8 +303,7 @@ export default function ShoppingList({
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        setNameInput(prod);
-                        setShowSuggestions(false);
+                        handleProductSelect(prod);
                       }}
                       className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-xs sm:text-sm text-slate-700 transition-colors flex items-center justify-between group cursor-pointer"
                     >
