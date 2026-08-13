@@ -177,6 +177,24 @@ export async function saveIntakesToSupabase({ date, items, profileId }) {
     await updateDailyLogTotals(date, profileId);
     await saveToCatalog(items);
 
+    // Publish feed event for food intake
+    try {
+      const { data: prof } = await supabase.from('profiles').select('name').eq('id', profileId).maybeSingle();
+      const foodNames = items.map((i) => i.name).join(', ');
+      const totalCals = items.reduce((sum, i) => sum + (i.calories || i.macros?.calories || 0), 0);
+      const desc = totalCals > 0 ? `${foodNames} (${Math.round(totalCals)} kcal)` : foodNames;
+
+      await supabase.from('feed_events').insert({
+        profile_id: profileId,
+        event_type: 'food_intake_logged',
+        title: `🥗 ${prof?.name || 'Partner'} logged food`,
+        description: desc,
+        emoji: '🍱',
+      });
+    } catch (feedErr) {
+      console.error('Error publishing food intake to feed:', feedErr);
+    }
+
     return { success: true, addedItems: items };
   } catch (err) {
     console.error('Supabase save error:', err);

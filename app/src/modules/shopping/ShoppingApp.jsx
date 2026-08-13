@@ -21,6 +21,7 @@ import {
   deleteProductPriceFromSupabase,
   subscribeToShoppingItems,
 } from './lib/supabase-shopping';
+import { createFeedEventInSupabase } from '../feed/lib/supabase-feed';
 
 export default function ShoppingApp({ activeProfile, profiles, setToastMessage }) {
   const { t } = useTranslation();
@@ -136,14 +137,25 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
       setItems((prev) => [localItem, ...prev]);
     }
 
+    const qtyStr = newItem.quantity ? ` (${newItem.quantity} ${newItem.unit || 'ud'})` : '';
+    await createFeedEventInSupabase({
+      profile_id: activeProfile?.id || null,
+      event_type: 'shopping_item_added',
+      title: `🛒 ${activeProfile?.name || 'Partner'} added to shopping list`,
+      description: `${newItem.name}${qtyStr}`,
+      emoji: '🛒',
+    });
+
     if (setToastMessage) {
       setToastMessage('Item added to list');
     }
   };
 
   const handleToggleItem = async (itemId, isChecked) => {
-    setItems((prev) =>
-      prev.map((i) =>
+    const targetItem = items.find((i) => i.id === itemId);
+
+    setItems((prev) => {
+      const nextItems = prev.map((i) =>
         i.id === itemId
           ? {
               ...i,
@@ -151,15 +163,50 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
               checked_by: isChecked ? activeProfile?.id || null : null,
             }
           : i
-      )
-    );
+      );
+
+      const remainingUnchecked = nextItems.filter((i) => !i.is_checked);
+      if (isChecked && nextItems.length > 0 && remainingUnchecked.length === 0) {
+        createFeedEventInSupabase({
+          profile_id: activeProfile?.id || null,
+          event_type: 'shopping_list_completed',
+          title: `🎉 ${activeProfile?.name || 'Partner'} completed the shopping list!`,
+          description: `All ${nextItems.length} items bought 🎉`,
+          emoji: '🛍️',
+        });
+      }
+
+      return nextItems;
+    });
 
     await toggleShoppingItemInSupabase(itemId, isChecked, activeProfile?.id);
+
+    if (isChecked && targetItem) {
+      await createFeedEventInSupabase({
+        profile_id: activeProfile?.id || null,
+        event_type: 'shopping_item_checked',
+        title: `✅ ${activeProfile?.name || 'Partner'} bought an item`,
+        description: `Bought: ${targetItem.name}`,
+        emoji: '✅',
+      });
+    }
   };
 
   const handleDeleteItem = async (itemId) => {
+    const targetItem = items.find((i) => i.id === itemId);
     setItems((prev) => prev.filter((i) => i.id !== itemId));
     await deleteShoppingItemFromSupabase(itemId);
+
+    if (targetItem) {
+      await createFeedEventInSupabase({
+        profile_id: activeProfile?.id || null,
+        event_type: 'shopping_item_removed',
+        title: `🗑️ ${activeProfile?.name || 'Partner'} removed an item from shopping list`,
+        description: `Removed: ${targetItem.name}`,
+        emoji: '🗑️',
+      });
+    }
+
     if (setToastMessage) {
       setToastMessage('Item deleted');
     }
