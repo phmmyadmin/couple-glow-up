@@ -180,9 +180,10 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
 
   const handleDeleteMarket = async (marketId) => {
     setMarkets((prev) => prev.filter((m) => m.id !== marketId));
+    setProductPrices((prev) => prev.filter((p) => p.market_id !== marketId && p.markets?.id !== marketId));
     await deleteMarketFromSupabase(marketId);
     if (setToastMessage) {
-      setToastMessage('Store deleted');
+      setToastMessage('Store and associated prices deleted');
     }
   };
 

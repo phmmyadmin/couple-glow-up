@@ -46,6 +46,9 @@ export async function saveMarket(market) {
 export async function deleteMarketFromSupabase(id) {
   if (!supabase) return false;
   try {
+    // 1. Delete associated product prices for this market
+    await supabase.from('product_prices').delete().eq('market_id', id);
+    // 2. Delete market record
     const { error } = await supabase.from('markets').delete().eq('id', id);
     if (error) throw error;
     return true;
