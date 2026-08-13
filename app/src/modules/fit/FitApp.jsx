@@ -112,14 +112,17 @@ export default function FitApp({
               />
             </div>
 
-            {selectedDate !== todayStr && (
-              <button
-                onClick={() => setSelectedDate(todayStr)}
-                className="text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-              >
-                Today
-              </button>
-            )}
+            <button
+              onClick={() => setSelectedDate(todayStr)}
+              disabled={selectedDate === todayStr}
+              className={`text-xs font-bold px-2.5 py-1 rounded-lg transition-all ${
+                selectedDate === todayStr
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/80'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-2xs'
+              }`}
+            >
+              Today
+            </button>
           </div>
 
           <button
