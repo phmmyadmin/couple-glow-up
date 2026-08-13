@@ -28,7 +28,14 @@ Analiza el siguiente texto de comida del usuario y devuelve un array JSON estric
 
 Reglas estrictas de parseo para CUALQUIER alimento del mundo:
 1. "name": Nombre estándar, limpio y unificado del alimento OBLIGATORIAMENTE EN SINGULAR y en español con tildes (ej: "Plátano" en vez de "platanos" o "banana", "Huevo" en vez de "huevos" o "huevos cocidos", "Hamburguesa" en vez de "mini burgers", "Yogur natural" en vez de "yogurt", "Patata" en vez de "patatas", "Pollo" en vez de "tu pollo").
-2. "quantity": Número exacto de unidades o gramos especificados (ej: para "2 huevos", quantity = 2; para "150g arroz", quantity = 150).
+2. "quantity": Número exacto de unidades o gramos especificados. 
+   CRÍTICO - PORCIONES DE PLATOS/RECETAS PREPARADAS:
+   Si el usuario indica que preparó un plato/receta de un peso total X (ej: 555g) y que solo consume una porción Y (ej: 130g), DEBES CALCULAR LA FRACCIÓN PROPORCIONAL (Y / X = 130 / 555 = 0.234) Y MULTIPLICAR LA CANTIDAD Y LOS MACRONUTRIENTES DE CADA INGREDIENTE POR ESA FRACCIÓN PROPORCIONAL.
+   - Ejemplo: "de un plato de 555g de avena (con 240g avena y 80g zanahoria) me como 130g"
+     -> Fracción consumida: 130 / 555 = 0.2342
+     -> Avena consumida: 240g * 0.2342 = 56.2g
+     -> Zanahoria consumida: 80g * 0.2342 = 18.7g
+     -> Asigna dishName: "Plato de Avena y Zanahoria (Porción 130g de 555g)"
 3. "unit": 'ud' (para piezas/unidades), 'g' (para gramos), 'ml' (para mililitros) o 'porcion'.
 4. "category": OBLIGATORIO. Categoriza el alimento en una de las siguientes opciones exactas en formato English snake_case:
    - "meat" (Carnes, aves, pescados, mariscos, huevos)
@@ -43,12 +50,14 @@ Reglas estrictas de parseo para CUALQUIER alimento del mundo:
    - "healthy_fats" (Aceites, frutos secos, aguacate)
    - "beverages" (Bebidas, zumos, batidos, café)
    - "other" (Otros / Salsas / Platos variados)
-5. "calories", "protein", "carbs", "fats": IMPORTANTE: Debes calcular el TOTAL de macronutrientes para TODA la cantidad especificada en el texto del usuario (NO por 1 unidad ni por 100g).
+5. "calories", "protein", "carbs", "fats": Debes calcular el TOTAL de macronutrientes para LA PORCIÓN EXACTA CONSUMIDA por el usuario.
    - Ejemplo 1: "2 huevos cocidos" -> quantity: 2, unit: "ud", category: "meat", calories: 155, protein: 13.0, carbs: 1.1, fats: 11.0.
-   - Ejemplo 2: "150g pechuga de pollo" -> quantity: 150, unit: "g", category: "meat", calories: 247, protein: 46.5, carbs: 0, fats: 5.4.
-   - Ejemplo 3: "1 manzana" -> quantity: 1, unit: "ud", category: "fruit", calories: 80, protein: 0.4, carbs: 21, fats: 0.2.
+   - Ejemplo 2: "de un plato de 555g con 240g avena y 80g zanahoria me como 130g" -> 
+     Genera 2 objetos ajustados proporcionalmente a la porción de 130g:
+     - Avena: quantity: 56.2, unit: "g", category: "grains", calories: 218, protein: 7.6, carbs: 37.6, fats: 3.9, dishName: "Plato de Avena y Zanahoria (130g/555g)"
+     - Zanahoria: quantity: 18.7, unit: "g", category: "vegetables", calories: 8, protein: 0.2, carbs: 1.8, fats: 0.0, dishName: "Plato de Avena y Zanahoria (130g/555g)"
 6. Para textos con múltiples ingredientes (ej: "2 huevos cocidos y 50g de avena"), genera un objeto independiente por cada alimento.
-7. "dishName": (Opcional). Si los alimentos forman parte de un plato compuesto, combo o receta (ej: "Menú Jollibee con pollo y arroz" o "Ensalada César con pollo"), asigna el nombre del plato general a "dishName".
+7. "dishName": (Opcional). Si los alimentos forman parte de un plato compuesto, combo o receta (ej: "Plato de Avena y Zanahoria" o "Ensalada César con pollo"), asigna el nombre del plato general a "dishName".
 
 Texto del usuario: "${userText}"
 

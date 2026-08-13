@@ -1,6 +1,7 @@
 /**
  * Generic client-side parser fallback when Gemini LLM is unavailable or fails.
  * Strips command prefixes and parses multiple food items separated by commas, newlines, +, "y", "e".
+ * Supports batch cooking & portion fraction calculations (e.g., "de un plato de 555g ... me como 130g").
  */
 export function parseFoodTextLocal(text) {
   let cleaned = text
@@ -8,13 +9,27 @@ export function parseFoodTextLocal(text) {
     .replace(/^(?:Comida|Desayuno|Cena|Snack|Merienda)\s*\d*:\s*/i, '')
     .trim();
 
+  // Detect batch vs eaten portion pattern: "de un plato de 555g ... me como 130g"
+  let portionRatio = 1;
+  const batchMatch = text.match(/de\s+(?:un\s+plato|una\s+receta|un\s+bowl|un\s+guiso)?\s*(?:de\s+)?(\d+(?:\.\d+)?)\s*g.*?\bme\s+(?:como|comí|comi|serví|servi)\s+(\d+(?:\.\d+)?)\s*g/i);
+  if (batchMatch) {
+    const totalBatchWeight = parseFloat(batchMatch[1]);
+    const eatenWeight = parseFloat(batchMatch[2]);
+    if (totalBatchWeight > 0 && eatenWeight > 0) {
+      portionRatio = eatenWeight / totalBatchWeight;
+    }
+  }
+
+  // Remove batch header segment if present
+  cleaned = cleaned.replace(/de\s+(?:un\s+plato|una\s+receta|un\s+bowl|un\s+guiso)?\s*(?:de\s+)?\d+\s*g\s*(?:de\s+)?/i, '');
+
   // Split by commas, semicolons, newlines, +, " y ", " e "
   const rawSegments = cleaned.split(/[,;\n\+]|\s+(?:y|e)\s+/i).map(s => s.trim()).filter(Boolean);
   let matches = [];
 
   for (const seg of rawSegments) {
     let lower = seg.toLowerCase().trim();
-    if (!lower) continue;
+    if (!lower || lower.startsWith('me como') || lower.startsWith('me comi') || lower.startsWith('me servi')) continue;
 
     let quantity = 1;
     let unit = 'ud';
@@ -48,7 +63,8 @@ export function parseFoodTextLocal(text) {
       unit = 'ud';
     }
 
-    cleanName = cleanName.replace(/^(?:de\s+)/i, '').trim();
+    cleanName = cleanName.replace(/^(?:de\s+)/i, '').replace(/me\s+(?:como|comí|comi|serví|servi)\s+\d+\s*g?/i, '').trim();
+    if (!cleanName) continue;
     cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
 
     // Category guessing
@@ -68,13 +84,13 @@ export function parseFoodTextLocal(text) {
       category = 'vegetables';
     }
 
-    // Generic estimation based on unit type and quantity
+    const finalQty = unit === 'g' ? Math.round(quantity * portionRatio * 10) / 10 : quantity;
     const baseCalsPerUnit = unit === 'g' ? 1.2 : 110;
-    const estimatedCals = Math.round(quantity * baseCalsPerUnit);
+    const estimatedCals = Math.round(finalQty * baseCalsPerUnit);
 
     matches.push({
       name: cleanName || seg,
-      quantity: quantity,
+      quantity: finalQty,
       unit: unit,
       category: category,
       calories: estimatedCals,
