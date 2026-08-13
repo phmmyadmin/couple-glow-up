@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, Plus, Trash2, MapPin, AlertTriangle } from 'lucide-react';
+import { Store, Plus, Trash2, MapPin, AlertTriangle, Edit3, X, Check } from 'lucide-react';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
@@ -8,24 +8,40 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
   const [nameInput, setNameInput] = useState('');
   const [addressInput, setAddressInput] = useState('');
   const [emojiInput, setEmojiInput] = useState('🏪');
+  const [editingMarketId, setEditingMarketId] = useState(null);
 
   // Deletion safeguard state
   const [deletingMarket, setDeletingMarket] = useState(null);
 
   const EMOJI_OPTIONS = ['🏪', '🛒', '🥦', '🥩', '🥖', '🏬', '📍'];
 
+  const handleStartEdit = (market) => {
+    setEditingMarketId(market.id);
+    setNameInput(market.name || '');
+    setAddressInput(market.address || '');
+    setEmojiInput(market.emoji || '🏪');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleReset = () => {
+    setEditingMarketId(null);
+    setNameInput('');
+    setAddressInput('');
+    setEmojiInput('🏪');
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!nameInput.trim()) return;
 
     onSaveMarket({
+      id: editingMarketId || null,
       name: nameInput.trim(),
       address: addressInput.trim() || null,
       emoji: emojiInput,
     });
 
-    setNameInput('');
-    setAddressInput('');
+    handleReset();
   };
 
   const confirmDelete = (market) => {
@@ -39,10 +55,23 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
 
   return (
     <div className="space-y-6 sm:space-y-7">
-      {/* Add Market Form */}
+      {/* Add / Edit Market Form */}
       <Card className="p-5 sm:p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <CardTitle icon={Store}>Add Store / Market</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle icon={Store}>
+              {editingMarketId ? 'Edit Store / Market' : 'Add Store / Market'}
+            </CardTitle>
+            {editingMarketId && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" /> Cancel Edit
+              </button>
+            )}
+          </div>
 
           <div className="flex gap-3">
             <Select
@@ -64,6 +93,7 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
               aria-label="Store name"
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
+              required
               className="flex-1"
             />
           </div>
@@ -78,8 +108,8 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
               className="flex-1"
             />
 
-            <Button type="submit" icon={Plus} variant="primary" className="shrink-0">
-              Save Store
+            <Button type="submit" icon={editingMarketId ? Check : Plus} variant="primary" className="shrink-0">
+              {editingMarketId ? 'Update Store' : 'Save Store'}
             </Button>
           </div>
         </form>
@@ -118,13 +148,23 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
                   </div>
                 </div>
 
-                <button
-                  onClick={() => confirmDelete(market)}
-                  aria-label={`Delete store ${market.name}`}
-                  className="p-2 text-slate-400 hover:text-rose-600 transition-all rounded-xl hover:bg-rose-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => handleStartEdit(market)}
+                    aria-label={`Edit store ${market.name}`}
+                    className="p-2 text-slate-400 hover:text-indigo-600 transition-all rounded-xl hover:bg-indigo-50 cursor-pointer"
+                    title="Edit store"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => confirmDelete(market)}
+                    aria-label={`Delete store ${market.name}`}
+                    className="p-2 text-slate-400 hover:text-rose-600 transition-all rounded-xl hover:bg-rose-50 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </Card>
             ))}
           </div>
