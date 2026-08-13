@@ -163,24 +163,36 @@ export default function DailyTimeline({
     return `${startHourStr}:00 - ${nextHourStr}:00`;
   };
 
+  const getTimeInMinutes = (timeStr) => {
+    if (!timeStr || typeof timeStr !== 'string') return 720;
+    const [h, m] = timeStr.split(':').map((n) => parseInt(n, 10) || 0);
+    return h * 60 + m;
+  };
+
   // Group by 1-hour time range and dishName
   const groupedMealsMap = new Map();
 
   expandedIntakes.forEach((item) => {
     const timeStr = item.time || '12:00';
     const hourRange = getHourRangeKey(timeStr);
+    const timeMins = getTimeInMinutes(timeStr);
     const groupKey = item.dishName ? `${hourRange}__${item.dishName}` : hourRange;
 
     if (!groupedMealsMap.has(groupKey)) {
       groupedMealsMap.set(groupKey, {
         key: groupKey,
         timeRange: hourRange,
+        maxTimeMinutes: timeMins,
         dishName: item.dishName || null,
         items: [],
       });
     }
 
-    groupedMealsMap.get(groupKey).items.push(item);
+    const group = groupedMealsMap.get(groupKey);
+    if (timeMins > group.maxTimeMinutes) {
+      group.maxTimeMinutes = timeMins;
+    }
+    group.items.push(item);
   });
 
   const groupedMeals = Array.from(groupedMealsMap.values());
@@ -192,8 +204,10 @@ export default function DailyTimeline({
     return item.name;
   };
 
-  // Reverse groupedMeals so newest logged intakes appear at top
-  const sortedGroupedMeals = [...groupedMeals].reverse();
+  // Sort groupedMeals strictly from NEWEST (highest time e.g. 21:30) to OLDEST (e.g. 08:00)
+  const sortedGroupedMeals = [...groupedMeals].sort(
+    (a, b) => b.maxTimeMinutes - a.maxTimeMinutes
+  );
 
   return (
     <div className="space-y-6 sm:space-y-7 my-4">
