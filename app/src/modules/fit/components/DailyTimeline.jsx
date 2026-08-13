@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Edit2, Trash2, Utensils, Plus } from 'lucide-react';
+import { Clock, Edit2, Trash2, Utensils, Plus, Loader2 } from 'lucide-react';
 import Avatar from '../../../shared/Avatar';
 import Button from '../../../shared/ui/Button';
 import { getFoodEmoji } from '../../../utils/emoji';
@@ -115,6 +115,7 @@ export default function DailyTimeline({
     (p) => p.id !== activeProfileId && p.id !== activeProfile?.id
   );
   const [partnerIntakesMap, setPartnerIntakesMap] = React.useState({});
+  const [copyingKey, setCopyingKey] = React.useState(null);
 
   React.useEffect(() => {
     async function loadPartnerData() {
@@ -130,109 +131,124 @@ export default function DailyTimeline({
     loadPartnerData();
   }, [selectedDate, activeProfileId, profiles, data]);
 
-  const handleCopySingleItem = async (item, partnerName) => {
+  const handleCopySingleItem = async (item, partnerName, key) => {
     if (!activeProfileId) return;
+    setCopyingKey(key);
 
-    const itemsToCopy = [
-      {
-        name: item.name,
-        dish_name: item.dishName || null,
-        portion_qty: item.quantity || 1,
-        unit: item.unit || 'ud',
-        category: item.category || 'other',
-        calories: item.macros?.calories || 0,
-        protein: item.macros?.protein || 0,
-        carbs: item.macros?.carbs || 0,
-        fats: item.macros?.fats || 0,
-      },
-    ];
+    try {
+      const itemsToCopy = [
+        {
+          name: item.name,
+          dish_name: item.dishName || null,
+          portion_qty: item.quantity || 1,
+          unit: item.unit || 'ud',
+          category: item.category || 'other',
+          calories: item.macros?.calories || 0,
+          protein: item.macros?.protein || 0,
+          carbs: item.macros?.carbs || 0,
+          fats: item.macros?.fats || 0,
+        },
+      ];
 
-    if (supabase) {
-      await saveIntakesToSupabase({
-        items: itemsToCopy,
-        date: selectedDate,
-        time: item.time || new Date().toTimeString().slice(0, 5),
-        profileId: activeProfileId,
-      });
+      if (supabase) {
+        await saveIntakesToSupabase({
+          items: itemsToCopy,
+          date: selectedDate,
+          time: item.time || new Date().toTimeString().slice(0, 5),
+          profileId: activeProfileId,
+        });
 
-      const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
-      if (freshData && typeof setData === 'function') {
-        setData(freshData);
+        const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
+        if (freshData && typeof setData === 'function') {
+          setData(freshData);
+        }
       }
-    }
 
-    if (typeof setToastMessage === 'function') {
-      setToastMessage(`Copied ${item.name} from ${partnerName}'s diary!`);
+      if (typeof setToastMessage === 'function') {
+        setToastMessage(`Copied ${item.name} from ${partnerName}'s diary!`);
+      }
+    } finally {
+      setCopyingKey(null);
     }
   };
 
-  const handleCopyMealGroup = async (mealItems, partnerName) => {
+  const handleCopyMealGroup = async (mealItems, partnerName, key) => {
     if (!activeProfileId || !mealItems || mealItems.length === 0) return;
+    setCopyingKey(key);
 
-    const itemsToCopy = mealItems.map((i) => ({
-      name: i.name,
-      dish_name: i.dishName || null,
-      portion_qty: i.quantity || 1,
-      unit: i.unit || 'ud',
-      category: i.category || 'other',
-      calories: i.macros?.calories || 0,
-      protein: i.macros?.protein || 0,
-      carbs: i.carbs || 0,
-      fats: i.fats || 0,
-    }));
+    try {
+      const itemsToCopy = mealItems.map((i) => ({
+        name: i.name,
+        dish_name: i.dishName || null,
+        portion_qty: i.quantity || 1,
+        unit: i.unit || 'ud',
+        category: i.category || 'other',
+        calories: i.macros?.calories || 0,
+        protein: i.macros?.protein || 0,
+        carbs: i.carbs || 0,
+        fats: i.fats || 0,
+      }));
 
-    const timeStr = mealItems[0]?.time || new Date().toTimeString().slice(0, 5);
+      const timeStr = mealItems[0]?.time || new Date().toTimeString().slice(0, 5);
 
-    if (supabase) {
-      await saveIntakesToSupabase({
-        items: itemsToCopy,
-        date: selectedDate,
-        time: timeStr,
-        profileId: activeProfileId,
-      });
+      if (supabase) {
+        await saveIntakesToSupabase({
+          items: itemsToCopy,
+          date: selectedDate,
+          time: timeStr,
+          profileId: activeProfileId,
+        });
 
-      const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
-      if (freshData && typeof setData === 'function') {
-        setData(freshData);
+        const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
+        if (freshData && typeof setData === 'function') {
+          setData(freshData);
+        }
       }
-    }
 
-    if (typeof setToastMessage === 'function') {
-      setToastMessage(`Copied ${itemsToCopy.length} item(s) from ${partnerName}'s meal!`);
+      if (typeof setToastMessage === 'function') {
+        setToastMessage(`Copied ${itemsToCopy.length} item(s) from ${partnerName}'s meal!`);
+      }
+    } finally {
+      setCopyingKey(null);
     }
   };
 
-  const handleCopyAllPartnerIntakes = async (partnerIntakes, partnerName) => {
+  const handleCopyAllPartnerIntakes = async (partnerIntakes, partnerName, key) => {
     if (!activeProfileId || !partnerIntakes || partnerIntakes.length === 0) return;
+    setCopyingKey(key);
 
-    const itemsToCopy = partnerIntakes.map((i) => ({
-      name: i.name,
-      dish_name: i.dishName || null,
-      portion_qty: i.quantity || 1,
-      unit: i.unit || 'ud',
-      category: i.category || 'other',
-      calories: i.macros?.calories || 0,
-      protein: i.macros?.protein || 0,
-      carbs: i.carbs || 0,
-      fats: i.fats || 0,
-    }));
+    try {
+      const itemsToCopy = partnerIntakes.map((i) => ({
+        name: i.name,
+        dish_name: i.dishName || null,
+        portion_qty: i.quantity || 1,
+        unit: i.unit || 'ud',
+        category: i.category || 'other',
+        calories: i.macros?.calories || 0,
+        protein: i.macros?.protein || 0,
+        carbs: i.carbs || 0,
+        fats: i.fats || 0,
+      }));
 
-    if (supabase) {
-      await saveIntakesToSupabase({
-        items: itemsToCopy,
-        date: selectedDate,
-        time: new Date().toTimeString().slice(0, 5),
-        profileId: activeProfileId,
-      });
+      if (supabase) {
+        await saveIntakesToSupabase({
+          items: itemsToCopy,
+          date: selectedDate,
+          time: new Date().toTimeString().slice(0, 5),
+          profileId: activeProfileId,
+        });
 
-      const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
-      if (freshData && typeof setData === 'function') {
-        setData(freshData);
+        const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
+        if (freshData && typeof setData === 'function') {
+          setData(freshData);
+        }
       }
-    }
 
-    if (typeof setToastMessage === 'function') {
-      setToastMessage(`Copied all ${itemsToCopy.length} items from ${partnerName}'s diary!`);
+      if (typeof setToastMessage === 'function') {
+        setToastMessage(`Copied all ${itemsToCopy.length} items from ${partnerName}'s diary!`);
+      }
+    } finally {
+      setCopyingKey(null);
     }
   };
 
@@ -481,6 +497,9 @@ export default function DailyTimeline({
             const partnerIntakes = partnerIntakesMap[partner.id] || [];
             const partnerGrouped = getPartnerGroupedMeals(partnerIntakes);
 
+            const allKey = `all-${partner.id}`;
+            const isCopyingAll = copyingKey === allKey;
+
             return (
               <div key={partner.id} className="space-y-4">
                 <div className="flex items-center justify-between px-1 flex-wrap gap-2">
@@ -493,11 +512,16 @@ export default function DailyTimeline({
                   {partnerIntakes.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => handleCopyAllPartnerIntakes(partnerIntakes, partner.name)}
-                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs"
+                      disabled={Boolean(copyingKey)}
+                      onClick={() => handleCopyAllPartnerIntakes(partnerIntakes, partner.name, allKey)}
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs disabled:opacity-50"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Copy All to My Diary</span>
+                      {isCopyingAll ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                      ) : (
+                        <Plus className="w-3.5 h-3.5" />
+                      )}
+                      <span>{isCopyingAll ? 'Copying...' : 'Copy All to My Diary'}</span>
                     </button>
                   )}
                 </div>
@@ -510,6 +534,8 @@ export default function DailyTimeline({
                   <div className="space-y-4">
                     {partnerGrouped.map((meal, idx) => {
                       const mealCals = meal.items.reduce((s, i) => s + (i.macros?.calories || 0), 0);
+                      const groupKey = `group-${partner.id}-${meal.key}`;
+                      const isCopyingGroup = copyingKey === groupKey;
 
                       return (
                         <Card key={idx} className="p-4 sm:p-5 bg-slate-50/90 border-slate-200/90 space-y-3 shadow-2xs">
@@ -526,39 +552,50 @@ export default function DailyTimeline({
                               <Button
                                 size="sm"
                                 variant="secondary"
-                                icon={Plus}
-                                onClick={() => handleCopyMealGroup(meal.items, partner.name)}
+                                icon={isCopyingGroup ? Loader2 : Plus}
+                                disabled={Boolean(copyingKey)}
+                                onClick={() => handleCopyMealGroup(meal.items, partner.name, groupKey)}
                                 className="text-xs py-1"
                               >
-                                Copy Group
+                                {isCopyingGroup ? 'Copying...' : 'Copy Group'}
                               </Button>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {meal.items.map((item, itemIdx) => (
-                              <div
-                                key={itemIdx}
-                                className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80 text-xs gap-2"
-                              >
-                                <div className="flex items-center gap-2 min-w-0 flex-1">
-                                  <span className="text-base shrink-0">{getFoodEmoji(item.name, item.category)}</span>
-                                  <span className="font-bold text-slate-800 truncate">{getFormatDisplay(item)}</span>
-                                  <span className="text-slate-400 font-mono text-[11px] shrink-0">
-                                    {item.macros?.calories} kcal
-                                  </span>
-                                </div>
+                            {meal.items.map((item, itemIdx) => {
+                              const itemKey = `item-${partner.id}-${item.id || item.name}-${itemIdx}`;
+                              const isCopyingItem = copyingKey === itemKey;
 
-                                <button
-                                  type="button"
-                                  onClick={() => handleCopySingleItem(item, partner.name)}
-                                  className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer shrink-0"
-                                  title="Add to my diary"
+                              return (
+                                <div
+                                  key={itemIdx}
+                                  className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80 text-xs gap-2"
                                 >
-                                  <Plus className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            ))}
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="text-base shrink-0">{getFoodEmoji(item.name, item.category)}</span>
+                                    <span className="font-bold text-slate-800 truncate">{getFormatDisplay(item)}</span>
+                                    <span className="text-slate-400 font-mono text-[11px] shrink-0">
+                                      {item.macros?.calories} kcal
+                                    </span>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    disabled={Boolean(copyingKey)}
+                                    onClick={() => handleCopySingleItem(item, partner.name, itemKey)}
+                                    className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                                    title="Add to my diary"
+                                  >
+                                    {isCopyingItem ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                                    ) : (
+                                      <Plus className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
                         </Card>
                       );
