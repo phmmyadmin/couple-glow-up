@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Tag, Plus, ArrowUpDown, Award, Trash2, Edit3, X, Check } from 'lucide-react';
+import { Tag, Plus, ArrowUpDown, Award, Trash2, Edit3, X, Check, Store } from 'lucide-react';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
 
-export default function PriceComparator({ markets, productPrices, onSavePrice, onDeletePrice }) {
+export default function PriceComparator({ markets, productPrices, onSavePrice, onDeletePrice, onSaveMarket }) {
   const [productNameInput, setProductNameInput] = useState('');
   const [selectedMarketId, setSelectedMarketId] = useState(markets[0]?.id || '');
   const [priceInput, setPriceInput] = useState('');
@@ -13,6 +13,31 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
 
   // Editing state
   const [editingPriceId, setEditingPriceId] = useState(null);
+
+  // Quick Store Modal State
+  const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
+  const [newStoreName, setNewStoreName] = useState('');
+  const [newStoreAddress, setNewStoreAddress] = useState('');
+  const [newStoreEmoji, setNewStoreEmoji] = useState('🏪');
+
+  const handleQuickSaveStore = async (e) => {
+    e.preventDefault();
+    if (!newStoreName.trim() || !onSaveMarket) return;
+
+    const saved = await onSaveMarket({
+      name: newStoreName.trim(),
+      address: newStoreAddress.trim() || null,
+      emoji: newStoreEmoji,
+    });
+
+    if (saved && saved.id) {
+      setSelectedMarketId(saved.id);
+    }
+
+    setNewStoreName('');
+    setNewStoreAddress('');
+    setIsNewStoreModalOpen(false);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -88,21 +113,34 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
               required
             />
 
-            <Select
-              aria-label="Select Store"
-              value={selectedMarketId}
-              onChange={(e) => setSelectedMarketId(e.target.value)}
-              required
-            >
-              <option value="" disabled>
-                Select Store...
-              </option>
-              {markets.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.emoji} {m.name}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-700">Store / Market</label>
+                <button
+                  type="button"
+                  onClick={() => setIsNewStoreModalOpen(true)}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> New Store
+                </button>
+              </div>
+
+              <Select
+                aria-label="Select Store"
+                value={selectedMarketId}
+                onChange={(e) => setSelectedMarketId(e.target.value)}
+                required
+              >
+                <option value="" disabled>
+                  Select Store...
                 </option>
-              ))}
-            </Select>
+                {markets.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.emoji || '🏪'} {m.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -238,6 +276,78 @@ export default function PriceComparator({ markets, productPrices, onSavePrice, o
           </div>
         )}
       </div>
+
+      {/* Quick New Store Modal */}
+      {isNewStoreModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setIsNewStoreModalOpen(false)}
+        >
+          <Card
+            className="max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Store className="w-5 h-5 text-indigo-600" />
+                <span>Add New Store</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsNewStoreModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickSaveStore} className="space-y-4">
+              <div className="flex gap-3">
+                <Select
+                  aria-label="Store Icon"
+                  value={newStoreEmoji}
+                  onChange={(e) => setNewStoreEmoji(e.target.value)}
+                  className="w-24 text-base text-center font-emoji font-bold"
+                >
+                  {['🏪', '🛒', '🥦', '🥩', '🥖', '🏬', '📍'].map((emoji) => (
+                    <option key={emoji} value={emoji}>
+                      {emoji}
+                    </option>
+                  ))}
+                </Select>
+
+                <Input
+                  type="text"
+                  placeholder="Store name (e.g., Trader Joe's, Target)"
+                  aria-label="Store name"
+                  value={newStoreName}
+                  onChange={(e) => setNewStoreName(e.target.value)}
+                  required
+                  className="flex-1"
+                />
+              </div>
+
+              <Input
+                type="text"
+                placeholder="Location / note (optional)"
+                aria-label="Location"
+                value={newStoreAddress}
+                onChange={(e) => setNewStoreAddress(e.target.value)}
+                className="w-full"
+              />
+
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <Button variant="ghost" onClick={() => setIsNewStoreModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" icon={Plus}>
+                  Save & Use Store
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

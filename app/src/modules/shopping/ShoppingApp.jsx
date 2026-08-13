@@ -214,15 +214,12 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
 
   const handleSaveMarket = async (marketObj) => {
     const saved = await saveMarket(marketObj);
-    if (saved) {
-      setMarkets((prev) => [...prev.filter((m) => m.id !== saved.id), saved]);
-    } else {
-      const local = { ...marketObj, id: Date.now().toString() };
-      setMarkets((prev) => [...prev, local]);
-    }
+    const finalMarket = saved || { ...marketObj, id: Date.now().toString() };
+    setMarkets((prev) => [...prev.filter((m) => m.id !== finalMarket.id), finalMarket]);
     if (setToastMessage) {
       setToastMessage('Store saved successfully');
     }
+    return finalMarket;
   };
 
   const handleDeleteMarket = async (marketId) => {
@@ -297,6 +294,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
           productPrices={productPrices}
           onSavePrice={handleSavePrice}
           onDeletePrice={handleDeletePrice}
+          onSaveMarket={handleSaveMarket}
         />
       )}
     </div>
