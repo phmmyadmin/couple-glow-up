@@ -30,17 +30,19 @@ REGLAS DE ORO DE ENTENDIMIENTO Y PARSEO:
 
 1. "name": Nombre estándar, limpio y en SINGULAR del alimento en español (ej: "Plátano", "Huevo", "Tofu", "Avena", "Zanahoria", "Pechuga de pollo").
 
-2. INTERPRETACÓN Y CÁLCULO DE PLATOS Y RECETAS (MEAL-PREP / PORCIONES):
-   - Cuando el usuario describa una receta, guiso o mezcla indicando los pesos o ingredientes totales (ej: "550g de tofu, 240g de avena, 80g de zanahoria" o "plato de 550g con..."), Y al final indique que solo consume una porción (ej: "me como 110g", "comí 200g", "serví 1/3"):
-     a) Calcula el PESO TOTAL PREPARADO (X). Si hay varios ingredientes en gramos, X es la suma de los gramos de los ingredientes o el peso global indicado (ej: 550g).
-     b) Identifica el PESO CONSUMIDO REAL (Y) (ej: 110g).
-     c) CALCULA EL FACTOR PROPORCIONAL: Factor = Y / X (ej: 110 / 550 = 0.2).
-     d) GENERA UN OBJETO INDEPENDIENTE EN EL ARRAY PARA CADA INGREDIENTE.
-     e) MULTIPLICACIÓN EXPLICITA:
-        - quantity = cantidad_ingrediente * Factor (ej: 550g * 0.2 = 110g tofu; 240g * 0.2 = 48g avena; 80g * 0.2 = 16g zanahoria).
-        - calories = calorías_totales_de_esa_cantidad_proporcional.
-        - protein, carbs, fats = macronutrientes_exactos_de_esa_cantidad_proporcional.
-     f) Asigna a todos estos ingredientes el mismo "dishName" descriptivo (ej: "Plato de Tofu, Avena y Zanahoria (110g de 550g)").
+2. INTERPRETACIÓN Y CÁLCULO DE PLATOS Y RECETAS (MEAL-PREP / PORCIONES):
+   - Cuando el usuario describa un plato/receta indicando su PESO TOTAL PREPARADO X (ej: 550g) y enumere sus ingredientes (ej: 240g avena, 80g zanahoria y tofu = 230g tofu para sumar los 550g del plato), Y al final indique el peso de la porción que consume Y (ej: 110g):
+     a) Peso total del plato en báscula = 550g.
+     b) Peso consumido real = 110g.
+     c) Factor de porción consumida = 110 / 550 = 0.2 (es decir, consumió exactamente el 20% del plato).
+     d) LA SUMA DE LOS GRAMOS DE LOS INGREDIENTES EN LA PORCIÓN CONSUMIDA DEBE SUMAR EXACTAMENTE EL PESO CONSUMIDO (110g)!
+     e) En la receta de 550g, si hay 240g avena y 80g zanahoria, el ingrediente principal (Tofu) pesa en la receta entera: 550g - 240g - 80g = 230g tofu.
+     f) Aplicando el 20% a cada ingrediente para obtener la porción de 110g consumida:
+        - Tofu consumido: 230g * 0.2 = 46g
+        - Avena consumida: 240g * 0.2 = 48g
+        - Zanahoria consumida: 80g * 0.2 = 16g
+        - SUMA TOTAL DE INGREDIENTES CONSUMIDOS: 46g + 48g + 16g = 110g EXACTOS.
+     g) Asigna a todos estos ingredientes el mismo "dishName" descriptivo (ej: "Plato de Tofu, Avena y Zanahoria (110g de 550g)").
 
 3. "unit": 'ud' (para piezas o unidades), 'g' (para gramos), 'ml' (para mililitros) o 'porcion'.
 
@@ -61,18 +63,19 @@ REGLAS DE ORO DE ENTENDIMIENTO Y PARSEO:
 5. EJEMPLOS DIRECTOS:
 
    Entrada: "plato de 550 gramos de tofu, 240 gramos de avena, 80 gramos de zanahoria. Me como 110 gramos"
-   Respuesta requerida (3 objetos al 20%):
+   Explicación: El plato entero de 550g contiene 230g tofu, 240g avena y 80g zanahoria. El usuario consume 110g (el 20%).
+   Respuesta requerida (los 3 alimentos suman EXACTAMENTE los 110g consumidos):
    [
      {
        "name": "Tofu",
        "dishName": "Plato de Tofu, Avena y Zanahoria (110g de 550g)",
-       "quantity": 110,
+       "quantity": 46,
        "unit": "g",
        "category": "legumes",
-       "calories": 88,
-       "protein": 8.8,
-       "carbs": 2.2,
-       "fats": 5.0
+       "calories": 37,
+       "protein": 3.7,
+       "carbs": 0.9,
+       "fats": 2.1
      },
      {
        "name": "Avena",
