@@ -8,12 +8,18 @@ import { calculate1RM } from '../lib/supabase-gym';
 const MUSCLE_GROUPS = [
   { id: 'all', label: 'All Muscles' },
   { id: 'chest', label: 'Chest' },
-  { id: 'back', label: 'Back' },
-  { id: 'legs', label: 'Legs' },
   { id: 'shoulders', label: 'Shoulders' },
   { id: 'biceps', label: 'Biceps' },
   { id: 'triceps', label: 'Triceps' },
-  { id: 'abdominals', label: 'Core' },
+  { id: 'forearms', label: 'Forearms' },
+  { id: 'quadriceps', label: 'Quads' },
+  { id: 'hamstrings', label: 'Hamstrings' },
+  { id: 'glutes', label: 'Glutes' },
+  { id: 'calves', label: 'Calves' },
+  { id: 'lats', label: 'Lats' },
+  { id: 'upper_back', label: 'Upper Back' },
+  { id: 'lower_back', label: 'Lower Back' },
+  { id: 'abdominals', label: 'Core / Abs' },
   { id: 'cardio', label: 'Cardio' },
   { id: 'other', label: 'Other' },
 ];
@@ -95,7 +101,14 @@ export default function ExerciseLibrary({
     const matchesMuscle =
       selectedMuscle === 'all' ||
       e.muscle_group === selectedMuscle ||
-      secondaries.includes(selectedMuscle);
+      secondaries.includes(selectedMuscle) ||
+      (selectedMuscle === 'quadriceps' && e.muscle_group === 'legs') ||
+      (selectedMuscle === 'hamstrings' && e.muscle_group === 'legs') ||
+      (selectedMuscle === 'glutes' && e.muscle_group === 'legs') ||
+      (selectedMuscle === 'calves' && e.muscle_group === 'legs') ||
+      (selectedMuscle === 'lats' && e.muscle_group === 'back') ||
+      (selectedMuscle === 'upper_back' && e.muscle_group === 'back') ||
+      (selectedMuscle === 'lower_back' && e.muscle_group === 'back');
 
     const eqLower = (e.equipment_category || e.equipment || '').toLowerCase();
     const matchesEquipment =

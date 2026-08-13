@@ -1,18 +1,189 @@
 import { supabase } from '../../../lib/supabase';
 
 // ── EXERCISES ──
+export const DEFAULT_EXERCISES = [
+  // ── CHEST ──
+  { name: 'Barbell Bench Press', muscle_group: 'chest', other_muscles: ['triceps', 'shoulders'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Incline Dumbbell Press', muscle_group: 'chest', other_muscles: ['shoulders', 'triceps'], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Cable Chest Flyes', muscle_group: 'chest', other_muscles: ['shoulders'], equipment_category: 'cable', exercise_type: 'weight_reps' },
+  { name: 'Dumbbell Chest Flyes', muscle_group: 'chest', other_muscles: ['shoulders'], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Push-ups', muscle_group: 'chest', other_muscles: ['triceps', 'shoulders'], equipment_category: 'bodyweight', exercise_type: 'bodyweight_reps' },
+  { name: 'Chest Dip', muscle_group: 'chest', other_muscles: ['triceps', 'shoulders'], equipment_category: 'bodyweight', exercise_type: 'bodyweight_reps' },
+
+  // ── BACK & LATS ──
+  { name: 'Lat Pulldown', muscle_group: 'lats', other_muscles: ['biceps', 'upper_back'], equipment_category: 'cable', exercise_type: 'weight_reps' },
+  { name: 'Pull-ups', muscle_group: 'lats', other_muscles: ['biceps', 'upper_back'], equipment_category: 'bodyweight', exercise_type: 'bodyweight_reps' },
+  { name: 'Bent-Over Barbell Row', muscle_group: 'upper_back', other_muscles: ['lats', 'biceps', 'lower_back'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Single-Arm Dumbbell Row', muscle_group: 'lats', other_muscles: ['upper_back', 'biceps'], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Seated Cable Row', muscle_group: 'upper_back', other_muscles: ['lats', 'biceps'], equipment_category: 'cable', exercise_type: 'weight_reps' },
+  { name: 'T-Bar Row', muscle_group: 'upper_back', other_muscles: ['lats', 'biceps'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Face Pulls', muscle_group: 'upper_back', other_muscles: ['shoulders'], equipment_category: 'cable', exercise_type: 'weight_reps' },
+  { name: 'Deadlift', muscle_group: 'lower_back', other_muscles: ['hamstrings', 'glutes', 'upper_back'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Hyperextensions (Back Extension)', muscle_group: 'lower_back', other_muscles: ['glutes', 'hamstrings'], equipment_category: 'bodyweight', exercise_type: 'bodyweight_reps' },
+
+  // ── QUADRICEPS ──
+  { name: 'Barbell Back Squat', muscle_group: 'quadriceps', other_muscles: ['glutes', 'hamstrings'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Front Squat', muscle_group: 'quadriceps', other_muscles: ['glutes', 'abdominals'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Leg Press', muscle_group: 'quadriceps', other_muscles: ['glutes'], equipment_category: 'machine', exercise_type: 'weight_reps' },
+  { name: 'Leg Extensions', muscle_group: 'quadriceps', other_muscles: [], equipment_category: 'machine', exercise_type: 'weight_reps' },
+  { name: 'Goblet Squat', muscle_group: 'quadriceps', other_muscles: ['glutes'], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Bulgarian Split Squat', muscle_group: 'quadriceps', other_muscles: ['glutes', 'hamstrings'], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Walking Lunges', muscle_group: 'quadriceps', other_muscles: ['glutes', 'hamstrings'], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+
+  // ── HAMSTRINGS ──
+  { name: 'Romanian Deadlift (RDL)', muscle_group: 'hamstrings', other_muscles: ['glutes', 'lower_back'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Dumbbell Romanian Deadlift', muscle_group: 'hamstrings', other_muscles: ['glutes', 'lower_back'], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Seated Leg Curl', muscle_group: 'hamstrings', other_muscles: [], equipment_category: 'machine', exercise_type: 'weight_reps' },
+  { name: 'Lying Leg Curl', muscle_group: 'hamstrings', other_muscles: [], equipment_category: 'machine', exercise_type: 'weight_reps' },
+
+  // ── GLUTES ──
+  { name: 'Barbell Hip Thrust', muscle_group: 'glutes', other_muscles: ['hamstrings'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Cable Kickbacks', muscle_group: 'glutes', other_muscles: [], equipment_category: 'cable', exercise_type: 'weight_reps' },
+  { name: 'Glute Bridge', muscle_group: 'glutes', other_muscles: ['hamstrings'], equipment_category: 'bodyweight', exercise_type: 'bodyweight_reps' },
+
+  // ── CALVES ──
+  { name: 'Standing Calf Raise', muscle_group: 'calves', other_muscles: [], equipment_category: 'machine', exercise_type: 'weight_reps' },
+  { name: 'Seated Calf Raise', muscle_group: 'calves', other_muscles: [], equipment_category: 'machine', exercise_type: 'weight_reps' },
+
+  // ── SHOULDERS ──
+  { name: 'Overhead Barbell Press (OHP)', muscle_group: 'shoulders', other_muscles: ['triceps', 'upper_back'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Dumbbell Shoulder Press', muscle_group: 'shoulders', other_muscles: ['triceps'], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Dumbbell Lateral Raise', muscle_group: 'shoulders', other_muscles: [], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Cable Lateral Raise', muscle_group: 'shoulders', other_muscles: [], equipment_category: 'cable', exercise_type: 'weight_reps' },
+  { name: 'Rear Delt Flyes (Reverse Pec Deck)', muscle_group: 'shoulders', other_muscles: ['upper_back'], equipment_category: 'machine', exercise_type: 'weight_reps' },
+  { name: 'Dumbbell Front Raise', muscle_group: 'shoulders', other_muscles: ['chest'], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+
+  // ── BICEPS ──
+  { name: 'Barbell Biceps Curl', muscle_group: 'biceps', other_muscles: ['forearms'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Dumbbell Hammer Curl', muscle_group: 'biceps', other_muscles: ['forearms'], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Incline Dumbbell Curl', muscle_group: 'biceps', other_muscles: [], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Preacher Curl', muscle_group: 'biceps', other_muscles: [], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Cable Biceps Curl', muscle_group: 'biceps', other_muscles: ['forearms'], equipment_category: 'cable', exercise_type: 'weight_reps' },
+
+  // ── TRICEPS ──
+  { name: 'Triceps Rope Pushdown', muscle_group: 'triceps', other_muscles: [], equipment_category: 'cable', exercise_type: 'weight_reps' },
+  { name: 'Skull Crushers (Lying Triceps Extension)', muscle_group: 'triceps', other_muscles: [], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Overhead Dumbbell Triceps Extension', muscle_group: 'triceps', other_muscles: [], equipment_category: 'dumbbell', exercise_type: 'weight_reps' },
+  { name: 'Bench Dips', muscle_group: 'triceps', other_muscles: ['chest', 'shoulders'], equipment_category: 'bodyweight', exercise_type: 'bodyweight_reps' },
+
+  // ── FOREARMS ──
+  { name: 'Wrist Curl', muscle_group: 'forearms', other_muscles: [], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Reverse Wrist Curl', muscle_group: 'forearms', other_muscles: [], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+
+  // ── CORE / ABS ──
+  { name: 'Hanging Leg Raise', muscle_group: 'abdominals', other_muscles: ['forearms'], equipment_category: 'bodyweight', exercise_type: 'bodyweight_reps' },
+  { name: 'Ab Wheel Rollout', muscle_group: 'abdominals', other_muscles: ['shoulders', 'lower_back'], equipment_category: 'other', exercise_type: 'bodyweight_reps' },
+  { name: 'Plank', muscle_group: 'abdominals', other_muscles: ['shoulders', 'lower_back'], equipment_category: 'bodyweight', exercise_type: 'duration_only' },
+  { name: 'Cable Woodchopper', muscle_group: 'abdominals', other_muscles: ['shoulders'], equipment_category: 'cable', exercise_type: 'weight_reps' },
+
+  // ── CARDIO ──
+  { name: 'Treadmill Running', muscle_group: 'cardio', other_muscles: ['quadriceps', 'calves'], equipment_category: 'machine', exercise_type: 'distance_duration' },
+  { name: 'Stationary Cycling', muscle_group: 'cardio', other_muscles: ['quadriceps'], equipment_category: 'machine', exercise_type: 'distance_duration' },
+  { name: 'Rowing Machine', muscle_group: 'cardio', other_muscles: ['lats', 'quadriceps'], equipment_category: 'machine', exercise_type: 'distance_duration' },
+  { name: 'Jump Rope', muscle_group: 'cardio', other_muscles: ['calves'], equipment_category: 'bodyweight', exercise_type: 'duration_only' },
+];
+
+const TRANSLATIONS_MAP = {
+  'Sentadilla con barra': { name: 'Barbell Back Squat', muscle: 'quadriceps' },
+  'Sentadilla': { name: 'Barbell Back Squat', muscle: 'quadriceps' },
+  'Press de banca': { name: 'Barbell Bench Press', muscle: 'chest' },
+  'Press de banca con barra': { name: 'Barbell Bench Press', muscle: 'chest' },
+  'Peso muerto': { name: 'Deadlift', muscle: 'lower_back' },
+  'Peso muerto rumano': { name: 'Romanian Deadlift (RDL)', muscle: 'hamstrings' },
+  'Dominadas': { name: 'Pull-ups', muscle: 'lats' },
+  'Jalón al pecho': { name: 'Lat Pulldown', muscle: 'lats' },
+  'Remo con barra': { name: 'Bent-Over Barbell Row', muscle: 'upper_back' },
+  'Remo con mancuerna': { name: 'Single-Arm Dumbbell Row', muscle: 'lats' },
+  'Remo gironda': { name: 'Seated Cable Row', muscle: 'upper_back' },
+  'Press militar': { name: 'Overhead Barbell Press (OHP)', muscle: 'shoulders' },
+  'Elevaciones laterales': { name: 'Dumbbell Lateral Raise', muscle: 'shoulders' },
+  'Curll de bíceps': { name: 'Barbell Biceps Curl', muscle: 'biceps' },
+  'Curl de bíceps': { name: 'Barbell Biceps Curl', muscle: 'biceps' },
+  'Curl martillo': { name: 'Dumbbell Hammer Curl', muscle: 'biceps' },
+  'Tríceps en polea': { name: 'Triceps Rope Pushdown', muscle: 'triceps' },
+  'Extensión de cuadriceps': { name: 'Leg Extensions', muscle: 'quadriceps' },
+  'Extensión de piernas': { name: 'Leg Extensions', muscle: 'quadriceps' },
+  'Prensa de piernas': { name: 'Leg Press', muscle: 'quadriceps' },
+  'Curl femoral': { name: 'Seated Leg Curl', muscle: 'hamstrings' },
+  'Hip thrust': { name: 'Barbell Hip Thrust', muscle: 'glutes' },
+  'Gemelos de pie': { name: 'Standing Calf Raise', muscle: 'calves' },
+  'Zancadas': { name: 'Walking Lunges', muscle: 'quadriceps' },
+  'Fondos en paralelas': { name: 'Chest Dip', muscle: 'chest' },
+  'Flexiones': { name: 'Push-ups', muscle: 'chest' },
+  'Aperturas con mancuernas': { name: 'Dumbbell Chest Flyes', muscle: 'chest' },
+  'Plancha': { name: 'Plank', muscle: 'abdominals' },
+};
+
 export async function fetchExercisesFromSupabase() {
-  if (!supabase) return [];
+  if (!supabase) return DEFAULT_EXERCISES;
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('exercises')
       .select('*')
       .order('name', { ascending: true });
+
     if (error) throw error;
-    return data || [];
+
+    if (!data || data.length === 0) {
+      const { data: seeded } = await supabase.from('exercises').insert(DEFAULT_EXERCISES).select();
+      return seeded || DEFAULT_EXERCISES;
+    }
+
+    // Auto-update Spanish names or generic muscle groups (legs -> quadriceps, back -> lats/upper_back)
+    let needsRefetch = false;
+    for (const ex of data) {
+      const currentName = ex.name || ex.name_es || '';
+      const translation = TRANSLATIONS_MAP[currentName];
+
+      let newName = ex.name;
+      let newMuscle = ex.muscle_group;
+
+      if (translation) {
+        newName = translation.name;
+        newMuscle = translation.muscle;
+      } else if (ex.muscle_group === 'legs') {
+        const lower = currentName.toLowerCase();
+        if (lower.includes('curl') || lower.includes('hamstring') || lower.includes('rdl') || lower.includes('deadlift')) {
+          newMuscle = 'hamstrings';
+        } else if (lower.includes('hip') || lower.includes('glute') || lower.includes('thrust')) {
+          newMuscle = 'glutes';
+        } else if (lower.includes('calf') || lower.includes('calves') || lower.includes('raise')) {
+          newMuscle = 'calves';
+        } else {
+          newMuscle = 'quadriceps';
+        }
+      } else if (ex.muscle_group === 'back') {
+        const lower = currentName.toLowerCase();
+        if (lower.includes('deadlift') || lower.includes('extension') || lower.includes('lower')) {
+          newMuscle = 'lower_back';
+        } else if (lower.includes('row') || lower.includes('face') || lower.includes('shrug')) {
+          newMuscle = 'upper_back';
+        } else {
+          newMuscle = 'lats';
+        }
+      }
+
+      if (newName !== ex.name || newMuscle !== ex.muscle_group) {
+        needsRefetch = true;
+        await supabase
+          .from('exercises')
+          .update({ name: newName, name_es: newName, muscle_group: newMuscle })
+          .eq('id', ex.id);
+      }
+    }
+
+    if (needsRefetch) {
+      const { data: refetched } = await supabase
+        .from('exercises')
+        .select('*')
+        .order('name', { ascending: true });
+      return refetched || data;
+    }
+
+    return data || DEFAULT_EXERCISES;
   } catch (err) {
     console.error('Error fetching exercises:', err);
-    return [];
+    return DEFAULT_EXERCISES;
   }
 }
 
