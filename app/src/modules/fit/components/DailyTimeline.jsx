@@ -151,25 +151,39 @@ export default function DailyTimeline({
     }
   });
 
-  // Group by time and dishName
-  const groupedMeals = [];
-  let currentGroup = null;
+  // Helper to calculate 1-hour range label from time string (e.g. "18:38" -> "18:00 - 19:00")
+  const getHourRangeKey = (timeStr) => {
+    if (!timeStr || typeof timeStr !== 'string') return '12:00 - 13:00';
+    const parts = timeStr.split(':');
+    let hour = parseInt(parts[0], 10);
+    if (isNaN(hour) || hour < 0 || hour > 23) hour = 12;
+
+    const startHourStr = hour.toString().padStart(2, '0');
+    const nextHourStr = ((hour + 1) % 24).toString().padStart(2, '0');
+    return `${startHourStr}:00 - ${nextHourStr}:00`;
+  };
+
+  // Group by 1-hour time range and dishName
+  const groupedMealsMap = new Map();
 
   expandedIntakes.forEach((item) => {
-    const timeKey = item.time || '12:00';
-    const groupKey = item.dishName ? `${timeKey}-${item.dishName}` : timeKey;
+    const timeStr = item.time || '12:00';
+    const hourRange = getHourRangeKey(timeStr);
+    const groupKey = item.dishName ? `${hourRange}__${item.dishName}` : hourRange;
 
-    if (!currentGroup || currentGroup.key !== groupKey) {
-      currentGroup = {
+    if (!groupedMealsMap.has(groupKey)) {
+      groupedMealsMap.set(groupKey, {
         key: groupKey,
-        time: timeKey,
-        dishName: item.dishName,
+        timeRange: hourRange,
+        dishName: item.dishName || null,
         items: [],
-      };
-      groupedMeals.push(currentGroup);
+      });
     }
-    currentGroup.items.push(item);
+
+    groupedMealsMap.get(groupKey).items.push(item);
   });
+
+  const groupedMeals = Array.from(groupedMealsMap.values());
 
   const getFormatDisplay = (item) => {
     if (item.unit === 'g') return `${item.name} (${item.quantity}g)`;
@@ -199,7 +213,7 @@ export default function DailyTimeline({
               <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-indigo-600 truncate min-w-0">
                 <Clock className="w-4 h-4 shrink-0" />
                 <span className="truncate">
-                  {meal.dishName ? `${meal.time} - ${meal.dishName}` : `Intake ${meal.time}`}
+                  {meal.dishName ? `${meal.timeRange} • ${meal.dishName}` : `${meal.timeRange}`}
                 </span>
               </div>
 
