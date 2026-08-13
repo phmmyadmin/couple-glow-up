@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Heart, Play } from 'lucide-react';
+import { Plus, Heart, Play, Sparkles } from 'lucide-react';
 
 import FitApp from './modules/fit/FitApp';
 import ShoppingApp from './modules/shopping/ShoppingApp';
@@ -71,152 +71,59 @@ export default function App() {
     window.addEventListener('active_workout_updated', updateActiveWorkout);
     window.addEventListener('storage', updateActiveWorkout);
     return () => {
-      window.removeEventListener('active_workout_updated', updateActiveWorkout);
-      window.removeEventListener('storage', updateActiveWorkout);
-    };
-  }, []);
-
-  useEffect(() => {
-    let interval = null;
-    if (activeWorkoutData?.startTime) {
-      const updateTimer = () => {
-        const secs = Math.floor((Date.now() - activeWorkoutData.startTime) / 1000);
-        setFloatingSeconds(Math.max(0, secs));
-      };
-      updateTimer();
-      interval = setInterval(updateTimer, 1000);
-    }
-    return () => {
       if (interval) clearInterval(interval);
     };
   }, [activeWorkoutData]);
-
-  const [data, setData] = useState(null);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [toastMessage, setToastMessage] = useState(null);
-  const dateInputRef = useRef(null);
-
-  const [profiles, setProfiles] = useState([]);
-  const [activeProfileId, setActiveProfileId] = useState(() => localStorage.getItem('fit_active_profile_id') || null);
-  const [isNewProfileModalOpen, setIsNewProfileModalOpen] = useState(false);
-
-  const loadData = async (forceProfileId = null) => {
-    let currentProfileId = forceProfileId || activeProfileId;
-
-    if (supabase) {
-      let currentProfiles = profiles;
-      if (currentProfiles.length === 0) {
-        currentProfiles = await fetchProfiles();
-        setProfiles(currentProfiles);
-      }
-
-      const savedId = localStorage.getItem('fit_active_profile_id');
-      if (savedId && currentProfiles.some((p) => p.id === savedId)) {
-        currentProfileId = savedId;
-      } else if (!currentProfileId && currentProfiles.length > 0) {
-        currentProfileId = currentProfiles[0].id;
-      }
-
-      if (currentProfileId) {
-        setActiveProfileId(currentProfileId);
-        localStorage.setItem('fit_active_profile_id', currentProfileId);
-      }
-
-      const activeProf = currentProfiles.find((p) => p.id === currentProfileId);
-      if (activeProf && activeProf.language) {
-        i18n.changeLanguage(activeProf.language);
-      } else {
-        i18n.changeLanguage('en');
-      }
-
-      if (currentProfileId) {
-        const supabaseData = await fetchDailyLogsFromSupabase(currentProfileId);
-        if (supabaseData) {
-          setData(supabaseData);
-          if (!selectedDate) {
-            setSelectedDate(getLocalDateStr());
-          }
-          return;
-        }
-      }
-    }
-
-    // Fallback local
-    fetch('/food_log.json?t=' + Date.now())
-      .then((res) => res.json())
-      .then((json) => {
-        setData(json);
-        if (!selectedDate) {
-          setSelectedDate(getLocalDateStr());
-        }
-      })
-      .catch((err) => console.error('Error loading food_log.json', err));
-  };
-
-  useEffect(() => {
-    i18n.changeLanguage('en');
-    loadData();
-  }, []);
-
-  const handleProfileChange = (newProfileId) => {
-    setActiveProfileId(newProfileId);
-    if (newProfileId) {
-      localStorage.setItem('fit_active_profile_id', newProfileId);
-    }
-    const targetProfile = profiles.find((p) => p.id === newProfileId);
-    if (targetProfile && targetProfile.language) {
-      i18n.changeLanguage(targetProfile.language);
-    } else {
-      i18n.changeLanguage('en');
-    }
-    setData(null);
-    loadData(newProfileId);
-  };
-
-  const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
   return (
     <div className="app-container">
       <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
 
-      {/* App Header */}
-      <header className="app-header mb-6 sm:mb-8">
-        <div>
-          <h1 className="app-title flex items-center gap-2">
+      {/* Sleek, Compact & Cute Header */}
+      <header className="app-header mb-4 sm:mb-5 pt-1 pb-3 border-b border-slate-100 flex items-center justify-between gap-3">
+        {/* Left: Title & Profile Selector */}
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-1.5 font-heading">
             <span>Couple Glow Up</span>
-            <Heart className="w-5 h-5 text-rose-500 fill-rose-500 inline-block" />
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-50 border border-rose-200 text-rose-500 shadow-2xs">
+              <Heart className="w-3 h-3 fill-rose-500 text-rose-500 animate-pulse" />
+            </span>
           </h1>
 
           {profiles.length > 0 && (
-            <div className="flex items-center gap-2 mt-2">
-              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm">
-                <Avatar profile={activeProfile} size="sm" />
-                <select
-                  aria-label="Select Active Profile"
-                  value={activeProfileId || ''}
-                  onChange={(e) => handleProfileChange(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer pr-1"
-                >
-                  {profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={Plus}
-                onClick={() => setIsNewProfileModalOpen(true)}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-2xl px-2.5 py-1 shadow-2xs">
+              <Avatar profile={activeProfile} size="xs" />
+              <select
+                aria-label="Select Active Profile"
+                value={activeProfileId || ''}
+                onChange={(e) => handleProfileChange(e.target.value)}
+                className="bg-transparent text-xs font-extrabold text-slate-800 focus:outline-none cursor-pointer pr-1"
               >
-                New
-              </Button>
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={() => setIsNewProfileModalOpen(true)}
+                className="p-1 rounded-lg text-indigo-600 hover:bg-indigo-50 font-bold text-xs flex items-center gap-0.5 transition-colors cursor-pointer"
+                title="Add new profile"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
+        </div>
 
+        {/* Right: Cute Compact App Logo Badge */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-indigo-50 via-rose-50 to-amber-50 border border-indigo-100/80 shadow-2xs shrink-0">
+          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+          <span className="text-xs font-black bg-gradient-to-r from-indigo-600 to-rose-600 bg-clip-text text-transparent">
+            GlowUp ✨
+          </span>
         </div>
       </header>
 
