@@ -70,7 +70,11 @@ Devuelve ÚNICAMENTE la estructura JSON en este formato:
 
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
-      const parsed = JSON.parse(responseText);
+      const cleanJsonStr = responseText
+        .replace(/```json/gi, '')
+        .replace(/```/g, '')
+        .trim();
+      const parsed = JSON.parse(cleanJsonStr);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
