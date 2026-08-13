@@ -1,52 +1,58 @@
 /**
  * Generic client-side parser fallback when Gemini LLM is unavailable or fails.
  * Strips command prefixes and parses multiple food items separated by commas, newlines, +, "y", "e".
- * Supports batch cooking & portion fraction calculations (e.g., "de un plato de 555g ... me como 130g").
+ * Supports batch cooking & portion fraction calculations (e.g., "plato de 550g de tofu, 240g avena... me como 110g").
  */
 export function parseFoodTextLocal(text) {
-  let cleaned = text
+  let rawText = text
     .replace(/^(?:añade|agrega|registra|hoy he comido|comí|comi|desayuné|desayune|cené|cene)\s+/i, '')
     .replace(/^(?:Comida|Desayuno|Cena|Snack|Merienda)\s*\d*:\s*/i, '')
     .trim();
 
-  // Detect batch vs eaten portion pattern: "de un plato de 555 gramos de avena ... me como 130 gramos"
+  // 1. Detect total dish weight (X g) and eaten portion weight (Y g)
   let portionRatio = 1;
   let batchDishName = null;
 
-  const batchMatch = text.match(/de\s+(?:un\s+plato|una\s+receta|un\s+bowl|un\s+guiso)?\s*(?:de\s+)?(\d+(?:\.\d+)?)\s*g(?:ramos|r)?.*?\bme\s+(?:como|comí|comi|serví|servi)\s+(\d+(?:\.\d+)?)\s*g(?:ramos|r)?/i);
+  const totalWeightMatch = rawText.match(/(?:plato|receta|bowl|guiso|preparacion|preparación)?\s*(?:de\s+)?(\d+(?:\.\d+)?)\s*g(?:ramos|r)?/i);
+  const eatenMatch = rawText.match(/\bme\s+(?:como|comí|comi|serví|servi)\s+(\d+(?:\.\d+)?)\s*g(?:ramos|r)?/i);
 
-  if (batchMatch) {
-    const totalBatchWeight = parseFloat(batchMatch[1]);
-    const eatenWeight = parseFloat(batchMatch[2]);
-    if (totalBatchWeight > 0 && eatenWeight > 0) {
+  if (totalWeightMatch && eatenMatch) {
+    const totalBatchWeight = parseFloat(totalWeightMatch[1]);
+    const eatenWeight = parseFloat(eatenMatch[1]);
+
+    if (totalBatchWeight > 0 && eatenWeight > 0 && eatenWeight < totalBatchWeight * 3) {
       portionRatio = eatenWeight / totalBatchWeight;
       batchDishName = `Plato Preparado (Porción ${eatenWeight}g de ${totalBatchWeight}g)`;
     }
-
-    // Strip "de un plato de 555 gramos de [alimento]," prefix cleanly!
-    cleaned = cleaned.replace(/de\s+(?:un\s+plato|una\s+receta|un\s+bowl|un\s+guiso)?\s*(?:de\s+)?\d+\s*g(?:ramos|r)?(?:\s+de\s+[a-záéíóúñ\s]+)?[,;]?/i, '');
   }
 
-  // Strip trailing "me como 130 gramos" / "me comí 130g"
-  cleaned = cleaned.replace(/\bme\s+(?:como|comí|comi|serví|servi)\s+\d+\s*g(?:ramos|r)?/gi, '').trim();
+  // 2. Clean text to extract actual ingredients
+  let cleaned = rawText
+    .replace(/^(?:un\s+)?(?:plato|receta|bowl|guiso|preparacion|preparación)\s+(?:de\s+)?/i, '')
+    .replace(/\bme\s+(?:como|comí|comi|serví|servi)\s+\d+\s*g(?:ramos|r)?/gi, '')
+    .trim();
 
-  // Split by commas, semicolons, newlines, +, " y ", " e "
-  const rawSegments = cleaned.split(/[,;\n\+]|\s+(?:y|e)\s+/i).map(s => s.trim()).filter(Boolean);
+  // Split ingredients by period, comma, semicolon, newline, "+", "y", "e"
+  const rawSegments = cleaned
+    .split(/[\.,;\n\+]|\s+(?:y|e)\s+/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   let matches = [];
 
   for (const seg of rawSegments) {
     let lower = seg.toLowerCase().trim();
-    if (!lower) continue;
+    if (!lower || /^me\s+(?:como|comí|comi|serví|servi)/i.test(lower)) continue;
 
     let quantity = 1;
     let unit = 'ud';
     let cleanName = seg;
 
-    // Check grams pattern: "100g pollo" or "pollo 100g" or "100 gramos de yogurt"
+    // Grams match: "550g tofu" or "tofu 550g" or "240 gramos de avena"
     const gramsMatch = lower.match(/^(\d+(?:\.\d+)?)\s*g(?:ramos|r)?\s+(?:de\s+)?(.+)$/i) ||
                        lower.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*g(?:ramos|r)?$/i);
 
-    // Check unit pattern: "2 plátanos" or "plátano 2" or "1 platano"
+    // Qty match: "2 plátanos" or "plátano 2"
     const qtyMatch = lower.match(/^(\d+(?:\.\d+)?)\s+(?:de\s+)?(.+)$/i) ||
                      lower.match(/^(.+?)\s+(\d+(?:\.\d+)?)$/i);
 
@@ -77,8 +83,8 @@ export function parseFoodTextLocal(text) {
     // Category guessing
     let category = 'other';
     const lowerName = cleanName.toLowerCase();
-    if (/pollo|carne|pavo|ternera|cerdo|pescado|atun|atún|salmon|salmón|huevo|huevos/.test(lowerName)) {
-      category = 'meat';
+    if (/tofu|seitan|seitán|tempeh|pollo|carne|pavo|ternera|cerdo|pescado|atun|atún|salmon|salmón|huevo|huevos/.test(lowerName)) {
+      category = lowerName.includes('tofu') || lowerName.includes('seitan') || lowerName.includes('tempeh') ? 'legumes' : 'meat';
     } else if (/yogur|yogurt|leche|queso|kefir|kéfir/.test(lowerName)) {
       category = 'dairy';
     } else if (/platano|plátano|banana|manzana|naranja|fresa|pera|uva|fruta/.test(lowerName)) {
@@ -92,8 +98,40 @@ export function parseFoodTextLocal(text) {
     }
 
     const finalQty = unit === 'g' ? Math.round(quantity * portionRatio * 10) / 10 : quantity;
-    const baseCalsPerUnit = unit === 'g' ? 1.2 : 110;
-    const estimatedCals = Math.round(finalQty * baseCalsPerUnit);
+
+    // Macro estimation per 100g based on category
+    let calsPer100g = 120;
+    let protPer100g = 5;
+    let carbsPer100g = 15;
+    let fatsPer100g = 3;
+
+    if (category === 'legumes' || lowerName.includes('tofu')) {
+      calsPer100g = 80; protPer100g = 8; carbsPer100g = 2; fatsPer100g = 4.5;
+    } else if (category === 'grains' || lowerName.includes('avena')) {
+      calsPer100g = 370; protPer100g = 13.5; carbsPer100g = 60; fatsPer100g = 6.5;
+    } else if (category === 'vegetables' || lowerName.includes('zanahoria')) {
+      calsPer100g = 40; protPer100g = 1; carbsPer100g = 9; fatsPer100g = 0.2;
+    } else if (category === 'meat') {
+      calsPer100g = 160; protPer100g = 22; carbsPer100g = 0; fatsPer100g = 7;
+    }
+
+    let estimatedCals = 0;
+    let estimatedProt = 0;
+    let estimatedCarbs = 0;
+    let estimatedFats = 0;
+
+    if (unit === 'g') {
+      const factor = finalQty / 100;
+      estimatedCals = Math.round(calsPer100g * factor);
+      estimatedProt = Math.round(protPer100g * factor * 10) / 10;
+      estimatedCarbs = Math.round(carbsPer100g * factor * 10) / 10;
+      estimatedFats = Math.round(fatsPer100g * factor * 10) / 10;
+    } else {
+      estimatedCals = Math.round(quantity * 110);
+      estimatedProt = Math.round((estimatedCals * 0.25 / 4) * 10) / 10;
+      estimatedCarbs = Math.round((estimatedCals * 0.45 / 4) * 10) / 10;
+      estimatedFats = Math.round((estimatedCals * 0.30 / 9) * 10) / 10;
+    }
 
     matches.push({
       name: cleanName || seg,
@@ -102,9 +140,9 @@ export function parseFoodTextLocal(text) {
       unit: unit,
       category: category,
       calories: estimatedCals,
-      protein: Math.round((estimatedCals * 0.25 / 4) * 10) / 10,
-      carbs: Math.round((estimatedCals * 0.45 / 4) * 10) / 10,
-      fats: Math.round((estimatedCals * 0.30 / 9) * 10) / 10
+      protein: estimatedProt,
+      carbs: estimatedCarbs,
+      fats: estimatedFats,
     });
   }
 
