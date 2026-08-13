@@ -108,7 +108,17 @@ export default function ReportView({ data, setData, activeProfileId, activeProfi
     return Object.values(stats).sort((a, b) => b.key.localeCompare(a.key));
   }, [dailyLogs, maintenanceCalories, locale]);
 
-  const activeMonthData = monthlyStats[selectedMonthIndex] || monthlyStats[0] || null;
+  const currentMonthData = monthlyStats[selectedMonthIndex] || monthlyStats[0] || {
+    name: 'Current Month',
+    daysLogged: 0,
+    totalCaloriesConsumed: 0,
+    maintenanceCaloriesPerDay: maintenanceCalories,
+  };
+
+  const currentMonthMaintenance = currentMonthData.daysLogged * (currentMonthData.maintenanceCaloriesPerDay || maintenanceCalories);
+  const currentMonthDeficit = currentMonthMaintenance - currentMonthData.totalCaloriesConsumed;
+  const currentMonthAvgCalories = currentMonthData.daysLogged > 0 ? Math.round(currentMonthData.totalCaloriesConsumed / currentMonthData.daysLogged) : 0;
+  const currentMonthEstimatedLostKg = currentMonthDeficit > 0 ? (currentMonthDeficit / 7700) : 0;
 
   // Weekly Data Configuration
   const macrosConfig = {
