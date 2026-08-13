@@ -1,12 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const isValidApiKey = apiKey && typeof apiKey === 'string' && apiKey.startsWith('AIzaSy');
-const genAI = isValidApiKey ? new GoogleGenerativeAI(apiKey) : null;
+const genAI = apiKey && typeof apiKey === 'string' && apiKey.trim() ? new GoogleGenerativeAI(apiKey.trim()) : null;
 
 export async function parseFoodWithGemini(userText) {
-  if (!genAI || !isValidApiKey) {
-    console.info('VITE_GEMINI_API_KEY no configurada o no válida (debe empezar por AIzaSy...). Usando parser nutricional inteligente.');
+  if (!genAI || !apiKey) {
     return null;
   }
 
@@ -89,10 +87,9 @@ Devuelve ÚNICAMENTE la estructura JSON en este formato:
         return parsed;
       }
     } catch (err) {
-      // Silently try next model fallback if 404 or unsupported
+      // Catch network / auth error and continue silently to next model / local parser
     }
   }
 
-  console.info('Gemini API unreachable. Usando parser nutricional genérico.');
   return null;
 }
