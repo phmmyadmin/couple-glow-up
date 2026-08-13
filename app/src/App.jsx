@@ -37,6 +37,8 @@ const addDays = (dateStr, days) => {
 
 export default function App() {
   const { t, i18n } = useTranslation();
+  const [data, setData] = useState(null);
+  const [selectedDate, setSelectedDate] = useState('');
   const [activeModule, setActiveModule] = useState(() => {
     return localStorage.getItem('glowup_active_module') || 'fit';
   });
@@ -45,6 +47,90 @@ export default function App() {
     setActiveModule(mod);
     localStorage.setItem('glowup_active_module', mod);
   };
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+  const dateInputRef = useRef(null);
+
+  // Profiles State
+  const [profiles, setProfiles] = useState([]);
+  const [activeProfileId, setActiveProfileId] = useState(() => localStorage.getItem('fit_active_profile_id') || null);
+  const [isNewProfileModalOpen, setIsNewProfileModalOpen] = useState(false);
+
+  const loadData = async (forceProfileId = null) => {
+    let currentProfileId = forceProfileId || activeProfileId;
+
+    if (supabase) {
+      let currentProfiles = profiles;
+      if (currentProfiles.length === 0) {
+        currentProfiles = await fetchProfiles();
+        setProfiles(currentProfiles);
+      }
+
+      const savedId = localStorage.getItem('fit_active_profile_id');
+      if (savedId && currentProfiles.some((p) => p.id === savedId)) {
+        currentProfileId = savedId;
+      } else if (!currentProfileId && currentProfiles.length > 0) {
+        currentProfileId = currentProfiles[0].id;
+      }
+
+      if (currentProfileId) {
+        setActiveProfileId(currentProfileId);
+        localStorage.setItem('fit_active_profile_id', currentProfileId);
+      }
+
+      const activeProf = currentProfiles.find((p) => p.id === currentProfileId);
+      if (activeProf && activeProf.language) {
+        i18n.changeLanguage(activeProf.language);
+      } else {
+        i18n.changeLanguage('en');
+      }
+
+      if (currentProfileId) {
+        const supabaseData = await fetchDailyLogsFromSupabase(currentProfileId);
+        if (supabaseData) {
+          setData(supabaseData);
+          if (!selectedDate) {
+            setSelectedDate(getLocalDateStr());
+          }
+          return;
+        }
+      }
+    }
+
+    // Fallback local
+    fetch('/food_log.json?t=' + Date.now())
+      .then((res) => res.json())
+      .then((json) => {
+        setData(json);
+        if (!selectedDate) {
+          setSelectedDate(getLocalDateStr());
+        }
+      })
+      .catch((err) => console.error('Error loading food_log.json', err));
+  };
+
+  useEffect(() => {
+    i18n.changeLanguage('en');
+    loadData();
+  }, []);
+
+  const handleProfileChange = (newProfileId) => {
+    setActiveProfileId(newProfileId);
+    if (newProfileId) {
+      localStorage.setItem('fit_active_profile_id', newProfileId);
+    }
+    const targetProfile = profiles.find((p) => p.id === newProfileId);
+    if (targetProfile && targetProfile.language) {
+      i18n.changeLanguage(targetProfile.language);
+    } else {
+      i18n.changeLanguage('en');
+    }
+    setData(null);
+    loadData(newProfileId);
+  };
+
+  const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
   // Floating Active Workout Bar State
   const [activeWorkoutData, setActiveWorkoutData] = useState(() => {
@@ -70,6 +156,22 @@ export default function App() {
 
     window.addEventListener('active_workout_updated', updateActiveWorkout);
     window.addEventListener('storage', updateActiveWorkout);
+    return () => {
+      window.removeEventListener('active_workout_updated', updateActiveWorkout);
+      window.removeEventListener('storage', updateActiveWorkout);
+    };
+  }, []);
+
+  useEffect(() => {
+    let interval = null;
+    if (activeWorkoutData?.startTime) {
+      const updateTimer = () => {
+        const secs = Math.floor((Date.now() - activeWorkoutData.startTime) / 1000);
+        setFloatingSeconds(Math.max(0, secs));
+      };
+      updateTimer();
+      interval = setInterval(updateTimer, 1000);
+    }
     return () => {
       if (interval) clearInterval(interval);
     };
