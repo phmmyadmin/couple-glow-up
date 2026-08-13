@@ -41,7 +41,8 @@ export default function FitApp({
   const [editingIndex, setEditingIndex] = useState(null);
 
   const daysList = data?.days || data?.dailyLogs || [];
-  const activeDateData = daysList.find((d) => d.date === selectedDate) || daysList[daysList.length - 1];
+  const todayStr = new Date().toISOString().split('T')[0];
+  const activeDateData = daysList.find((d) => d.date === selectedDate) || null;
 
   const totalCalories =
     activeDateData?.intakes?.reduce(
@@ -94,20 +95,33 @@ export default function FitApp({
           >
             <ChevronLeft size={18} />
           </button>
-          <div
-            className="flex items-center gap-2 cursor-pointer"
-            onClick={() => dateInputRef.current?.showPicker()}
-          >
-            <Calendar size={18} color="var(--color-indigo)" />
-            <span>{selectedDate}</span>
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="sr-only"
-            />
+
+          <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2 cursor-pointer"
+              onClick={() => dateInputRef.current?.showPicker()}
+            >
+              <Calendar size={18} color="var(--color-indigo)" />
+              <span>{selectedDate}</span>
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="sr-only"
+              />
+            </div>
+
+            {selectedDate !== todayStr && (
+              <button
+                onClick={() => setSelectedDate(todayStr)}
+                className="text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+              >
+                Today
+              </button>
+            )}
           </div>
+
           <button
             className="nav-btn"
             onClick={() => handleDateChange(1)}
