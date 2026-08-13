@@ -276,6 +276,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
           productPrices={productPrices}
           onSavePrice={handleSavePrice}
           onDeletePrice={handleDeletePrice}
+          onSaveMarket={handleSaveMarket}
         />
       )}
 

@@ -27,6 +27,7 @@ export default function ShoppingList({
   productPrices = [],
   onSavePrice,
   onDeletePrice,
+  onSaveMarket,
 }) {
   const [nameInput, setNameInput] = useState('');
   const [quantityInput, setQuantityInput] = useState('1');
@@ -41,6 +42,31 @@ export default function ShoppingList({
   const [modalCurrencyInput, setModalCurrencyInput] = useState('PHP');
   const [modalUnitInput, setModalUnitInput] = useState('kg');
   const [editingModalPriceId, setEditingModalPriceId] = useState(null);
+
+  // Quick Store Creation State for Modal
+  const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
+  const [newStoreName, setNewStoreName] = useState('');
+  const [newStoreAddress, setNewStoreAddress] = useState('');
+  const [newStoreEmoji, setNewStoreEmoji] = useState('🏪');
+
+  const handleQuickSaveStore = async (e) => {
+    e.preventDefault();
+    if (!newStoreName.trim() || !onSaveMarket) return;
+
+    const saved = await onSaveMarket({
+      name: newStoreName.trim(),
+      address: newStoreAddress.trim() || null,
+      emoji: newStoreEmoji,
+    });
+
+    if (saved && saved.id) {
+      setModalMarketId(saved.id);
+    }
+
+    setNewStoreName('');
+    setNewStoreAddress('');
+    setIsNewStoreModalOpen(false);
+  };
 
   const handleAdd = (e) => {
     e.preventDefault();
@@ -438,9 +464,18 @@ export default function ShoppingList({
 
             {/* Quick Price Input Form */}
             <form onSubmit={handleSaveModalPrice} className="space-y-3 pt-3 border-t border-slate-100">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                {editingModalPriceId ? 'Edit Price' : 'Add Store Price'}
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  {editingModalPriceId ? 'Edit Price' : 'Add Store Price'}
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setIsNewStoreModalOpen(true)}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> New Store
+                </button>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Select
@@ -453,7 +488,7 @@ export default function ShoppingList({
                   </option>
                   {markets.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.emoji} {m.name}
+                      {m.emoji || '🏪'} {m.name}
                     </option>
                   ))}
                 </Select>
@@ -493,6 +528,78 @@ export default function ShoppingList({
 
                 <Button type="submit" variant="primary" icon={Plus} className="flex-1 justify-center">
                   {editingModalPriceId ? 'Save Edit' : 'Add Price'}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Quick New Store Modal */}
+      {isNewStoreModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setIsNewStoreModalOpen(false)}
+        >
+          <Card
+            className="max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Store className="w-5 h-5 text-indigo-600" />
+                <span>Add New Store</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsNewStoreModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickSaveStore} className="space-y-4">
+              <div className="flex gap-3">
+                <Select
+                  aria-label="Store Icon"
+                  value={newStoreEmoji}
+                  onChange={(e) => setNewStoreEmoji(e.target.value)}
+                  className="w-24 text-base text-center font-emoji font-bold"
+                >
+                  {['🏪', '🛒', '🥦', '🥩', '🥖', '🏬', '📍'].map((emoji) => (
+                    <option key={emoji} value={emoji}>
+                      {emoji}
+                    </option>
+                  ))}
+                </Select>
+
+                <Input
+                  type="text"
+                  placeholder="Store name (e.g., Trader Joe's, Target)"
+                  aria-label="Store name"
+                  value={newStoreName}
+                  onChange={(e) => setNewStoreName(e.target.value)}
+                  required
+                  className="flex-1"
+                />
+              </div>
+
+              <Input
+                type="text"
+                placeholder="Location / note (optional)"
+                aria-label="Location"
+                value={newStoreAddress}
+                onChange={(e) => setNewStoreAddress(e.target.value)}
+                className="w-full"
+              />
+
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <Button variant="ghost" onClick={() => setIsNewStoreModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" icon={Plus}>
+                  Save & Use Store
                 </Button>
               </div>
             </form>
