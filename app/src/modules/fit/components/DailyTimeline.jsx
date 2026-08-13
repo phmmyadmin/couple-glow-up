@@ -3,12 +3,105 @@ import { Clock, Edit2, Trash2, Utensils } from 'lucide-react';
 import { getFoodEmoji } from '../../../utils/emoji';
 import { getCategoryInfo } from '../../../utils/category';
 import Card from '../../../shared/ui/Card';
+import {
+  supabase,
+  deleteIntakesGroupFromSupabase,
+  deleteIntakeFromSupabase,
+  fetchDailyLogsFromSupabase,
+} from '../../../lib/supabase';
 
-export default function DailyTimeline({ intakes, onItemClick, onEditItem, onDeleteGroup }) {
+export default function DailyTimeline({
+  intakes,
+  selectedDate,
+  data,
+  setData,
+  activeProfileId,
+  setToastMessage,
+  onItemClick,
+  onEditItem,
+  onDeleteGroup,
+  onDeleteItem,
+}) {
   const handleItemSelect = (item, idx) => {
     const callback = onEditItem || onItemClick;
     if (typeof callback === 'function') {
       callback(item, idx);
+    }
+  };
+
+  const handleDeleteMealGroup = async (mealItems) => {
+    if (!mealItems || mealItems.length === 0) return;
+    if (!window.confirm('¿Borrar toda esta ingesta?')) return;
+
+    if (typeof onDeleteGroup === 'function') {
+      onDeleteGroup(mealItems);
+      return;
+    }
+
+    if (supabase && activeProfileId) {
+      const res = await deleteIntakesGroupFromSupabase({
+        date: selectedDate,
+        items: mealItems,
+        profileId: activeProfileId,
+      });
+
+      if (res && res.success) {
+        const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
+        if (freshData && typeof setData === 'function') setData(freshData);
+      }
+    } else if (typeof setData === 'function' && data) {
+      const targetDate = selectedDate || new Date().toISOString().slice(0, 10);
+      const updatedLogs = [...(data.dailyLogs || [])];
+      const dayIdx = updatedLogs.findIndex((l) => l.date === targetDate);
+      if (dayIdx >= 0 && updatedLogs[dayIdx].intakes) {
+        const idsToRemove = new Set(mealItems.map((i) => i.id).filter(Boolean));
+        const updatedIntakes = updatedLogs[dayIdx].intakes.filter(
+          (i, idx) => !idsToRemove.has(i.id) && !mealItems.some((m) => m.originalIndex === idx)
+        );
+        updatedLogs[dayIdx].intakes = updatedIntakes;
+        setData({ ...data, dailyLogs: updatedLogs });
+      }
+    }
+
+    if (typeof setToastMessage === 'function') {
+      setToastMessage('Ingesta completa eliminada');
+    }
+  };
+
+  const handleDeleteSingleItem = async (item, itemIndex, e) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm(`¿Eliminar ${item.name || 'este alimento'}?`)) return;
+
+    if (typeof onDeleteItem === 'function') {
+      onDeleteItem(item, itemIndex);
+      return;
+    }
+
+    if (supabase && activeProfileId) {
+      const res = await deleteIntakeFromSupabase({
+        date: selectedDate,
+        index: itemIndex,
+        item,
+        profileId: activeProfileId,
+      });
+
+      if (res && res.success) {
+        const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
+        if (freshData && typeof setData === 'function') setData(freshData);
+      }
+    } else if (typeof setData === 'function' && data) {
+      const targetDate = selectedDate || new Date().toISOString().slice(0, 10);
+      const updatedLogs = [...(data.dailyLogs || [])];
+      const dayIdx = updatedLogs.findIndex((l) => l.date === targetDate);
+      if (dayIdx >= 0 && updatedLogs[dayIdx].intakes) {
+        const updatedIntakes = updatedLogs[dayIdx].intakes.filter((_, i) => i !== itemIndex);
+        updatedLogs[dayIdx].intakes = updatedIntakes;
+        setData({ ...data, dailyLogs: updatedLogs });
+      }
+    }
+
+    if (typeof setToastMessage === 'function') {
+      setToastMessage('Alimento eliminado');
     }
   };
   if (!intakes || intakes.length === 0) {
@@ -117,20 +210,18 @@ export default function DailyTimeline({ intakes, onItemClick, onEditItem, onDele
                 <span className="text-xs text-slate-500 font-medium">
                   ({meal.items.length} {meal.items.length === 1 ? 'food item' : 'food items'})
                 </span>
-                {onDeleteGroup && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm('Delete all items in this meal?')) {
-                        onDeleteGroup(meal.items);
-                      }
-                    }}
-                    aria-label="Delete entire meal"
-                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteMealGroup(meal.items);
+                  }}
+                  aria-label="Borrar ingesta completa"
+                  title="Borrar ingesta completa"
+                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
@@ -171,17 +262,27 @@ export default function DailyTimeline({ intakes, onItemClick, onEditItem, onDele
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleItemSelect(item, item.originalIndex ?? idx);
-                      }}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg shrink-0 transition-colors cursor-pointer"
-                      title="Edit intake"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleItemSelect(item, item.originalIndex ?? idx);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                        title="Editar alimento"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteSingleItem(item, item.originalIndex ?? idx, e)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        title="Eliminar alimento"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
