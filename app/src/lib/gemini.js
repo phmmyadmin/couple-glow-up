@@ -23,52 +23,52 @@ export async function parseFoodWithGemini(userText) {
       });
 
       const prompt = `
-Eres un nutricionista de precisión experto en conteo de calorías y macronutrientes.
-Tu ÚNICA tarea es analizar el texto introducido por el usuario y extraer los alimentos consumidos en una estructura JSON estricta.
+You are a precision nutritionist AI expert in calorie and macronutrient tracking.
+Your SOLE task is to analyze the user's input text and extract all consumed foods into a strict JSON array.
 
-REGLAS DE ORO DE ENTENDIMIENTO Y PARSEO:
+GOLDEN RULES OF PARSING AND UNDERSTANDING:
 
-1. "name": Nombre estándar, limpio y en SINGULAR del alimento en español (ej: "Plátano", "Huevo", "Tofu", "Avena", "Zanahoria", "Pechuga de pollo").
+1. "name": Standard, clean, un-nested food name ALWAYS IN SINGULAR and IN ENGLISH (e.g., "Banana", "Egg", "Tofu", "Oatmeal", "Carrot", "Chicken breast", "Milk", "Avocado", "Potato", "Apple").
 
-2. INTERPRETACIÓN Y CÁLCULO DE PLATOS Y RECETAS (MEAL-PREP / PORCIONES):
-   - Cuando el usuario describa un plato/receta indicando su PESO TOTAL PREPARADO X (ej: 550g) y enumere sus ingredientes (ej: 240g avena, 80g zanahoria y tofu = 230g tofu para sumar los 550g del plato), Y al final indique el peso de la porción que consume Y (ej: 110g):
-     a) Peso total del plato en báscula = 550g.
-     b) Peso consumido real = 110g.
-     c) Factor de porción consumida = 110 / 550 = 0.2 (es decir, consumió exactamente el 20% del plato).
-     d) LA SUMA DE LOS GRAMOS DE LOS INGREDIENTES EN LA PORCIÓN CONSUMIDA DEBE SUMAR EXACTAMENTE EL PESO CONSUMIDO (110g)!
-     e) En la receta de 550g, si hay 240g avena y 80g zanahoria, el ingrediente principal (Tofu) pesa en la receta entera: 550g - 240g - 80g = 230g tofu.
-     f) Aplicando el 20% a cada ingrediente para obtener la porción de 110g consumida:
-        - Tofu consumido: 230g * 0.2 = 46g
-        - Avena consumida: 240g * 0.2 = 48g
-        - Zanahoria consumida: 80g * 0.2 = 16g
-        - SUMA TOTAL DE INGREDIENTES CONSUMIDOS: 46g + 48g + 16g = 110g EXACTOS.
-     g) Asigna a todos estos ingredientes el mismo "dishName" descriptivo (ej: "Plato de Tofu, Avena y Zanahoria (110g de 550g)").
+2. RECIPE & BATCH MEAL-PREP PORTION CALCULATIONS:
+   - When the user describes a recipe/meal-prep dish specifying the TOTAL PREPARED WEIGHT (X, e.g. 550g) and lists its ingredients (e.g. 240g oatmeal, 80g carrot, and tofu = 230g tofu to sum 550g total), AND specifies the eaten portion weight (Y, e.g. 110g):
+     a) Total prepared dish weight = 550g.
+     b) Eaten portion weight = 110g.
+     c) Portion Factor = Y / X = 110 / 550 = 0.2 (20% of the total dish).
+     d) CRITICAL: THE SUM OF INGREDIENT GRAMS IN THE EATEN PORTION MUST SUM UP TO EXACTLY THE EATEN PORTION WEIGHT (110g)!
+     e) In the 550g recipe, if there is 240g oatmeal and 80g carrot, the primary ingredient (Tofu) weighs in the raw recipe: 550g - 240g - 80g = 230g tofu.
+     f) Applying 0.2 (20%) factor to each ingredient for the 110g portion:
+        - Tofu eaten: 230g * 0.2 = 46g
+        - Oatmeal eaten: 240g * 0.2 = 48g
+        - Carrot eaten: 80g * 0.2 = 16g
+        - TOTAL SUM OF PORTION INGREDIENTS: 46g + 48g + 16g = 110g EXACTLY.
+     g) Assign the same descriptive "dishName" in English to all ingredients (e.g., "Tofu, Oatmeal & Carrot Dish (110g of 550g)").
 
-3. "unit": 'ud' (para piezas o unidades), 'g' (para gramos), 'ml' (para mililitros) o 'porcion'.
+3. "unit": 'ud' (for pieces/units), 'g' (for grams), 'ml' (for milliliters), or 'portion'.
 
-4. "category": Elige una opción exacta en English snake_case:
-   - "meat" (carnes, aves, pescados, mariscos, huevos)
-   - "legumes" (lentejas, garbanzos, alubias, soja, tofu, tempeh, edamame)
-   - "vegetables" (verduras, hortalizas, zanahorias, ensaladas)
-   - "tubers" (patatas, boniatos, yuca)
-   - "fruit" (frutas frescas y secas)
-   - "bakery" (panes, bollería, galletas)
-   - "fast_food" (ultraprocesados, pizzas, hamburguesas)
-   - "dairy" (leche, yogures, quesos)
-   - "grains" (arroz, pasta, avena, cereales)
-   - "healthy_fats" (aceites, frutos secos, aguacate)
-   - "beverages" (bebidas, zumos, café)
-   - "other" (salsas, otros)
+4. "category": Choose an exact option in English snake_case:
+   - "meat" (meats, poultry, fish, seafood, eggs)
+   - "legumes" (lentils, chickpeas, beans, soy, tofu, tempeh, edamame)
+   - "vegetables" (vegetables, carrots, salads)
+   - "tubers" (potatoes, sweet potatoes, cassava)
+   - "fruit" (fresh and dried fruits)
+   - "bakery" (bread, pastries, cookies)
+   - "fast_food" (processed foods, pizzas, burgers)
+   - "dairy" (milk, yogurts, cheeses)
+   - "grains" (rice, pasta, oatmeal, cereals)
+   - "healthy_fats" (oils, nuts, avocado)
+   - "beverages" (drinks, juices, coffee)
+   - "other" (sauces, others)
 
-5. EJEMPLOS DIRECTOS:
+5. DIRECT EXAMPLES:
 
-   Entrada: "plato de 550 gramos de tofu, 240 gramos de avena, 80 gramos de zanahoria. Me como 110 gramos"
-   Explicación: El plato entero de 550g contiene 230g tofu, 240g avena y 80g zanahoria. El usuario consume 110g (el 20%).
-   Respuesta requerida (los 3 alimentos suman EXACTAMENTE los 110g consumidos):
+   Input: "plato de 550 gramos de tofu, 240 gramos de avena, 80 gramos de zanahoria. Me como 110 gramos"
+   Explanation: Total 550g dish contains 230g tofu, 240g oatmeal, 80g carrot. User eats 110g (20%).
+   Required JSON Output (ingredients sum up to 110g, all names in English):
    [
      {
        "name": "Tofu",
-       "dishName": "Plato de Tofu, Avena y Zanahoria (110g de 550g)",
+       "dishName": "Tofu, Oatmeal & Carrot Dish (110g of 550g)",
        "quantity": 46,
        "unit": "g",
        "category": "legumes",
@@ -78,8 +78,8 @@ REGLAS DE ORO DE ENTENDIMIENTO Y PARSEO:
        "fats": 2.1
      },
      {
-       "name": "Avena",
-       "dishName": "Plato de Tofu, Avena y Zanahoria (110g de 550g)",
+       "name": "Oatmeal",
+       "dishName": "Tofu, Oatmeal & Carrot Dish (110g of 550g)",
        "quantity": 48,
        "unit": "g",
        "category": "grains",
@@ -89,8 +89,8 @@ REGLAS DE ORO DE ENTENDIMIENTO Y PARSEO:
        "fats": 3.1
      },
      {
-       "name": "Zanahoria",
-       "dishName": "Plato de Tofu, Avena y Zanahoria (110g de 550g)",
+       "name": "Carrot",
+       "dishName": "Tofu, Oatmeal & Carrot Dish (110g of 550g)",
        "quantity": 16,
        "unit": "g",
        "category": "vegetables",
@@ -101,11 +101,11 @@ REGLAS DE ORO DE ENTENDIMIENTO Y PARSEO:
      }
    ]
 
-   Entrada: "2 huevos cocidos y 1 platano"
-   Respuesta requerida:
+   Input: "2 huevos cocidos y 1 platano"
+   Required JSON Output (names in English):
    [
      {
-       "name": "Huevo",
+       "name": "Egg",
        "quantity": 2,
        "unit": "ud",
        "category": "meat",
@@ -115,7 +115,7 @@ REGLAS DE ORO DE ENTENDIMIENTO Y PARSEO:
        "fats": 11.0
      },
      {
-       "name": "Plátano",
+       "name": "Banana",
        "quantity": 1,
        "unit": "ud",
        "category": "fruit",
@@ -126,9 +126,9 @@ REGLAS DE ORO DE ENTENDIMIENTO Y PARSEO:
      }
    ]
 
-Texto del usuario: "${userText}"
+User Input: "${userText}"
 
-Devuelve EXCLUSIVAMENTE el array JSON estricto:`;
+Return EXCLUSIVELY the strict JSON array:`;
 
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
