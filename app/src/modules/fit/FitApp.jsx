@@ -179,7 +179,9 @@ export default function FitApp({
             intakes={activeDateData?.intakes || []}
             data={data}
             setData={setData}
+            activeProfile={activeProfile}
             activeProfileId={activeProfile?.id}
+            profiles={profiles}
             setToastMessage={setToastMessage}
             onEditItem={(item, index) => {
               setEditingItem(item);

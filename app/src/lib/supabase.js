@@ -124,6 +124,39 @@ export async function fetchDailyLogsFromSupabase(profileId) {
   }
 }
 
+export async function fetchPartnerIntakesForDate(partnerProfileId, dateStr) {
+  if (!supabase || !partnerProfileId || !dateStr) return [];
+  try {
+    const { data: log, error } = await supabase
+      .from('daily_logs')
+      .select('*, intakes(*)')
+      .eq('profile_id', partnerProfileId)
+      .eq('date', dateStr)
+      .maybeSingle();
+
+    if (error || !log || !log.intakes) return [];
+
+    return (log.intakes || []).map((i) => ({
+      id: i.id,
+      time: i.time || '12:00',
+      name: i.name,
+      dishName: i.dish_name,
+      quantity: i.quantity,
+      unit: i.unit,
+      category: i.category || 'other',
+      macros: {
+        calories: i.calories,
+        protein: i.protein,
+        carbs: i.carbs,
+        fats: i.fats,
+      },
+    }));
+  } catch (err) {
+    console.error('Error fetching partner intakes for date:', err);
+    return [];
+  }
+}
+
 export async function saveIntakesToSupabase({ date, items, profileId }) {
   if (!supabase || !profileId) return null;
 
