@@ -1,8 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Loader2, Mic, MicOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { parseFoodWithGemini } from '../../../lib/gemini';
+import { parseFoodTextLocal } from '../../../lib/parser';
+import { saveIntakesToSupabase, fetchDailyLogsFromSupabase } from '../../../lib/supabase';
 
-export default function ChatInputBar({ onSendFood, isLoading }) {
+export default function ChatInputBar({
+  selectedDate,
+  data,
+  setData,
+  activeProfileId,
+  isLoading,
+  setIsLoading,
+  setToastMessage,
+  onSendFood,
+}) {
   const { t, i18n } = useTranslation();
   const [text, setText] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -32,9 +44,11 @@ export default function ChatInputBar({ onSendFood, isLoading }) {
   const toggleListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert(i18n.language.startsWith('es') 
-        ? 'Tu navegador no soporta el reconocimiento de voz. Prueba Google Chrome.' 
-        : 'Your browser does not support speech recognition. Try Google Chrome.');
+      alert(
+        i18n.language.startsWith('es')
+          ? 'Tu navegador no soporta el reconocimiento de voz. Prueba Google Chrome.'
+          : 'Your browser does not support speech recognition. Try Google Chrome.'
+      );
       return;
     }
 
@@ -52,13 +66,103 @@ export default function ChatInputBar({ onSendFood, isLoading }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!text.trim() || isLoading) return;
-    if (typeof onSendFood === 'function') {
-      onSendFood(text.trim());
+    const foodText = text.trim();
+    if (!foodText || isLoading) return;
+
+    if (typeof setIsLoading === 'function') setIsLoading(true);
+
+    try {
+      if (typeof onSendFood === 'function') {
+        await onSendFood(foodText);
+        setText('');
+        return;
+      }
+
+      // Send direct to AI (Gemini) with local parser fallback
+      let parsedItems = await parseFoodWithGemini(foodText);
+      if (!parsedItems || parsedItems.length === 0) {
+        parsedItems = parseFoodTextLocal(foodText);
+      }
+
+      if (!parsedItems || parsedItems.length === 0) {
+        if (typeof setToastMessage === 'function') {
+          setToastMessage(t('toast.couldNotParse', 'Could not parse food item'));
+        }
+        return;
+      }
+
+      const timestamp = new Date().toTimeString().slice(0, 5);
+      const formattedItems = parsedItems.map((item, idx) => ({
+        id: 'intake-' + Date.now() + '-' + idx,
+        timestamp,
+        raw_text: item.name,
+        parsed_name: item.name,
+        dish_name: item.dishName || null,
+        portion_qty: item.quantity || 1,
+        unit: item.unit || 'ud',
+        category: item.category || 'other',
+        macros: {
+          calories: item.calories || 0,
+          protein: item.protein || 0,
+          carbs: item.carbs || 0,
+          fats: item.fats || 0,
+        },
+      }));
+
+      const targetDate = selectedDate || new Date().toISOString().slice(0, 10);
+
+      if (activeProfileId) {
+        const result = await saveIntakesToSupabase({
+          date: targetDate,
+          items: formattedItems,
+          profileId: activeProfileId,
+        });
+
+        if (result && result.success) {
+          const freshData = await fetchDailyLogsFromSupabase(activeProfileId);
+          if (freshData && typeof setData === 'function') {
+            setData(freshData);
+          }
+        }
+      } else if (typeof setData === 'function' && data) {
+        const updatedLogs = [...(data.dailyLogs || [])];
+        const dayIdx = updatedLogs.findIndex((l) => l.date === targetDate);
+
+        if (dayIdx >= 0) {
+          const existingIntakes = updatedLogs[dayIdx].intakes || [];
+          updatedLogs[dayIdx] = {
+            ...updatedLogs[dayIdx],
+            intakes: [...existingIntakes, ...formattedItems],
+          };
+        } else {
+          updatedLogs.push({
+            date: targetDate,
+            intakes: formattedItems,
+            dailyTotals: { calories: 0, protein: 0, carbs: 0, fats: 0 },
+          });
+        }
+
+        setData({
+          ...data,
+          dailyLogs: updatedLogs,
+        });
+      }
+
+      const foodNames = formattedItems.map((i) => i.parsed_name).join(', ');
+      if (typeof setToastMessage === 'function') {
+        setToastMessage(t('toast.foodLogged', `🥗 Logged: ${foodNames}`));
+      }
+      setText('');
+    } catch (err) {
+      console.error('Error logging food:', err);
+      if (typeof setToastMessage === 'function') {
+        setToastMessage(t('toast.errorLoggingFood', 'Error logging food item'));
+      }
+    } finally {
+      if (typeof setIsLoading === 'function') setIsLoading(false);
     }
-    setText('');
   };
 
   return (
