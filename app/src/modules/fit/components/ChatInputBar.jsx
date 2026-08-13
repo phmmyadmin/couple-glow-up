@@ -97,12 +97,18 @@ export default function ChatInputBar({
       const formattedItems = parsedItems.map((item, idx) => ({
         id: 'intake-' + Date.now() + '-' + idx,
         timestamp,
+        name: item.name,
         raw_text: item.name,
         parsed_name: item.name,
         dish_name: item.dishName || null,
         portion_qty: item.quantity || 1,
+        quantity: item.quantity || 1,
         unit: item.unit || 'ud',
         category: item.category || 'other',
+        calories: item.calories || 0,
+        protein: item.protein || 0,
+        carbs: item.carbs || 0,
+        fats: item.fats || 0,
         macros: {
           calories: item.calories || 0,
           protein: item.protein || 0,

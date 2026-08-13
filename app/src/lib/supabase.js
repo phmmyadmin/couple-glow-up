@@ -152,22 +152,24 @@ export async function saveIntakesToSupabase({ date, items, profileId }) {
       const isGramCategory = ['meat','grains','tubers','legumes','vegetables','healthy_fats'].includes(i.category);
       const resolvedUnit = (i.unit && i.unit !== 'porcion') 
         ? i.unit 
-        : ((i.quantity && i.quantity > 5) || isGramCategory ? 'g' : 'ud');
+        : (((i.quantity || i.portion_qty) > 5) || isGramCategory ? 'g' : 'ud');
+      
+      const itemName = i.name || i.parsed_name || i.raw_text || 'Food Item';
 
       return {
         daily_log_id: dayLog.id,
         profile_id: profileId,
         date: date,
         time: timeStr,
-        name: i.name,
-        dish_name: i.dishName || null,
-        quantity: i.quantity || (resolvedUnit === 'g' ? 100 : 1),
+        name: itemName,
+        dish_name: i.dish_name || i.dishName || null,
+        quantity: i.portion_qty || i.quantity || (resolvedUnit === 'g' ? 100 : 1),
         unit: resolvedUnit,
         category: i.category || 'other',
-        calories: i.calories || i.macros?.calories || 0,
-        protein: i.protein || i.macros?.protein || 0,
-        carbs: i.carbs || i.macros?.carbs || 0,
-        fats: i.fats || i.macros?.fats || 0
+        calories: i.calories ?? i.macros?.calories ?? 0,
+        protein: i.protein ?? i.macros?.protein ?? 0,
+        carbs: i.carbs ?? i.macros?.carbs ?? 0,
+        fats: i.fats ?? i.macros?.fats ?? 0
       };
     });
 
