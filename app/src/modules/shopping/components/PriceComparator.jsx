@@ -4,7 +4,7 @@ import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
 
-export default function PriceComparator({ items = [], markets, productPrices, onSavePrice, onDeletePrice, onSaveMarket }) {
+export default function PriceComparator({ items = [], markets, productPrices, onSavePrice, onDeletePrice, onSaveMarket, onRenameProduct }) {
   const [productNameInput, setProductNameInput] = useState('');
   const [selectedMarketId, setSelectedMarketId] = useState(markets[0]?.id || '');
   const [priceInput, setPriceInput] = useState('');
@@ -14,6 +14,11 @@ export default function PriceComparator({ items = [], markets, productPrices, on
   // Editing state
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Edit Product Name state
+  const [editingProductName, setEditingProductName] = useState(null);
+  const [renameNewName, setRenameNewName] = useState('');
+  const [renameNewUnit, setRenameNewUnit] = useState('kg');
 
   React.useEffect(() => {
     if (markets.length > 0) {
@@ -314,6 +319,20 @@ export default function PriceComparator({ items = [], markets, productPrices, on
                     <span className="flex items-center gap-2">
                       <span className="text-lg">🏷️</span>
                       <span>{productName}</span>
+                      {typeof onRenameProduct === 'function' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingProductName(productName);
+                            setRenameNewName(productName);
+                            setRenameNewUnit(priceList[0]?.unit || 'kg');
+                          }}
+                          className="p-1 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer"
+                          title="Edit product name & unit"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </span>
                     <span className="text-xs text-slate-500 font-mono font-semibold">
                       {priceList.length} {priceList.length === 1 ? 'store' : 'stores'}
@@ -464,6 +483,76 @@ export default function PriceComparator({ items = [], markets, productPrices, on
                 </Button>
                 <Button type="submit" variant="primary" icon={Plus}>
                   Save & Use Store
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Product Modal */}
+      {editingProductName && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setEditingProductName(null)}
+        >
+          <Card
+            className="max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-indigo-600" />
+                <span>Edit Product</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingProductName(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!renameNewName.trim() || !onRenameProduct) return;
+                onRenameProduct(editingProductName, renameNewName.trim(), renameNewUnit);
+                setEditingProductName(null);
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">Product Name</label>
+                <Input
+                  type="text"
+                  value={renameNewName}
+                  onChange={(e) => setRenameNewName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">Default Unit</label>
+                <Select
+                  value={renameNewUnit}
+                  onChange={(e) => setRenameNewUnit(e.target.value)}
+                >
+                  <option value="kg">kg</option>
+                  <option value="ud">ud / pc</option>
+                  <option value="L">L</option>
+                  <option value="pack">pack</option>
+                  <option value="g">g</option>
+                </Select>
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100">
+                <Button type="button" variant="secondary" onClick={() => setEditingProductName(null)} className="flex-1 justify-center">
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" icon={Check} className="flex-1 justify-center">
+                  Save Changes
                 </Button>
               </div>
             </form>

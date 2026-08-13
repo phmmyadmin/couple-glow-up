@@ -190,6 +190,52 @@ export async function deleteShoppingItemFromSupabase(itemId) {
   }
 }
 
+export async function updateShoppingItemInSupabase(itemId, itemPayload) {
+  if (!supabase || !itemId) return null;
+  try {
+    if (!isUuid(itemId)) return null;
+
+    const { data, error } = await supabase
+      .from('shopping_items')
+      .update(itemPayload)
+      .eq('id', itemId)
+      .select('*, products(*)')
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error updating shopping item:', err);
+    return null;
+  }
+}
+
+export async function updateProductNameAndPricesInSupabase(oldName, newName, newUnit) {
+  if (!supabase || !oldName || !newName) return false;
+  try {
+    const pricePayload = { product_name: newName };
+    if (newUnit) pricePayload.unit = newUnit;
+
+    await supabase
+      .from('product_prices')
+      .update(pricePayload)
+      .ilike('product_name', oldName);
+
+    const itemPayload = { name: newName };
+    if (newUnit) itemPayload.unit = newUnit;
+
+    await supabase
+      .from('shopping_items')
+      .update(itemPayload)
+      .ilike('name', oldName);
+
+    return true;
+  } catch (err) {
+    console.error('Error renaming product across prices and items:', err);
+    return false;
+  }
+}
+
 
 // ── PRODUCTS & PRICES ──
 export async function fetchProducts() {

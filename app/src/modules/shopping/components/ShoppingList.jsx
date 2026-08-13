@@ -21,6 +21,7 @@ export default function ShoppingList({
   onAddItem,
   onToggleItem,
   onDeleteItem,
+  onUpdateItem,
   activeProfile,
   profiles,
   markets = [],
@@ -160,6 +161,37 @@ export default function ShoppingList({
   const [modalCurrencyInput, setModalCurrencyInput] = useState('PHP');
   const [modalUnitInput, setModalUnitInput] = useState('kg');
   const [editingModalPriceId, setEditingModalPriceId] = useState(null);
+
+  // Edit Item Modal State
+  const [editingItem, setEditingItem] = useState(null);
+  const [editNameInput, setEditNameInput] = useState('');
+  const [editQuantityInput, setEditQuantityInput] = useState('1');
+  const [editUnitInput, setEditUnitInput] = useState('ud');
+  const [editCategoryInput, setEditCategoryInput] = useState('other');
+
+  const handleOpenEditItemModal = (item) => {
+    setEditingItem(item);
+    setEditNameInput(item.name || '');
+    setEditQuantityInput((item.quantity || 1).toString());
+    setEditUnitInput(item.unit || 'ud');
+    setEditCategoryInput(item.category || 'other');
+  };
+
+  const handleSaveEditItem = (e) => {
+    e.preventDefault();
+    if (!editingItem || !editNameInput.trim()) return;
+
+    if (typeof onUpdateItem === 'function') {
+      onUpdateItem(editingItem.id, {
+        name: editNameInput.trim(),
+        quantity: parseFloat(editQuantityInput) || 1,
+        unit: editUnitInput,
+        category: editCategoryInput,
+      });
+    }
+
+    setEditingItem(null);
+  };
 
   // Quick Store Creation State for Modal
   const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
@@ -453,12 +485,20 @@ export default function ShoppingList({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         {addedByProfile && <Avatar profile={addedByProfile} size="sm" />}
+                        <button
+                          onClick={() => handleOpenEditItemModal(item)}
+                          aria-label={`Edit ${item.name}`}
+                          className="p-2 text-slate-400 hover:text-indigo-600 transition-all rounded-xl hover:bg-indigo-50 cursor-pointer"
+                          title="Edit item (name, unit, category...)"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => onDeleteItem(item.id)}
                           aria-label={`Delete ${item.name}`}
-                          className="p-2 text-slate-400 hover:text-rose-600 transition-all rounded-xl hover:bg-rose-50"
+                          className="p-2 text-slate-400 hover:text-rose-600 transition-all rounded-xl hover:bg-rose-50 cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -773,6 +813,95 @@ export default function ShoppingList({
                 </Button>
                 <Button type="submit" variant="primary" icon={Plus}>
                   Save & Use Store
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Item Modal */}
+      {editingItem && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setEditingItem(null)}
+        >
+          <Card
+            className="max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-indigo-600" />
+                <span>Edit Item</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditItem} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">Product Name</label>
+                <Input
+                  type="text"
+                  value={editNameInput}
+                  onChange={(e) => setEditNameInput(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">Quantity</label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editQuantityInput}
+                    onChange={(e) => setEditQuantityInput(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">Unit</label>
+                  <Select
+                    value={editUnitInput}
+                    onChange={(e) => setEditUnitInput(e.target.value)}
+                  >
+                    <option value="kg">kg</option>
+                    <option value="ud">ud / pc</option>
+                    <option value="L">L</option>
+                    <option value="pack">pack</option>
+                    <option value="g">g</option>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">Category</label>
+                <Select
+                  value={editCategoryInput}
+                  onChange={(e) => setEditCategoryInput(e.target.value)}
+                >
+                  {CATEGORIES.filter((c) => c.id !== 'all').map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.emoji} {c.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100">
+                <Button type="button" variant="secondary" onClick={() => setEditingItem(null)} className="flex-1 justify-center">
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" icon={Check} className="flex-1 justify-center">
+                  Save Changes
                 </Button>
               </div>
             </form>

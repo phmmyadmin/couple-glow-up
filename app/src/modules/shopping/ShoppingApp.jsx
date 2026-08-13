@@ -13,6 +13,8 @@ import {
   addShoppingItemToSupabase,
   toggleShoppingItemInSupabase,
   deleteShoppingItemFromSupabase,
+  updateShoppingItemInSupabase,
+  updateProductNameAndPricesInSupabase,
   fetchMarkets,
   saveMarket,
   deleteMarketFromSupabase,
@@ -212,6 +214,66 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     }
   };
 
+  const handleUpdateItem = async (itemId, itemPayload) => {
+    const targetItem = items.find((i) => i.id === itemId);
+    const oldName = targetItem?.name;
+
+    setItems((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, ...itemPayload } : i))
+    );
+
+    await updateShoppingItemInSupabase(itemId, itemPayload);
+
+    if (itemPayload.name && oldName && itemPayload.name !== oldName) {
+      await updateProductNameAndPricesInSupabase(oldName, itemPayload.name, itemPayload.unit);
+      const dbPrices = await fetchProductPrices();
+      if (Array.isArray(dbPrices)) {
+        setProductPrices(dbPrices);
+      }
+    }
+
+    if (setToastMessage) {
+      setToastMessage('Item updated');
+    }
+  };
+
+  const handleRenameProduct = async (oldName, newName, newUnit) => {
+    if (!oldName || !newName) return;
+
+    setProductPrices((prev) =>
+      prev.map((p) => {
+        const pName = p.product_name || p.products?.name;
+        if (pName && pName.toLowerCase().trim() === oldName.toLowerCase().trim()) {
+          return {
+            ...p,
+            product_name: newName,
+            unit: newUnit || p.unit,
+          };
+        }
+        return p;
+      })
+    );
+
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.name && i.name.toLowerCase().trim() === oldName.toLowerCase().trim()) {
+          return {
+            ...i,
+            name: newName,
+            unit: newUnit || i.unit,
+          };
+        }
+        return i;
+      })
+    );
+
+    await updateProductNameAndPricesInSupabase(oldName, newName, newUnit);
+
+    if (setToastMessage) {
+      setToastMessage('Product updated');
+    }
+  };
+
   const handleSaveMarket = async (marketObj) => {
     const saved = await saveMarket(marketObj);
     const finalMarket = saved || { ...marketObj, id: Date.now().toString() };
@@ -270,6 +332,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
           onAddItem={handleAddItem}
           onToggleItem={handleToggleItem}
           onDeleteItem={handleDeleteItem}
+          onUpdateItem={handleUpdateItem}
           activeProfile={activeProfile}
           profiles={profiles}
           markets={markets}
@@ -297,6 +360,7 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
           onSavePrice={handleSavePrice}
           onDeletePrice={handleDeletePrice}
           onSaveMarket={handleSaveMarket}
+          onRenameProduct={handleRenameProduct}
         />
       )}
     </div>
