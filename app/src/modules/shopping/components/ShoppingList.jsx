@@ -72,14 +72,16 @@ export default function ShoppingList({
     e.preventDefault();
     if (!nameInput.trim()) return;
 
-    onAddItem({
-      name: nameInput.trim(),
-      quantity: parseFloat(quantityInput) || 1,
-      unit: unitInput,
-      category: selectedCategory,
-      is_checked: false,
-      added_by: activeProfile?.id || null,
-    });
+    if (typeof onAddItem === 'function') {
+      onAddItem({
+        name: nameInput.trim(),
+        quantity: parseFloat(quantityInput) || 1,
+        unit: unitInput,
+        category: selectedCategory,
+        is_checked: false,
+        added_by: activeProfile?.id || null,
+      });
+    }
 
     setNameInput('');
     setQuantityInput('1');
@@ -114,17 +116,19 @@ export default function ShoppingList({
     e.preventDefault();
     if (!inspectingItem || !modalMarketId || !modalPriceInput) return;
 
-    onSavePrice({
-      id: editingModalPriceId || null,
-      product_name: inspectingItem.name,
-      market_id: modalMarketId,
-      price: parseFloat(modalPriceInput),
-      currency: modalCurrencyInput,
-      unit: modalUnitInput,
-    });
+    if (typeof onSavePrice === 'function') {
+      onSavePrice({
+        id: editingModalPriceId || null,
+        product_name: inspectingItem.name,
+        market_id: modalMarketId,
+        price: parseFloat(modalPriceInput),
+        currency: modalCurrencyInput,
+        unit: modalUnitInput,
+      });
+    }
 
-    setEditingModalPriceId(null);
     setModalPriceInput('');
+    setEditingModalPriceId(null);
   };
 
   const handleStartEditModalPrice = (p) => {

@@ -55,7 +55,9 @@ export default function ChatInputBar({ onSendFood, isLoading }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!text.trim() || isLoading) return;
-    onSendFood(text.trim());
+    if (typeof onSendFood === 'function') {
+      onSendFood(text.trim());
+    }
     setText('');
   };
 
