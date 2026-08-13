@@ -88,18 +88,18 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
       if (list) {
         setActiveList(list);
         const dbItems = await fetchShoppingItems(list.id);
-        if (dbItems && dbItems.length > 0) {
+        if (Array.isArray(dbItems)) {
           setItems(dbItems);
         }
       }
 
       const dbMarkets = await fetchMarkets();
-      if (dbMarkets && dbMarkets.length > 0) {
+      if (Array.isArray(dbMarkets)) {
         setMarkets(dbMarkets);
       }
 
       const dbPrices = await fetchProductPrices();
-      if (dbPrices && dbPrices.length > 0) {
+      if (Array.isArray(dbPrices)) {
         setProductPrices(dbPrices);
       }
     }

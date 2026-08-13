@@ -44,16 +44,39 @@ export async function saveMarket(market) {
 }
 
 export async function deleteMarketFromSupabase(id) {
-  if (!supabase) return false;
+  if (!supabase || !id) return false;
   try {
+    // If local mock ID, no DB deletion needed
+    if (typeof id === 'string' && id.startsWith('mk')) {
+      return true;
+    }
+
     // 1. Delete associated product prices for this market
-    await supabase.from('product_prices').delete().eq('market_id', id);
+    const { error: pricesErr } = await supabase
+      .from('product_prices')
+      .delete()
+      .eq('market_id', id);
+
+    if (pricesErr) {
+      console.warn('Warning deleting product_prices for market:', pricesErr);
+    }
+
     // 2. Delete market record
-    const { error } = await supabase.from('markets').delete().eq('id', id);
-    if (error) throw error;
+    const { data, error } = await supabase
+      .from('markets')
+      .delete()
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.error('Supabase error deleting market:', error);
+      throw error;
+    }
+
+    console.log('Market deleted from Supabase:', data);
     return true;
   } catch (err) {
-    console.error('Error deleting market:', err);
+    console.error('Error deleting market from Supabase:', err);
     return false;
   }
 }
