@@ -164,8 +164,9 @@ export default function PriceComparator({ items = [], markets, productPrices, on
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+            <div className="space-y-1.5 relative">
+              <label className="block text-xs font-semibold text-slate-700">Product Name</label>
               <Input
                 type="text"
                 placeholder="Product name (e.g., Chicken breast)"
@@ -205,7 +206,7 @@ export default function PriceComparator({ items = [], markets, productPrices, on
               )}
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-semibold text-slate-700">Store / Market</label>
                 <button
@@ -235,44 +236,55 @@ export default function PriceComparator({ items = [], markets, productPrices, on
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Input
-              type="number"
-              step="any"
-              placeholder="Price (e.g., 4.50)"
-              aria-label="Price"
-              value={priceInput}
-              onChange={(e) => setPriceInput(e.target.value)}
-              className="flex-1 font-mono font-bold"
-              required
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+            <div className="sm:col-span-2 space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700">Price Amount</label>
+              <Input
+                type="number"
+                step="any"
+                placeholder="Price (e.g., 4.50)"
+                aria-label="Price"
+                value={priceInput}
+                onChange={(e) => setPriceInput(e.target.value)}
+                className="w-full font-mono font-bold"
+                required
+              />
+            </div>
 
-            <div className="flex gap-2">
-              <Select
-                aria-label="Currency"
-                value={currencyInput}
-                onChange={(e) => setCurrencyInput(e.target.value)}
-                className="w-28 font-bold"
-              >
-                <option value="PHP">₱ PHP</option>
-                <option value="EUR">€ EUR</option>
-                <option value="USD">$ USD</option>
-              </Select>
+            <div className="grid grid-cols-2 gap-2 sm:col-span-1">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">Currency</label>
+                <Select
+                  aria-label="Currency"
+                  value={currencyInput}
+                  onChange={(e) => setCurrencyInput(e.target.value)}
+                  className="w-full font-bold"
+                >
+                  <option value="PHP">₱ PHP</option>
+                  <option value="EUR">€ EUR</option>
+                  <option value="USD">$ USD</option>
+                </Select>
+              </div>
 
-              <Select
-                aria-label="Unit of measure"
-                value={unitInput}
-                onChange={(e) => setUnitInput(e.target.value)}
-                className="w-24 font-bold"
-              >
-                <option value="kg">/ kg</option>
-                <option value="ud">/ pc</option>
-                <option value="L">/ L</option>
-                <option value="pack">/ pack</option>
-              </Select>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">Unit</label>
+                <Select
+                  aria-label="Unit of measure"
+                  value={unitInput}
+                  onChange={(e) => setUnitInput(e.target.value)}
+                  className="w-full font-bold"
+                >
+                  <option value="kg">/ kg</option>
+                  <option value="ud">/ pc</option>
+                  <option value="L">/ L</option>
+                  <option value="pack">/ pack</option>
+                </Select>
+              </div>
+            </div>
 
-              <Button type="submit" icon={editingPriceId ? Check : Plus} variant="primary" className="shrink-0">
-                {editingPriceId ? 'Update Price' : 'Save'}
+            <div className="sm:col-span-1">
+              <Button type="submit" icon={editingPriceId ? Check : Plus} variant="primary" className="w-full justify-center">
+                {editingPriceId ? 'Update Price' : 'Save Price'}
               </Button>
             </div>
           </div>
