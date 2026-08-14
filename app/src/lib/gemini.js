@@ -43,9 +43,20 @@ GOLDEN RULES OF PARSING AND UNDERSTANDING:
      f) ALWAYS PRESERVE INGREDIENT PROPORTIONS: Since 550g Tofu > 240g Oatmeal in the recipe, the eaten Tofu (69.5g) MUST be greater than eaten Oatmeal (30.3g)!
      g) Assign the same descriptive "dishName" in English to all ingredients (e.g., "Tofu, Oatmeal & Carrot Dish (110g of 870g)").
 
-3. "unit": 'ud' (for pieces/units), 'g' (for grams), 'ml' (for milliliters), or 'portion'.
+3. COOKED VS RAW STATE NUTRITION VALUES:
+   - When the user specifies cooked/boiled/steamed/baked state for items that absorb water during cooking (e.g. "arroz hervido", "arroz cocido", "boiled rice", "cooked pasta", "boiled potatoes", "cooked legumes"):
+     a) 100g of COOKED/BOILED White Rice ("Boiled Rice" / "Arroz hervido"):
+        - Calories: ~130 kcal per 100g (NEVER use raw 360-370 kcal!).
+        - Protein: ~2.7g per 100g.
+        - Carbs: ~28.2g per 100g.
+        - Fat: ~0.3g per 100g.
+     b) 100g of RAW/DRY White Rice ("Raw Rice"): ~360 kcal, 7g P, 80g C, 0.6g F.
+     c) 100g of COOKED/BOILED Pasta ("Boiled Pasta"): ~131 kcal, 5g P, 25g C, 1.1g F.
+     d) CRITICAL: If "hervido", "cocido", "cooked", or "boiled" is mentioned, ALWAYS calculate macros for the COOKED weight (approx 130 kcal per 100g for boiled rice)!
 
-4. "category": Choose an exact option in English snake_case:
+4. "unit": 'ud' (for pieces/units), 'g' (for grams), 'ml' (for milliliters), or 'portion'.
+
+5. "category": Choose an exact option in English snake_case:
    - "meat" (meats, poultry, fish, seafood, eggs)
    - "legumes" (lentils, chickpeas, beans, soy, tofu, tempeh, edamame)
    - "vegetables" (vegetables, carrots, salads)
@@ -121,6 +132,19 @@ GOLDEN RULES OF PARSING AND UNDERSTANDING:
        "calories": 89,
        "protein": 1.1,
        "carbs": 22.8,
+       "fats": 0.3
+     }
+   Input: "100g de arroz hervido"
+   Required JSON Output (cooked weight macros: 130 kcal per 100g):
+   [
+     {
+       "name": "Boiled Rice",
+       "quantity": 100,
+       "unit": "g",
+       "category": "grains",
+       "calories": 130,
+       "protein": 2.7,
+       "carbs": 28.2,
        "fats": 0.3
      }
    ]

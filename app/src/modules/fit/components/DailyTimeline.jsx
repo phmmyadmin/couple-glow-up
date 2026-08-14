@@ -288,32 +288,45 @@ export default function DailyTimeline({
     }
   });
 
-  // Helper to calculate 1-hour range label from time string (e.g. "18:38" -> "18:00 - 19:00")
+  // Helper to calculate 1-hour range label from time string or ISO date string (e.g. "18:38" -> "18:00 - 19:00")
   const getHourRangeKey = (timeStr) => {
-    if (!timeStr || typeof timeStr !== 'string') return '12:00 - 13:00';
-    const parts = timeStr.split(':');
-    let hour = parseInt(parts[0], 10);
-    if (isNaN(hour) || hour < 0 || hour > 23) hour = 12;
-
+    if (!timeStr) return '12:00 - 13:00';
+    let hour = 12;
+    if (typeof timeStr === 'string') {
+      if (timeStr.includes('T')) {
+        const d = new Date(timeStr);
+        if (!isNaN(d.getTime())) hour = d.getHours();
+      } else {
+        const parts = timeStr.split(':');
+        const parsed = parseInt(parts[0], 10);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 23) hour = parsed;
+      }
+    }
     const startHourStr = hour.toString().padStart(2, '0');
     const nextHourStr = ((hour + 1) % 24).toString().padStart(2, '0');
     return `${startHourStr}:00 - ${nextHourStr}:00`;
   };
 
   const getTimeInMinutes = (timeStr) => {
-    if (!timeStr || typeof timeStr !== 'string') return 720;
-    const [h, m] = timeStr.split(':').map((n) => parseInt(n, 10) || 0);
+    if (!timeStr) return 720;
+    if (typeof timeStr === 'string' && timeStr.includes('T')) {
+      const d = new Date(timeStr);
+      if (!isNaN(d.getTime())) return d.getHours() * 60 + d.getMinutes();
+    }
+    const parts = String(timeStr).split(':');
+    const h = parseInt(parts[0], 10) || 0;
+    const m = parseInt(parts[1], 10) || 0;
     return h * 60 + m;
   };
 
-  // Group by 1-hour time range and dishName
+  // Group strictly by 1-hour time range (hourRange)
   const groupedMealsMap = new Map();
 
   expandedIntakes.forEach((item) => {
-    const timeStr = item.time || '12:00';
+    const timeStr = item.time || item.timestamp || item.created_at || '12:00';
     const hourRange = getHourRangeKey(timeStr);
     const timeMins = getTimeInMinutes(timeStr);
-    const groupKey = item.dishName ? `${hourRange}__${item.dishName}` : hourRange;
+    const groupKey = hourRange;
 
     if (!groupedMealsMap.has(groupKey)) {
       groupedMealsMap.set(groupKey, {
@@ -328,6 +341,9 @@ export default function DailyTimeline({
     const group = groupedMealsMap.get(groupKey);
     if (timeMins > group.maxTimeMinutes) {
       group.maxTimeMinutes = timeMins;
+    }
+    if (!group.dishName && item.dishName) {
+      group.dishName = item.dishName;
     }
     group.items.push(item);
   });
@@ -351,9 +367,9 @@ export default function DailyTimeline({
     const map = new Map();
 
     partnerIntakes.forEach((item) => {
-      const timeStr = item.time || '12:00';
+      const timeStr = item.time || item.timestamp || item.created_at || '12:00';
       const hourRange = getHourRangeKey(timeStr);
-      const groupKey = item.dishName ? `${hourRange}__${item.dishName}` : hourRange;
+      const groupKey = hourRange;
 
       if (!map.has(groupKey)) {
         map.set(groupKey, {
@@ -364,7 +380,11 @@ export default function DailyTimeline({
         });
       }
 
-      map.get(groupKey).items.push(item);
+      const group = map.get(groupKey);
+      if (!group.dishName && item.dishName) {
+        group.dishName = item.dishName;
+      }
+      group.items.push(item);
     });
 
     return Array.from(map.values());
