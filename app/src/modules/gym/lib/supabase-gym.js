@@ -114,6 +114,84 @@ const TRANSLATIONS_MAP = {
   'Plancha': { name: 'Plank', muscle: 'abdominals' },
 };
 
+export const SPANISH_TO_ENGLISH_EXERCISE_MAP = {
+  'sentadilla con barra': 'barbell back squat',
+  'sentadilla': 'barbell back squat',
+  'press de banca': 'barbell bench press',
+  'press de banca con barra': 'barbell bench press',
+  'peso muerto': 'deadlift',
+  'peso muerto rumano': 'romanian deadlift (rdl)',
+  'dominadas': 'pull-ups',
+  'jalón al pecho': 'lat pulldown',
+  'jalon al pecho': 'lat pulldown',
+  'remo con barra': 'bent-over barbell row',
+  'remo con mancuerna': 'single-arm dumbbell row',
+  'remo gironda': 'seated cable row',
+  'press militar': 'overhead barbell press (ohp)',
+  'elevaciones laterales': 'dumbbell lateral raise',
+  'curll de bíceps': 'barbell biceps curl',
+  'curl de bíceps': 'barbell biceps curl',
+  'curl de biceps': 'barbell biceps curl',
+  'curl martillo': 'dumbbell hammer curl',
+  'tríceps en polea': 'triceps rope pushdown',
+  'triceps en polea': 'triceps rope pushdown',
+  'extensión de cuadriceps': 'leg extensions',
+  'extensión de piernas': 'leg extensions',
+  'prensa de piernas': 'leg press',
+  'curl femoral': 'seated leg curl',
+  'hip thrust': 'barbell hip thrust',
+  'gemelos de pie': 'standing calf raise',
+  'zancadas': 'walking lunges',
+  'fondos en paralelas': 'chest dip',
+  'flexiones': 'push-ups',
+  'aperturas con mancuernas': 'dumbbell chest flyes',
+  'plancha': 'plank',
+};
+
+export function doesSetMatchExercise(set, targetExercise) {
+  if (!set || !targetExercise) return false;
+
+  const sId = set.exercise_id || set.exercise?.id || set.exercises?.id;
+  if (sId && targetExercise.id && sId === targetExercise.id) return true;
+
+  const rawSetName = (
+    set.exercise?.name ||
+    set.exercise?.name_es ||
+    set.exercises?.name ||
+    set.exercises?.name_es ||
+    set.exercise_name ||
+    set.name ||
+    ''
+  ).toLowerCase().trim();
+
+  if (!rawSetName) return false;
+
+  const targetName = (targetExercise.name || targetExercise.name_es || '').toLowerCase().trim();
+  if (rawSetName === targetName) return true;
+
+  const mappedEnglishName = SPANISH_TO_ENGLISH_EXERCISE_MAP[rawSetName];
+  if (mappedEnglishName && mappedEnglishName === targetName) return true;
+
+  const targetMappedEnglishName = SPANISH_TO_ENGLISH_EXERCISE_MAP[targetName];
+  if (targetMappedEnglishName && targetMappedEnglishName === rawSetName) return true;
+
+  return false;
+}
+
+export function formatExerciseName(rawName) {
+  if (!rawName || typeof rawName !== 'string') return 'Exercise';
+  const trimmed = rawName.trim();
+  const lower = trimmed.toLowerCase();
+  const mapped = SPANISH_TO_ENGLISH_EXERCISE_MAP[lower];
+  if (mapped) {
+    return mapped
+      .split(' ')
+      .map((w) => (w.startsWith('(') ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)))
+      .join(' ');
+  }
+  return trimmed;
+}
+
 export async function fetchExercisesFromSupabase() {
   if (!supabase) return DEFAULT_EXERCISES;
   try {

@@ -3,7 +3,7 @@ import { Search, Plus, Dumbbell, Filter, Info, Trophy, TrendingUp, Calendar, Fla
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
-import { calculate1RM } from '../lib/supabase-gym';
+import { calculate1RM, doesSetMatchExercise } from '../lib/supabase-gym';
 
 const MUSCLE_GROUPS = [
   { id: 'all', label: 'All Muscles' },
@@ -214,12 +214,7 @@ export default function ExerciseLibrary({
 
     sortedWorkouts.forEach((w) => {
       const sets = w.workout_sets || [];
-      const exSets = sets.filter(
-        (s) =>
-          s.exercise_id === exId ||
-          s.exercise?.id === exId ||
-          s.exercise?.name?.toLowerCase() === targetEx.name?.toLowerCase()
-      );
+      const exSets = sets.filter((s) => doesSetMatchExercise(s, targetEx));
 
       if (exSets.length > 0) {
         let sessionMaxWeight = 0;

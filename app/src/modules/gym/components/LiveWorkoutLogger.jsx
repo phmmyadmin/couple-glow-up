@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X, ArrowUp, ArrowDown, Timer, Flame, Edit3, Save, Info } from 'lucide-react';
-import { calculate1RM } from '../lib/supabase-gym';
+import { calculate1RM, doesSetMatchExercise } from '../lib/supabase-gym';
 import ExerciseLibrary from './ExerciseLibrary';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
@@ -33,24 +33,9 @@ function parseMMSSToSeconds(mmssStr) {
 export function getLastPerformanceForExercise(targetExercise, workouts = []) {
   if (!targetExercise || !workouts || workouts.length === 0) return null;
 
-  const targetId = targetExercise.id;
-  const targetName = (targetExercise.name || targetExercise.name_es || '').toLowerCase().trim();
-
   for (const w of workouts) {
     const sets = w.workout_sets || [];
-    const exSets = sets.filter((s) => {
-      const sId = s.exercise_id || s.exercise?.id;
-      if (sId && targetId && sId === targetId) return true;
-      const sName = (
-        s.exercise?.name ||
-        s.exercise?.name_es ||
-        s.exercises?.name ||
-        s.exercises?.name_es ||
-        s.exercise_name ||
-        ''
-      ).toLowerCase().trim();
-      return Boolean(sName && targetName && sName === targetName);
-    });
+    const exSets = sets.filter((s) => doesSetMatchExercise(s, targetExercise));
 
     if (exSets.length > 0) {
       return {
@@ -479,13 +464,15 @@ export default function LiveWorkoutLogger({
         <>
       {/* Rest Timer Floating Banner (Apple Minimalist Glass Card) */}
       {isRestTimerActive && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-white/95 backdrop-blur-md text-slate-900 px-5 py-3 rounded-2xl shadow-xl border border-indigo-200/90 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
-          <Timer className="w-5 h-5 text-indigo-600 animate-pulse" />
-          <div className="text-xs sm:text-sm font-semibold">
-            <span className="text-slate-500">Rest Timer: </span>
-            <span className="font-mono font-extrabold text-base text-indigo-700">{formatTimer(restTimerSeconds)}</span>
+        <div className="fixed top-4 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto max-w-md mx-auto z-50 bg-white/95 backdrop-blur-md text-slate-900 px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl shadow-xl border border-indigo-200/90 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 animate-pulse shrink-0" />
+            <div className="text-xs sm:text-sm font-semibold truncate">
+              <span className="text-slate-500">Rest: </span>
+              <span className="font-mono font-extrabold text-sm sm:text-base text-indigo-700">{formatTimer(restTimerSeconds)}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-2.5 shrink-0">
             <Button
               variant="secondary"
               size="sm"
@@ -499,31 +486,31 @@ export default function LiveWorkoutLogger({
               className="p-1 text-slate-400 hover:text-slate-700"
               aria-label="Dismiss rest timer"
             >
-              <X className="w-4.5 h-4.5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
       {/* Live Session Header Card */}
-      <Card className="p-5 sm:p-6 space-y-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 flex-1">
+      <Card className="p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 w-full sm:flex-1 min-w-0">
             <Edit3 className="w-4 h-4 text-indigo-500 shrink-0" />
             <input
               type="text"
               value={workoutName}
               aria-label="Workout name"
               onChange={(e) => setWorkoutName(e.target.value)}
-              className="text-lg sm:text-xl font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-600 focus:outline-none flex-1 font-heading"
+              className="text-base sm:text-xl font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-600 focus:outline-none w-full font-heading truncate"
             />
           </div>
 
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={handleCancelWorkout}>
+          <div className="flex items-center gap-2 justify-end w-full sm:w-auto shrink-0">
+            <Button variant="ghost" size="sm" onClick={handleCancelWorkout} className="flex-1 sm:flex-none justify-center">
               Cancel
             </Button>
-            <Button variant="primary" size="sm" icon={Check} onClick={handleFinish}>
+            <Button variant="primary" size="sm" icon={Check} onClick={handleFinish} className="flex-1 sm:flex-none justify-center">
               Finish Workout
             </Button>
           </div>
@@ -534,7 +521,7 @@ export default function LiveWorkoutLogger({
           {/* Duration Badge & Edit Trigger */}
           <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-indigo-600" />
+              <Clock className="w-4 h-4 text-indigo-600 shrink-0" />
               <div className="text-xs">
                 <span className="text-slate-500 font-medium">Duration: </span>
                 <span className="font-mono font-bold text-slate-900">{formatTimer(secondsElapsed)}</span>
@@ -554,18 +541,18 @@ export default function LiveWorkoutLogger({
           </div>
 
           {/* Configurable Rest Target Selector */}
-          <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-xl flex items-center justify-between gap-2">
+          <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-xl flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 text-xs text-slate-600 font-semibold shrink-0">
               <Timer className="w-4 h-4 text-indigo-600" />
               <span>Rest target:</span>
             </div>
-            <div className="flex items-center gap-1 bg-slate-200/60 p-0.5 rounded-lg overflow-x-auto">
+            <div className="flex items-center gap-1 bg-slate-200/60 p-0.5 rounded-lg overflow-x-auto max-w-full">
               {[30, 60, 90, 120, 180].map((sec) => (
                 <button
                   key={sec}
                   type="button"
                   onClick={() => setDefaultRestSeconds(sec)}
-                  className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all ${
+                  className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all shrink-0 ${
                     defaultRestSeconds === sec
                       ? 'bg-white text-indigo-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -580,7 +567,7 @@ export default function LiveWorkoutLogger({
           {/* Live Volume Counter */}
           <div className="bg-amber-50 border border-amber-200/80 p-3 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-amber-500" />
+              <Flame className="w-4 h-4 text-amber-500 shrink-0" />
               <span className="text-xs text-amber-900 font-medium">Volume:</span>
             </div>
             <span className="font-mono font-extrabold text-sm text-amber-900">

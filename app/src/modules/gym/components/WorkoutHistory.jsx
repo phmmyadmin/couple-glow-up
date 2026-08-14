@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { History, Trophy, Calendar, Clock, Flame, ChevronDown, ChevronUp, Search, Dumbbell, Trash2, Edit3, Save, X } from 'lucide-react';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
-import { Input } from '../../../shared/ui/Input';
+import { formatExerciseName } from '../lib/supabase-gym';
+import { getMuscleGroupLabel } from './ExerciseLibrary';
 
 export default function WorkoutHistory({
   workouts,
@@ -206,13 +207,14 @@ export default function WorkoutHistory({
                       <div className="space-y-3">
                         {(() => {
                           const groupedSets = sets.reduce((acc, set) => {
-                            const exName =
+                            const rawExName =
                               set.exercises?.name ||
                               set.exercises?.name_es ||
                               set.exercise?.name ||
                               set.exercise?.name_es ||
                               set.exercise_name ||
                               'Exercise';
+                            const exName = formatExerciseName(rawExName);
 
                             if (!acc[exName]) {
                               acc[exName] = {
@@ -236,8 +238,8 @@ export default function WorkoutHistory({
                                   <span>{exGroup.name}</span>
                                 </h6>
                                 {exGroup.muscle_group && (
-                                  <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-600 font-semibold capitalize">
-                                    {exGroup.muscle_group}
+                                  <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-600 font-semibold">
+                                    {getMuscleGroupLabel(exGroup.muscle_group)}
                                   </span>
                                 )}
                               </div>
