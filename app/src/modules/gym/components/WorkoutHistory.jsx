@@ -17,6 +17,9 @@ export default function WorkoutHistory({
   const [expandedWorkoutId, setExpandedWorkoutId] = useState(initialExpandedWorkoutId);
   const [searchFilter, setSearchFilter] = useState('');
   const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState(null);
+  const [editingWorkout, setEditingWorkout] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editDuration, setEditDuration] = useState(30);
 
   // Sync if initialExpandedWorkoutId changes externally
   React.useEffect(() => {
@@ -48,11 +51,6 @@ export default function WorkoutHistory({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedExerciseForHistory, editingWorkout]);
-
-  // Editing state
-  const [editingWorkout, setEditingWorkout] = useState(null);
-  const [editName, setEditName] = useState('');
-  const [editDuration, setEditDuration] = useState(30);
 
   const toggleExpand = (id) => {
     setExpandedWorkoutId((prev) => (prev === id ? null : id));
