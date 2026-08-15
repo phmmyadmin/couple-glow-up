@@ -743,14 +743,29 @@ export default function LiveWorkoutLogger({
                                 : 'bg-white border-slate-200/80'
                             }`}
                           >
-                            {/* Set Number */}
-                            <div className="col-span-1 flex items-center gap-1 font-mono font-extrabold text-slate-700 text-xs">
-                              <span>{setIdx + 1}</span>
-                              {set.indicator && set.indicator !== 'normal' && (
-                                <span className="text-[10px] uppercase px-1 py-0.2 bg-amber-100 text-amber-800 rounded font-bold">
-                                  {set.indicator[0]}
-                                </span>
-                              )}
+                            {/* Interactive Set Type Badge & Number */}
+                            <div className="col-span-1 flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const types = ['normal', 'warmup', 'drop', 'failure'];
+                                  const currentIdx = types.indexOf(set.indicator || 'normal');
+                                  const nextType = types[(currentIdx + 1) % types.length];
+                                  handleUpdateSetField(exIdx, setIdx, 'indicator', nextType);
+                                }}
+                                className={`w-7 h-7 rounded-lg font-mono font-extrabold text-xs flex items-center justify-center transition-all ${
+                                  set.indicator === 'warmup'
+                                    ? 'bg-amber-100 border border-amber-300 text-amber-800 shadow-2xs'
+                                    : set.indicator === 'drop'
+                                    ? 'bg-purple-100 border border-purple-300 text-purple-800 shadow-2xs'
+                                    : set.indicator === 'failure'
+                                    ? 'bg-rose-100 border border-rose-300 text-rose-800 shadow-2xs'
+                                    : 'text-slate-700 hover:bg-slate-100'
+                                }`}
+                                title={`Set type: ${set.indicator || 'normal'}. Click to toggle (Normal -> Warmup [W] -> Drop [D] -> Failure [F])`}
+                              >
+                                {set.indicator === 'warmup' ? 'W' : set.indicator === 'drop' ? 'D' : set.indicator === 'failure' ? 'F' : setIdx + 1}
+                              </button>
                             </div>
 
                             {/* Previous Performance */}
@@ -920,18 +935,6 @@ export default function LiveWorkoutLogger({
             >
               <RotateCcw className="w-5 h-5 text-slate-600" />
               <span>Replace Exercise</span>
-            </button>
-
-            {/* Option 3: Add to Superset */}
-            <button
-              type="button"
-              onClick={() => {
-                setMenuExerciseIndex(null);
-              }}
-              className="w-full flex items-center gap-3 p-3.5 text-slate-800 hover:bg-slate-100 rounded-xl text-sm font-bold transition-colors"
-            >
-              <Plus className="w-5 h-5 text-slate-600" />
-              <span>Add to Superset</span>
             </button>
 
             {/* Option 4: Remove Exercise */}
