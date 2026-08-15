@@ -680,15 +680,6 @@ export default function LiveWorkoutLogger({
                             {exName}
                           </h4>
 
-                          {/* Exercise Notes Line */}
-                          <input
-                            type="text"
-                            placeholder="Add notes here..."
-                            value={item.notes || ''}
-                            onChange={(e) => handleUpdateExerciseNotes(exIdx, e.target.value)}
-                            className="text-xs text-slate-500 placeholder-slate-400 bg-transparent focus:outline-none focus:border-b focus:border-indigo-400 w-full py-0.5"
-                          />
-
                           {/* Configurable Rest Target Line */}
                           <button
                             type="button"
