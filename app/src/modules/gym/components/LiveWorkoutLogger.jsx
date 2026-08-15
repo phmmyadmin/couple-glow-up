@@ -709,8 +709,8 @@ export default function LiveWorkoutLogger({
                     {/* Hevy Sets Table */}
                     <div className="space-y-2 pt-2 border-t border-slate-100">
                       <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
-                        <span className="col-span-1 text-left">SET</span>
-                        <span className="col-span-4 text-center">PREVIOUS</span>
+                        <span className="col-span-2 text-center">SET / TYPE</span>
+                        <span className="col-span-3 text-center">PREVIOUS</span>
                         <span className="col-span-3 text-center">{isDistanceDuration ? 'KM' : isDurationOnly ? 'TIME' : 'KG'}</span>
                         <span className="col-span-2 text-center">{isDistanceDuration ? 'TIME' : isDurationOnly ? '-' : 'REPS'}</span>
                         <span className="col-span-1 text-center">✓</span>
@@ -743,29 +743,27 @@ export default function LiveWorkoutLogger({
                                 : 'bg-white border-slate-200/80'
                             }`}
                           >
-                            {/* Interactive Set Type Badge & Number */}
-                            <div className="col-span-1 flex items-center justify-center">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const types = ['normal', 'warmup', 'drop', 'failure'];
-                                  const currentIdx = types.indexOf(set.indicator || 'normal');
-                                  const nextType = types[(currentIdx + 1) % types.length];
-                                  handleUpdateSetField(exIdx, setIdx, 'indicator', nextType);
-                                }}
-                                className={`w-7 h-7 rounded-lg font-mono font-extrabold text-xs flex items-center justify-center transition-all ${
+                            {/* Explicit Set Type Dropdown & Number */}
+                            <div className="col-span-2 flex items-center justify-center">
+                              <select
+                                value={set.indicator || 'normal'}
+                                onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'indicator', e.target.value)}
+                                className={`text-xs font-mono font-extrabold px-2 py-1 rounded-lg border appearance-none text-center cursor-pointer focus:outline-none transition-all shadow-2xs ${
                                   set.indicator === 'warmup'
-                                    ? 'bg-amber-100 border border-amber-300 text-amber-800 shadow-2xs'
+                                    ? 'bg-amber-100 border-amber-300 text-amber-900 font-extrabold'
                                     : set.indicator === 'drop'
-                                    ? 'bg-purple-100 border border-purple-300 text-purple-800 shadow-2xs'
+                                    ? 'bg-purple-100 border-purple-300 text-purple-900 font-extrabold'
                                     : set.indicator === 'failure'
-                                    ? 'bg-rose-100 border border-rose-300 text-rose-800 shadow-2xs'
-                                    : 'text-slate-700 hover:bg-slate-100'
+                                    ? 'bg-rose-100 border-rose-300 text-rose-900 font-extrabold'
+                                    : 'bg-slate-100 border-slate-200 text-slate-700 hover:border-slate-300'
                                 }`}
-                                title={`Set type: ${set.indicator || 'normal'}. Click to toggle (Normal -> Warmup [W] -> Drop [D] -> Failure [F])`}
+                                title="Set Type: Normal (1, 2, 3), Warmup (W), Drop Set (D), Failure (F)"
                               >
-                                {set.indicator === 'warmup' ? 'W' : set.indicator === 'drop' ? 'D' : set.indicator === 'failure' ? 'F' : setIdx + 1}
-                              </button>
+                                <option value="normal">{setIdx + 1}</option>
+                                <option value="warmup">W (Warmup)</option>
+                                <option value="drop">D (Drop Set)</option>
+                                <option value="failure">F (Failure)</option>
+                              </select>
                             </div>
 
                             {/* Previous Performance */}
