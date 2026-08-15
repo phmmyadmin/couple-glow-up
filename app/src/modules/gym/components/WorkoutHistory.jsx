@@ -6,6 +6,7 @@ import { Input } from '../../../shared/ui/Input';
 import { formatExerciseName, doesSetMatchExercise } from '../lib/supabase-gym';
 import { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
+import WorkoutCalendar from './WorkoutCalendar';
 
 export default function WorkoutHistory({
   workouts,
@@ -81,12 +82,25 @@ export default function WorkoutHistory({
     }
   };
 
+  const handleScrollToWorkout = (workoutId) => {
+    setSearchFilter('');
+    setTimeout(() => {
+      const el = document.getElementById(`workout-card-${workoutId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+  };
+
   const filteredWorkouts = workouts.filter((w) =>
     w.name.toLowerCase().includes(searchFilter.toLowerCase())
   );
 
   return (
     <div className="space-y-6 sm:space-y-7">
+      {/* Workout Calendar Overview */}
+      <WorkoutCalendar workouts={workouts} onSelectWorkout={handleScrollToWorkout} />
+
       {/* Personal Records Highlight Card */}
       {personalRecords.length > 0 && (
         <Card className="bg-gradient-to-r from-indigo-50/80 via-purple-50/80 to-pink-50/80 border-indigo-100 p-5 sm:p-6 space-y-4 shadow-sm">
