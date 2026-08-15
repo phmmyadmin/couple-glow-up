@@ -226,8 +226,8 @@ export default function LiveWorkoutLogger({
           setMenuExerciseIndex(null);
         } else if (isSelectingExercise) {
           setIsSelectingExercise(false);
-        } else if (isReorderView) {
-          setIsReorderView(false);
+        } else if (isReorderMode) {
+          setIsReorderMode(false);
         } else if (isEditingTimeModal) {
           setIsEditingTimeModal(false);
         }
@@ -241,7 +241,7 @@ export default function LiveWorkoutLogger({
     editingRestForExerciseIndex,
     menuExerciseIndex,
     isSelectingExercise,
-    isReorderView,
+    isReorderMode,
     isEditingTimeModal,
   ]);
 
