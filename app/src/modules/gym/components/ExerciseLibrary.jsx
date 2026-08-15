@@ -606,19 +606,20 @@ export default function ExerciseLibrary({
               </div>
             </form>
           </Card>
-          {/* Exercise History & Analytics Modal */}
-          {selectedExerciseForHistory && (
-            <ExerciseHistoryModal
-              exercise={selectedExerciseForHistory}
-              workouts={workouts}
-              exercises={exercises}
-              onClose={() => {
-                setSelectedExerciseForHistory(null);
-                if (onCloseHistoryModal) onCloseHistoryModal();
-              }}
-            />
-          )}
         </div>
+      )}
+
+      {/* Exercise History & Analytics Modal */}
+      {selectedExerciseForHistory && (
+        <ExerciseHistoryModal
+          exercise={selectedExerciseForHistory}
+          workouts={workouts}
+          exercises={exercises}
+          onClose={() => {
+            setSelectedExerciseForHistory(null);
+            if (onCloseHistoryModal) onCloseHistoryModal();
+          }}
+        />
       )}
 
       {/* Create Custom Exercise Modal */}
