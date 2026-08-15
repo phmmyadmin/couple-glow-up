@@ -7,6 +7,7 @@ import { formatExerciseName, doesSetMatchExercise } from '../lib/supabase-gym';
 import { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 import WorkoutCalendar from './WorkoutCalendar';
+import MuscleBodyHeatmap from './MuscleBodyHeatmap';
 
 export default function WorkoutHistory({
   workouts,
@@ -22,6 +23,37 @@ export default function WorkoutHistory({
   const [editingWorkout, setEditingWorkout] = useState(null);
   const [editName, setEditName] = useState('');
   const [editDuration, setEditDuration] = useState(30);
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState(null);
+
+  // Compute active muscles:
+  // If selectedCalendarDay is set -> extract muscles of workouts on that day.
+  // Else (default) -> extract muscles of workouts over the last 7 days!
+  const activeMuscles = React.useMemo(() => {
+    let targetWorkouts = [];
+
+    if (selectedCalendarDay && Array.isArray(selectedCalendarDay.workouts)) {
+      targetWorkouts = selectedCalendarDay.workouts;
+    } else {
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      targetWorkouts = workouts.filter((w) => new Date(w.started_at).getTime() >= sevenDaysAgo);
+    }
+
+    const muscleSet = new Set();
+    targetWorkouts.forEach((w) => {
+      (w.workout_sets || []).forEach((s) => {
+        const exId = s.exercise_id;
+        const matchedEx = exercises.find((e) => e.id === exId) || s.exercises || s.exercise;
+        if (matchedEx?.muscle_group) {
+          muscleSet.add(matchedEx.muscle_group);
+        }
+        if (Array.isArray(matchedEx?.other_muscles)) {
+          matchedEx.other_muscles.forEach((m) => muscleSet.add(m));
+        }
+      });
+    });
+
+    return Array.from(muscleSet);
+  }, [selectedCalendarDay, workouts, exercises]);
 
   // Sync if initialExpandedWorkoutId changes externally
   React.useEffect(() => {
@@ -98,8 +130,24 @@ export default function WorkoutHistory({
 
   return (
     <div className="space-y-6 sm:space-y-7">
-      {/* Workout Calendar Overview */}
-      <WorkoutCalendar workouts={workouts} onSelectWorkout={handleScrollToWorkout} />
+      {/* 2-Column Grid: Compact Calendar + Muscle Body Heatmap */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+        <WorkoutCalendar
+          workouts={workouts}
+          selectedDay={selectedCalendarDay}
+          onDaySelect={(dayData) => setSelectedCalendarDay(dayData)}
+          onSelectWorkout={handleScrollToWorkout}
+        />
+
+        <MuscleBodyHeatmap
+          activeMuscles={activeMuscles}
+          title={
+            selectedCalendarDay
+              ? `Muscles (${selectedCalendarDay.dateFormatted})`
+              : 'Muscles Worked (Last 7 Days)'
+          }
+        />
+      </div>
 
       {/* Personal Records Highlight Card */}
       {personalRecords.length > 0 && (
