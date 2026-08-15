@@ -663,12 +663,20 @@ export default function LiveWorkoutLogger({
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         {/* Circular Initials Avatar Badge */}
-                        <div className="w-10 h-10 rounded-full bg-slate-200/80 border border-slate-300/60 text-slate-700 font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-2xs font-mono">
+                        <div
+                          onClick={() => setSelectedExerciseForHistory(item.exercise)}
+                          className="w-10 h-10 rounded-full bg-slate-200/80 border border-slate-300/60 text-slate-700 font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-2xs font-mono cursor-pointer hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
+                          title="Click to open Exercise History & Analytics"
+                        >
                           {initials}
                         </div>
 
                         <div className="space-y-1 flex-1 min-w-0">
-                          <h4 className="text-base sm:text-lg font-extrabold text-indigo-600 hover:text-indigo-700 leading-snug break-words">
+                          <h4
+                            onClick={() => setSelectedExerciseForHistory(item.exercise)}
+                            className="text-base sm:text-lg font-extrabold text-indigo-600 hover:text-indigo-800 leading-snug break-words cursor-pointer hover:underline"
+                            title="Click to open Exercise History & Analytics"
+                          >
                             {exName}
                           </h4>
 
