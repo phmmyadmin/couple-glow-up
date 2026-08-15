@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { History, Trophy, Calendar, Clock, Flame, ChevronDown, ChevronUp, Search, Dumbbell, Trash2, Edit3, Save, X } from 'lucide-react';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
+import { Input } from '../../../shared/ui/Input';
 import { formatExerciseName } from '../lib/supabase-gym';
 import { getMuscleGroupLabel } from './ExerciseLibrary';
 
