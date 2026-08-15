@@ -38,6 +38,8 @@ export const DEFAULT_EXERCISES = [
 
   // ── GLUTES ──
   { name: 'Barbell Hip Thrust', muscle_group: 'glutes', other_muscles: ['hamstrings'], equipment_category: 'barbell', exercise_type: 'weight_reps' },
+  { name: 'Hip Abduction (Machine)', muscle_group: 'glutes', other_muscles: [], equipment_category: 'machine', exercise_type: 'weight_reps' },
+  { name: 'Hip Adduction (Machine)', muscle_group: 'glutes', other_muscles: [], equipment_category: 'machine', exercise_type: 'weight_reps' },
   { name: 'Cable Kickbacks', muscle_group: 'glutes', other_muscles: [], equipment_category: 'cable', exercise_type: 'weight_reps' },
   { name: 'Glute Bridge', muscle_group: 'glutes', other_muscles: ['hamstrings'], equipment_category: 'bodyweight', exercise_type: 'bodyweight_reps' },
 
@@ -145,8 +147,35 @@ export const SPANISH_TO_ENGLISH_EXERCISE_MAP = {
   'fondos en paralelas': 'chest dip',
   'flexiones': 'push-ups',
   'aperturas con mancuernas': 'dumbbell chest flyes',
+  'aperturas (máquina)': 'rear delt flyes (reverse pec deck)',
+  'aperturas máquina': 'rear delt flyes (reverse pec deck)',
+  'aperturas maquina': 'rear delt flyes (reverse pec deck)',
+  'abducción de cadera': 'hip abduction (machine)',
+  'abducción de cadera (máquina)': 'hip abduction (machine)',
+  'abduccion de cadera': 'hip abduction (machine)',
+  'abduccion de cadera (maquina)': 'hip abduction (machine)',
+  'abductores': 'hip abduction (machine)',
+  'abductor': 'hip abduction (machine)',
+  'máquina de abductores': 'hip abduction (machine)',
+  'adducción de cadera': 'hip adduction (machine)',
+  'adducción de cadera (máquina)': 'hip adduction (machine)',
+  'adduccion de cadera': 'hip adduction (machine)',
+  'adductores': 'hip adduction (machine)',
+  'adductor': 'hip adduction (machine)',
+  'hip abduction': 'hip abduction (machine)',
+  'hip adduction': 'hip adduction (machine)',
   'plancha': 'plank',
 };
+
+export function stripExerciseName(name) {
+  if (!name || typeof name !== 'string') return '';
+  return name
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\(.*?\)/g, '')
+    .replace(/[^\w\s]/g, '')
+    .trim();
+}
 
 export function doesSetMatchExercise(set, targetExercise) {
   if (!set || !targetExercise) return false;
@@ -167,13 +196,29 @@ export function doesSetMatchExercise(set, targetExercise) {
   if (!rawSetName) return false;
 
   const targetName = (targetExercise.name || targetExercise.name_es || '').toLowerCase().trim();
+
+  // 1. Direct name equality
   if (rawSetName === targetName) return true;
 
+  // 2. Map dictionary matching
   const mappedEnglishName = SPANISH_TO_ENGLISH_EXERCISE_MAP[rawSetName];
   if (mappedEnglishName && mappedEnglishName === targetName) return true;
 
   const targetMappedEnglishName = SPANISH_TO_ENGLISH_EXERCISE_MAP[targetName];
   if (targetMappedEnglishName && targetMappedEnglishName === rawSetName) return true;
+
+  if (mappedEnglishName && targetMappedEnglishName && mappedEnglishName === targetMappedEnglishName) return true;
+
+  // 3. Stripped base name matching (ignoring accents, punctuation, and (Machine)/(máquina) tags)
+  const strippedSet = stripExerciseName(mappedEnglishName || rawSetName);
+  const strippedTarget = stripExerciseName(targetMappedEnglishName || targetName);
+
+  if (strippedSet && strippedTarget) {
+    if (strippedSet === strippedTarget) return true;
+    if (strippedSet.length >= 4 && strippedTarget.length >= 4) {
+      if (strippedSet.includes(strippedTarget) || strippedTarget.includes(strippedSet)) return true;
+    }
+  }
 
   return false;
 }
