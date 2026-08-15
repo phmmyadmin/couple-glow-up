@@ -233,13 +233,13 @@ export default function WorkoutHistory({
                               key={groupIdx}
                               className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5"
                             >
-                              <div className="flex items-center justify-between">
-                                <h6 className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                                  <Dumbbell className="w-3.5 h-3.5 text-indigo-600" />
+                              <div className="flex items-start justify-between gap-2">
+                                <h6 className="text-xs sm:text-sm font-bold text-slate-900 flex items-start gap-2 flex-1 min-w-0 leading-snug break-words">
+                                  <Dumbbell className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
                                   <span>{exGroup.name}</span>
                                 </h6>
                                 {exGroup.muscle_group && (
-                                  <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-600 font-semibold">
+                                  <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-600 font-semibold shrink-0">
                                     {getMuscleGroupLabel(exGroup.muscle_group)}
                                   </span>
                                 )}

@@ -590,73 +590,89 @@ export default function LiveWorkoutLogger({
         <div className="space-y-5 sm:space-y-6">
           {workoutExercises.map((item, exIdx) => {
             return (
-              <Card key={item.id} className="p-5 sm:p-6 space-y-4 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    {/* Reorder Buttons */}
-                    <div className="flex flex-col gap-0.5">
-                      <button
-                        type="button"
-                        disabled={exIdx === 0}
-                        onClick={() => handleMoveExercise(exIdx, -1)}
-                        className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-30"
-                        aria-label="Move up"
-                      >
-                        <ArrowUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={exIdx === workoutExercises.length - 1}
-                        onClick={() => handleMoveExercise(exIdx, 1)}
-                        className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-30"
-                        aria-label="Move down"
-                      >
-                        <ArrowDown className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+              <Card key={item.id} className="p-4 sm:p-6 space-y-4 shadow-sm">
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                      {/* Reorder Buttons */}
+                      <div className="flex flex-col gap-0.5 mt-0.5 shrink-0">
+                        <button
+                          type="button"
+                          disabled={exIdx === 0}
+                          onClick={() => handleMoveExercise(exIdx, -1)}
+                          className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                          aria-label="Move up"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={exIdx === workoutExercises.length - 1}
+                          onClick={() => handleMoveExercise(exIdx, 1)}
+                          className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                          aria-label="Move down"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
 
-                    <div className="flex items-center gap-2 flex-wrap min-w-0">
-                      <h4 className="text-base font-bold text-slate-900 truncate">
+                      <h4 className="text-base sm:text-lg font-bold text-slate-900 leading-snug break-words flex-1 min-w-0">
                         {item.exercise.name || item.exercise.name_es}
                       </h4>
+                    </div>
 
-                      {/* Last Performance Reference Badge */}
-                      {(() => {
-                        const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts);
-                        if (!lastPerf || !lastPerf.sets || lastPerf.sets.length === 0) return null;
-                        const s0 = lastPerf.sets[0];
-                        let summaryText = '';
-                        if (s0.weight_kg) summaryText += `${s0.weight_kg}kg`;
-                        if (s0.reps) summaryText += `${summaryText ? ' × ' : ''}${s0.reps}`;
-                        if (s0.duration_seconds) summaryText += `${summaryText ? ' • ' : ''}${Math.floor(s0.duration_seconds / 60)}:${String(s0.duration_seconds % 60).padStart(2, '0')}m`;
-                        if (s0.distance_meters) summaryText += `${summaryText ? ' • ' : ''}${(s0.distance_meters / 1000).toFixed(1)}km`;
-
-                        return (
-                          <span className="text-[11px] font-mono bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md border border-indigo-100/80 flex items-center gap-1 shrink-0" title="Last performance reference">
-                            <span>Last: {summaryText} ({lastPerf.dateStr})</span>
-                          </span>
-                        );
-                      })()}
-
+                    <div className="flex items-center gap-1 shrink-0">
                       {/* Info / History Button */}
                       <button
                         type="button"
                         onClick={() => setSelectedExerciseForHistory(item.exercise)}
-                        className="p-1 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors shrink-0"
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
                         title="Open Exercise History & Analytics"
                       >
                         <Info className="w-4 h-4" />
                       </button>
+
+                      {/* Remove Exercise Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveExercise(exIdx)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                        title="Remove Exercise"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="text-xs bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg text-slate-600 font-semibold capitalize">
-                      {item.exercise.muscle_group}
+                  {/* Sub-Header: Badges & Last Performance */}
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold px-2.5 py-0.5 rounded-lg">
+                      {getMuscleGroupLabel(item.exercise.muscle_group)}
                     </span>
 
-                    {/* Per-Exercise Rest Selector */}
-                    <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-200/80 px-2 py-1 rounded-xl">
+                    {/* Last Performance Reference Badge */}
+                    {(() => {
+                      const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts);
+                      if (!lastPerf || !lastPerf.sets || lastPerf.sets.length === 0) return null;
+                      const s0 = lastPerf.sets[0];
+                      let summaryText = '';
+                      if (s0.weight_kg) summaryText += `${s0.weight_kg}kg`;
+                      if (s0.reps) summaryText += `${summaryText ? ' × ' : ''}${s0.reps}`;
+                      if (s0.duration_seconds) summaryText += `${summaryText ? ' • ' : ''}${Math.floor(s0.duration_seconds / 60)}:${String(s0.duration_seconds % 60).padStart(2, '0')}m`;
+                      if (s0.distance_meters) summaryText += `${summaryText ? ' • ' : ''}${(s0.distance_meters / 1000).toFixed(1)}km`;
+
+                      return (
+                        <span className="text-[11px] font-mono bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-md border border-slate-200 flex items-center gap-1 shrink-0" title="Last performance reference">
+                          <span>Last: {summaryText} ({lastPerf.dateStr})</span>
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-wrap pt-2 border-t border-slate-100">
+                  {/* Per-Exercise Rest Selector */}
+                  <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-200/80 px-2 py-1 rounded-xl w-full sm:w-auto overflow-x-auto">
                       <Timer className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                       <span className="text-[11px] font-bold text-slate-600 shrink-0">Rest:</span>
                       <div className="flex items-center gap-1 bg-slate-200/60 p-0.5 rounded-lg overflow-x-auto">
@@ -676,16 +692,7 @@ export default function LiveWorkoutLogger({
                         ))}
                       </div>
                     </div>
-
-                    <button
-                      onClick={() => handleRemoveExercise(exIdx)}
-                      aria-label="Remove exercise from workout"
-                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
-                </div>
 
                 {/* Sets Table */}
                 {(() => {

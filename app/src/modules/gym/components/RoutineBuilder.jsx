@@ -5,7 +5,7 @@ import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
 import Avatar from '../../../shared/Avatar';
-import { fetchRoutinesFromSupabase, saveRoutineToSupabase } from '../lib/supabase-gym';
+import { fetchRoutinesFromSupabase, saveRoutineToSupabase, formatExerciseName } from '../lib/supabase-gym';
 
 const ROUTINE_COLORS = [
   '#6366f1', // Indigo
@@ -288,7 +288,8 @@ export default function RoutineBuilder({
               </div>
 
               {selectedExercises.map((item, exIdx) => {
-                const exName = item.exercise?.name || item.exercise?.name_es || item.title || item.name || 'Exercise';
+                const rawName = item.exercise?.name || item.exercise?.name_es || item.title || item.name || 'Exercise';
+                const exName = formatExerciseName(rawName);
                 const matchedCatalogEx = exercises.find((e) => e.id === item.exercise_id || e.id === item.exercise?.id || (e.name && e.name.toLowerCase().trim() === exName.toLowerCase().trim()));
                 const exType = item.exercise?.exercise_type || matchedCatalogEx?.exercise_type || 'weight_reps';
                 const isDistanceDuration = exType === 'distance_duration';
@@ -301,10 +302,10 @@ export default function RoutineBuilder({
                     className="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 space-y-3.5 text-xs sm:text-sm"
                   >
                     {/* Header: Exercise Name & Move/Delete Controls */}
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
                         {/* Reorder Buttons */}
-                        <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-col gap-0.5 mt-0.5 shrink-0">
                           <button
                             type="button"
                             disabled={exIdx === 0}
@@ -323,15 +324,15 @@ export default function RoutineBuilder({
                           </button>
                         </div>
 
-                        <span className="font-bold text-indigo-600 font-mono">{exIdx + 1}.</span>
-                        <span className="font-bold text-slate-900 text-sm">{exName}</span>
+                        <span className="font-bold text-indigo-600 font-mono text-sm shrink-0 mt-0.5">{exIdx + 1}.</span>
+                        <span className="font-bold text-slate-900 text-sm sm:text-base leading-snug break-words flex-1 min-w-0">{exName}</span>
                       </div>
 
                       <button
                         type="button"
                         onClick={() => handleRemoveExercise(exIdx)}
                         aria-label="Remove exercise from routine"
-                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 shrink-0"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -581,13 +582,14 @@ export default function RoutineBuilder({
                   {routine.exercises && routine.exercises.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {routine.exercises.slice(0, 6).map((exItem, eIdx) => {
-                        const name =
+                        const rawName =
                           exItem.exercise?.name || exItem.exercise?.name_es || exItem.title || 'Exercise';
+                        const name = formatExerciseName(rawName);
                         const setsCount = exItem.sets?.length || exItem.target_sets || 3;
                         return (
                           <span
                             key={eIdx}
-                            className="bg-slate-100 text-slate-700 text-[11px] font-medium px-2.5 py-1 rounded-lg flex items-center gap-1"
+                            className="bg-slate-100 text-slate-700 text-[11px] font-medium px-2.5 py-1 rounded-lg flex items-center gap-1 leading-snug"
                           >
                             <span>{name}</span>
                             <span className="text-slate-400 font-mono text-[10px]">({setsCount}s)</span>

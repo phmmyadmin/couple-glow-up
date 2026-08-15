@@ -403,72 +403,77 @@ export default function ExerciseLibrary({
               return (
                 <Card
                   key={exercise.id}
-                  className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:border-indigo-200 transition-all cursor-pointer group shadow-2xs"
+                  className="p-4 sm:p-5 space-y-3 hover:border-indigo-200 transition-all cursor-pointer group shadow-2xs"
                   onClick={() => onSelectExercise && onSelectExercise(exercise)}
                 >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                      <Dumbbell className="w-6 h-6" />
-                    </div>
-                    <div className="space-y-1 min-w-0">
-                      <h4 className="text-base font-bold text-slate-900 truncate">
-                        {exercise.name || exercise.name_es}
-                      </h4>
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 font-medium">
-                        <span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md border border-indigo-100">
-                          {getMuscleGroupLabel(exercise.muscle_group)}
-                        </span>
-
-                        {secondaryList.length > 0 && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-slate-400 font-bold">+</span>
-                            {secondaryList.map((sec) => (
-                              <span
-                                key={sec}
-                                className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[11px] font-semibold border border-slate-200/60"
-                              >
-                                {getMuscleGroupLabel(sec)}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        <span className="text-slate-300">•</span>
-                        <span className="text-indigo-600 font-mono font-semibold">{typeLabel}</span>
+                  {/* Top Row: Dumbbell Icon + Full Width Name + Action Buttons */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all mt-0.5">
+                        <Dumbbell className="w-5 h-5" />
                       </div>
+                      <div className="space-y-0.5 flex-1 min-w-0">
+                        <h4 className="text-base sm:text-lg font-bold text-slate-900 leading-snug break-words">
+                          {exercise.name || exercise.name_es}
+                        </h4>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditModal(exercise);
+                        }}
+                        className="p-2 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-indigo-50 transition-colors"
+                        title="Edit Exercise Details"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedExerciseForHistory(exercise);
+                        }}
+                        className="p-2 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-indigo-50 transition-colors"
+                        title="View Exercise History & Charts"
+                      >
+                        <Info className="w-4.5 h-4.5" />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-xs bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl text-slate-700 font-semibold capitalize">
+                  {/* Bottom Row: Metadata & Muscle Group Badges */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 text-xs text-slate-500 font-medium">
+                    <span className="bg-indigo-50 text-indigo-700 font-bold px-2.5 py-1 rounded-lg border border-indigo-100/80">
+                      {getMuscleGroupLabel(exercise.muscle_group)}
+                    </span>
+
+                    {secondaryList.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-slate-400 font-bold text-[11px]">+</span>
+                        {secondaryList.map((sec) => (
+                          <span
+                            key={sec}
+                            className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg text-[11px] font-semibold border border-slate-200/60"
+                          >
+                            {getMuscleGroupLabel(sec)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200/80 capitalize">
                       {exercise.equipment_category || exercise.equipment || 'Bodyweight'}
                     </span>
-                    
-                    {/* Edit Exercise Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenEditModal(exercise);
-                      }}
-                      className="p-2 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-indigo-50 transition-colors"
-                      title="Edit Exercise Details"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
 
-                    {/* Exercise History & Analytics Info Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedExerciseForHistory(exercise);
-                      }}
-                      className="p-2 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-indigo-50 transition-colors"
-                      title="View Exercise History & Charts"
-                    >
-                      <Info className="w-4.5 h-4.5" />
-                    </button>
+                    <span className="text-indigo-600 font-mono font-semibold text-xs ml-auto">
+                      {typeLabel}
+                    </span>
                   </div>
                 </Card>
               );
