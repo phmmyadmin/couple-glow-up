@@ -612,28 +612,27 @@ export default function LiveWorkoutLogger({
               </div>
             </div>
 
-            {/* Sub-Header Metrics Row */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-600 font-semibold">
-              <div className="flex items-center gap-6">
-                <div>
-                  <span className="text-[11px] font-medium text-slate-400 block">Duration</span>
-                  <span className="font-mono font-extrabold text-indigo-600 text-sm">{formatTimer(secondsElapsed)}</span>
-                </div>
-
-                <div>
-                  <span className="text-[11px] font-medium text-slate-400 block">Volume</span>
-                  <span className="font-mono font-extrabold text-slate-900 text-sm">{totalLiveVolumeKg.toLocaleString()} kg</span>
-                </div>
-
-                <div>
-                  <span className="text-[11px] font-medium text-slate-400 block">Sets</span>
-                  <span className="font-mono font-extrabold text-slate-900 text-sm">{totalCompletedSets}</span>
-                </div>
+            {/* Sub-Header Metrics Row (Hevy Style) */}
+            <div className="grid grid-cols-4 items-center pt-3 border-t border-slate-100 text-xs">
+              <div>
+                <span className="text-[11px] font-medium text-slate-400 block">Duration</span>
+                <span className="font-mono font-extrabold text-indigo-600 text-sm">{formatTimer(secondsElapsed)}</span>
               </div>
 
-              {/* Muscle Silhouette Icon */}
-              <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/80 text-slate-600 flex items-center justify-center shrink-0">
-                <User className="w-5 h-5" />
+              <div className="text-center">
+                <span className="text-[11px] font-medium text-slate-400 block">Volume</span>
+                <span className="font-mono font-extrabold text-slate-900 text-sm">{totalLiveVolumeKg.toLocaleString()} kg</span>
+              </div>
+
+              <div className="text-center">
+                <span className="text-[11px] font-medium text-slate-400 block">Sets</span>
+                <span className="font-mono font-extrabold text-slate-900 text-sm">{totalCompletedSets}</span>
+              </div>
+
+              <div className="flex justify-end">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200/80 text-slate-600 flex items-center justify-center shrink-0" title="Muscles Targeted">
+                  <User className="w-4.5 h-4.5" />
+                </div>
               </div>
             </div>
           </div>
