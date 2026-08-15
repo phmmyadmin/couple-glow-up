@@ -33,6 +33,22 @@ export default function WorkoutHistory({
     }
   }, [initialExpandedWorkoutId]);
 
+  // Handle Escape key to close modals
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (selectedExerciseForHistory) {
+          setSelectedExerciseForHistory(null);
+        } else if (editingWorkout) {
+          setEditingWorkout(null);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedExerciseForHistory, editingWorkout]);
+
   // Editing state
   const [editingWorkout, setEditingWorkout] = useState(null);
   const [editName, setEditName] = useState('');

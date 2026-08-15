@@ -181,6 +181,37 @@ export default function LiveWorkoutLogger({
     return sumEx + (item.sets || []).filter((s) => s.is_checked).length;
   }, 0);
 
+  // Handle Escape key to close open modals/sheets
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (selectedExerciseForHistory) {
+          setSelectedExerciseForHistory(null);
+        } else if (editingRestForExerciseIndex !== null) {
+          setEditingRestForExerciseIndex(null);
+        } else if (menuExerciseIndex !== null) {
+          setMenuExerciseIndex(null);
+        } else if (isSelectingExercise) {
+          setIsSelectingExercise(false);
+        } else if (isReorderView) {
+          setIsReorderView(false);
+        } else if (isEditingTimeModal) {
+          setIsEditingTimeModal(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    selectedExerciseForHistory,
+    editingRestForExerciseIndex,
+    menuExerciseIndex,
+    isSelectingExercise,
+    isReorderView,
+    isEditingTimeModal,
+  ]);
+
   // Pre-fill exercises if started from routine
   useEffect(() => {
     const rawExercises = initialRoutine?.exercises || initialRoutine?.items || [];

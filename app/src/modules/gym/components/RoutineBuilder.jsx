@@ -92,6 +92,22 @@ export default function RoutineBuilder({
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [isSelectingExercise, setIsSelectingExercise] = useState(false);
 
+  // Handle Escape key to close modals
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (isSelectingExercise) {
+          setIsSelectingExercise(false);
+        } else if (isEditing) {
+          setIsEditing(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSelectingExercise, isEditing]);
+
   const handleOpenNew = () => {
     setEditingRoutine(null);
     setRoutineName('New Routine');

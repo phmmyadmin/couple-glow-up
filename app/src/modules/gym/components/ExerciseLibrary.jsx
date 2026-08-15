@@ -147,6 +147,24 @@ export default function ExerciseLibrary({
     return matchesSearch && matchesMuscle && matchesEquipment;
   });
 
+  // Handle Escape key to close modals
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (selectedExerciseForHistory) {
+          setSelectedExerciseForHistory(null);
+        } else if (editingExerciseModal) {
+          setEditingExerciseModal(null);
+        } else if (isModalOpen) {
+          setIsModalOpen(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedExerciseForHistory, editingExerciseModal, isModalOpen]);
+
   const handleOpenEditModal = (ex) => {
     setEditingExerciseModal(ex);
     setEditName(ex.name || ex.name_es || '');
