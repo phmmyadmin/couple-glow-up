@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X, ArrowUp, ArrowDown, Timer, Flame, Edit3, Save, Info } from 'lucide-react';
 import { calculate1RM, doesSetMatchExercise } from '../lib/supabase-gym';
-import ExerciseLibrary from './ExerciseLibrary';
+import ExerciseLibrary, { getMuscleGroupLabel } from './ExerciseLibrary';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
