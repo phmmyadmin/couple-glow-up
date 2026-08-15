@@ -96,16 +96,18 @@ export default function LiveWorkoutLogger({
   const [isSelectingExercise, setIsSelectingExercise] = useState(false);
   const [replaceExerciseIndex, setReplaceExerciseIndex] = useState(null);
 
-  // Context Menu Bottom Sheet & Reorder Mode States (Hevy Screenshots 1 & 3)
+  // Context Menu & Reorder Mode & Rest Target Edit States
   const [menuExerciseIndex, setMenuExerciseIndex] = useState(null);
   const [isReorderMode, setIsReorderMode] = useState(false);
+  const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+  const [editingRestForExerciseIndex, setEditingRestForExerciseIndex] = useState(null);
 
   // Rest Timer State
   const [restTimerSeconds, setRestTimerSeconds] = useState(0);
   const [isRestTimerActive, setIsRestTimerActive] = useState(false);
   const [defaultRestSeconds, setDefaultRestSeconds] = useState(90);
 
-  // Duration Edit Modal / Inline State
+  // Duration Edit Modal State
   const [isEditingTimeModal, setIsEditingTimeModal] = useState(false);
   const [editMinutesInput, setEditMinutesInput] = useState('');
 
@@ -167,7 +169,7 @@ export default function LiveWorkoutLogger({
   const totalLiveVolumeKg = workoutExercises.reduce((sumEx, item) => {
     const exVolume = item.sets.reduce((sumSet, set) => {
       if (set.is_checked && set.weight_kg && set.reps) {
-        return sumSet + set.weight_kg * set.reps;
+        return sumSet + parseFloat(set.weight_kg) * parseInt(set.reps, 10);
       }
       return sumSet;
     }, 0);
@@ -188,13 +190,11 @@ export default function LiveWorkoutLogger({
       const formattedEx = rawExercises.map((item, idx) => {
         let matchedEx = null;
 
-        // 1. Try matching by exercise_id
         if (item.exercise_id || item.exercise?.id) {
           const exId = item.exercise_id || item.exercise?.id;
           matchedEx = exercises?.find((e) => e.id === exId);
         }
 
-        // 2. Try matching by name / name_es
         if (!matchedEx) {
           const targetName = (
             item.exercise?.name ||
@@ -233,40 +233,28 @@ export default function LiveWorkoutLogger({
         let initialSets = [];
         if (Array.isArray(item.sets) && item.sets.length > 0) {
           initialSets = item.sets.map((s, setIdx) => {
-            const lastSet = lastPerf?.sets[setIdx] || lastPerf?.sets[0];
-            const weightVal = (s.weight_kg !== undefined && s.weight_kg !== '' && s.weight_kg !== 0)
-              ? s.weight_kg
-              : (lastSet?.weight_kg !== undefined ? lastSet.weight_kg : '');
-            const repsVal = (s.reps !== undefined && s.reps !== '' && s.reps !== 0)
-              ? s.reps
-              : (lastSet?.reps !== undefined ? lastSet.reps : '');
-
             return {
               id: `${Date.now()}-${idx}-${setIdx}`,
-              indicator: s.indicator || s.set_type || lastSet?.indicator || 'normal',
-              weight_kg: weightVal,
-              reps: repsVal,
-              duration_seconds: s.duration_seconds || lastSet?.duration_seconds || null,
-              distance_meters: s.distance_meters || lastSet?.distance_meters || null,
-              distance_km: s.distance_km !== undefined ? s.distance_km : (s.distance_meters ? s.distance_meters / 1000 : (lastSet?.distance_meters ? lastSet.distance_meters / 1000 : null)),
+              indicator: s.indicator || s.set_type || 'normal',
+              weight_kg: (s.weight_kg !== undefined && s.weight_kg !== '' && s.weight_kg !== 0) ? s.weight_kg : '',
+              reps: (s.reps !== undefined && s.reps !== '' && s.reps !== 0) ? s.reps : '',
+              duration_seconds: s.duration_seconds || null,
+              distance_meters: s.distance_meters || null,
+              distance_km: s.distance_km || null,
               is_checked: false,
             };
           });
         } else {
           const targetSetsCount = parseInt(item.target_sets, 10) || (lastPerf?.sets.length || 3);
-          const isDist = finalExercise.exercise_type === 'distance_duration';
-          const isDur = finalExercise.exercise_type === 'duration_only';
-
           initialSets = Array.from({ length: targetSetsCount }).map((_, setIdx) => {
-            const lastSet = lastPerf?.sets[setIdx] || lastPerf?.sets[0];
             return {
               id: `${Date.now()}-${idx}-${setIdx}`,
-              indicator: lastSet?.indicator || 'normal',
-              weight_kg: isDist || isDur ? '' : (item.target_weight || lastSet?.weight_kg || 20),
-              reps: isDist || isDur ? '' : (item.target_reps || lastSet?.reps || 10),
-              duration_seconds: isDist ? (lastSet?.duration_seconds || 1200) : isDur ? (lastSet?.duration_seconds || 60) : null,
-              distance_meters: isDist ? (lastSet?.distance_meters || 5000) : null,
-              distance_km: isDist ? ((lastSet?.distance_meters || 5000) / 1000) : null,
+              indicator: 'normal',
+              weight_kg: '',
+              reps: '',
+              duration_seconds: null,
+              distance_meters: null,
+              distance_km: null,
               is_checked: false,
             };
           });
@@ -314,19 +302,18 @@ export default function LiveWorkoutLogger({
   // Add new exercise to active session
   const handleAddExercise = (exercise) => {
     const isDist = exercise.exercise_type === 'distance_duration';
-    const isDur = exercise.exercise_type === 'duration_only';
     const lastPerf = getLastPerformanceForExercise(exercise, workouts);
 
     let initialSets = [];
     if (lastPerf && lastPerf.sets.length > 0) {
-      initialSets = lastPerf.sets.map((s, sIdx) => ({
+      initialSets = lastPerf.sets.map((_, sIdx) => ({
         id: `${Date.now()}-${sIdx}`,
-        indicator: s.indicator || 'normal',
-        weight_kg: s.weight_kg !== undefined && s.weight_kg !== null ? s.weight_kg : '',
-        reps: s.reps !== undefined && s.reps !== null ? s.reps : '',
-        duration_seconds: s.duration_seconds || (isDur ? 60 : null),
-        distance_meters: s.distance_meters || (isDist ? 5000 : null),
-        distance_km: s.distance_meters ? s.distance_meters / 1000 : (s.distance_km || null),
+        indicator: 'normal',
+        weight_kg: '',
+        reps: '',
+        duration_seconds: null,
+        distance_meters: null,
+        distance_km: null,
         is_checked: false,
       }));
     } else {
@@ -334,11 +321,11 @@ export default function LiveWorkoutLogger({
         {
           id: Date.now().toString(),
           indicator: 'normal',
-          weight_kg: isDist || isDur ? '' : 20,
-          reps: isDist || isDur ? '' : 10,
-          duration_seconds: isDist ? 1200 : isDur ? 60 : null,
-          distance_meters: isDist ? 5000 : null,
-          distance_km: isDist ? 5 : null,
+          weight_kg: '',
+          reps: '',
+          duration_seconds: null,
+          distance_meters: null,
+          distance_km: null,
           is_checked: false,
         },
       ];
@@ -384,16 +371,40 @@ export default function LiveWorkoutLogger({
     });
   };
 
+  // Drag and drop reordering handlers
+  const handleDragStart = (e, index) => {
+    setDraggedItemIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, targetIndex) => {
+    e.preventDefault();
+    if (draggedItemIndex === null || draggedItemIndex === targetIndex) return;
+
+    setWorkoutExercises((prev) => {
+      const updated = [...prev];
+      const [draggedItem] = updated.splice(draggedItemIndex, 1);
+      updated.splice(targetIndex, 0, draggedItem);
+      return updated;
+    });
+
+    setDraggedItemIndex(null);
+  };
+
   const handleAddSet = (exIndex) => {
     setWorkoutExercises((prev) => {
       return prev.map((item, idx) => {
         if (idx === exIndex) {
-          const lastSet = item.sets[item.sets.length - 1];
           const newSet = {
             id: Date.now().toString(),
             indicator: 'normal',
-            weight_kg: lastSet ? lastSet.weight_kg : 20,
-            reps: lastSet ? lastSet.reps : 10,
+            weight_kg: '',
+            reps: '',
             is_checked: false,
           };
           return { ...item, sets: [...item.sets, newSet] };
@@ -454,7 +465,6 @@ export default function LiveWorkoutLogger({
     const allSets = [];
     workoutExercises.forEach((item) => {
       item.sets.forEach((s) => {
-        // Include set if checked OR if it has any non-zero values entered
         const hasValue =
           s.is_checked ||
           (s.weight_kg !== undefined && parseFloat(s.weight_kg) > 0) ||
@@ -503,7 +513,7 @@ export default function LiveWorkoutLogger({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-900">
-              {replaceExerciseIndex !== null ? 'Reemplazar Ejercicio' : 'Seleccionar Ejercicio'}
+              {replaceExerciseIndex !== null ? 'Replace Exercise' : 'Select Exercise'}
             </h3>
             <button
               onClick={() => {
@@ -553,7 +563,7 @@ export default function LiveWorkoutLogger({
             </div>
           )}
 
-          {/* Hevy-Style Live Session Header Card (Screenshots 2 & 4) */}
+          {/* Hevy-Style Live Session Header Card */}
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xs">
             {/* Header Row */}
             <div className="flex items-center justify-between gap-3">
@@ -597,7 +607,7 @@ export default function LiveWorkoutLogger({
                   onClick={handleFinish}
                   className="rounded-xl px-4 py-2 bg-indigo-600 hover:bg-indigo-700 font-extrabold shadow-sm"
                 >
-                  Terminar
+                  Finish
                 </Button>
               </div>
             </div>
@@ -606,17 +616,17 @@ export default function LiveWorkoutLogger({
             <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-600 font-semibold">
               <div className="flex items-center gap-6">
                 <div>
-                  <span className="text-[11px] font-medium text-slate-400 block">Duración</span>
+                  <span className="text-[11px] font-medium text-slate-400 block">Duration</span>
                   <span className="font-mono font-extrabold text-indigo-600 text-sm">{formatTimer(secondsElapsed)}</span>
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-medium text-slate-400 block">Volumen</span>
+                  <span className="text-[11px] font-medium text-slate-400 block">Volume</span>
                   <span className="font-mono font-extrabold text-slate-900 text-sm">{totalLiveVolumeKg.toLocaleString()} kg</span>
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-medium text-slate-400 block">Series</span>
+                  <span className="text-[11px] font-medium text-slate-400 block">Sets</span>
                   <span className="font-mono font-extrabold text-slate-900 text-sm">{totalCompletedSets}</span>
                 </div>
               </div>
@@ -645,13 +655,14 @@ export default function LiveWorkoutLogger({
                 const exType = item.exercise?.exercise_type || 'weight_reps';
                 const isDistanceDuration = exType === 'distance_duration';
                 const isDurationOnly = exType === 'duration_only';
+                const restSecs = item.rest_seconds !== undefined ? item.rest_seconds : 90;
 
                 return (
                   <Card key={item.id} className="p-4 sm:p-5 space-y-4 shadow-xs border-slate-200/90">
-                    {/* Hevy Exercise Header Row (Screenshots 2 & 4) */}
+                    {/* Hevy Exercise Header Row */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {/* Circular Initials Avatar Badge (e.g. MR, PM, RE) */}
+                        {/* Circular Initials Avatar Badge */}
                         <div className="w-10 h-10 rounded-full bg-slate-200/80 border border-slate-300/60 text-slate-700 font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-2xs font-mono">
                           {initials}
                         </div>
@@ -664,22 +675,23 @@ export default function LiveWorkoutLogger({
                           {/* Exercise Notes Line */}
                           <input
                             type="text"
-                            placeholder="Agregar notas aquí..."
+                            placeholder="Add notes here..."
                             value={item.notes || ''}
                             onChange={(e) => handleUpdateExerciseNotes(exIdx, e.target.value)}
                             className="text-xs text-slate-500 placeholder-slate-400 bg-transparent focus:outline-none focus:border-b focus:border-indigo-400 w-full py-0.5"
                           />
 
                           {/* Configurable Rest Target Line */}
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setEditingRestForExerciseIndex(exIdx)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors pt-0.5"
+                          >
                             <Timer className="w-3.5 h-3.5" />
                             <span>
-                              Descanso:{' '}
-                              {(item.rest_seconds !== undefined ? item.rest_seconds : 90) === 0
-                                ? 'APAGADO'
-                                : `${item.rest_seconds !== undefined ? item.rest_seconds : 90}s`}
+                              Rest: {restSecs === 0 ? 'OFF' : `${restSecs}s`}
                             </span>
-                          </div>
+                          </button>
                         </div>
                       </div>
 
@@ -694,25 +706,33 @@ export default function LiveWorkoutLogger({
                       </button>
                     </div>
 
-                    {/* Hevy Sets Table (Screenshots 2 & 4) */}
+                    {/* Hevy Sets Table */}
                     <div className="space-y-2 pt-2 border-t border-slate-100">
                       <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
-                        <span className="col-span-2 text-left">SERIE</span>
-                        <span className="col-span-3 text-center">ANTERIOR</span>
-                        <span className="col-span-3 text-center">{isDistanceDuration ? 'KM' : isDurationOnly ? 'TIEMPO' : 'KG'}</span>
-                        <span className="col-span-3 text-center">{isDistanceDuration ? 'TIEMPO' : isDurationOnly ? '-' : 'REPS'}</span>
+                        <span className="col-span-1 text-left">SET</span>
+                        <span className="col-span-4 text-center">PREVIOUS</span>
+                        <span className="col-span-3 text-center">{isDistanceDuration ? 'KM' : isDurationOnly ? 'TIME' : 'KG'}</span>
+                        <span className="col-span-2 text-center">{isDistanceDuration ? 'TIME' : isDurationOnly ? '-' : 'REPS'}</span>
                         <span className="col-span-1 text-center">✓</span>
+                        <span className="col-span-1 text-center"></span>
                       </div>
 
                       {item.sets.map((set, setIdx) => {
                         const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts);
-                        const prevSet = lastPerf?.sets?.[setIdx];
+                        const prevSet = lastPerf?.sets?.[setIdx] || lastPerf?.sets?.[0];
                         let prevText = '-';
                         if (prevSet) {
                           if (prevSet.weight_kg && prevSet.reps) prevText = `${prevSet.weight_kg}kg × ${prevSet.reps}`;
                           else if (prevSet.reps) prevText = `× ${prevSet.reps}`;
                           else if (prevSet.duration_seconds) prevText = `${prevSet.duration_seconds}s`;
                         }
+
+                        const placeholderWeight = prevSet?.weight_kg !== undefined && prevSet?.weight_kg !== null && prevSet?.weight_kg !== ''
+                          ? String(prevSet.weight_kg)
+                          : '0';
+                        const placeholderReps = prevSet?.reps !== undefined && prevSet?.reps !== null && prevSet?.reps !== ''
+                          ? String(prevSet.reps)
+                          : '0';
 
                         return (
                           <div
@@ -724,7 +744,7 @@ export default function LiveWorkoutLogger({
                             }`}
                           >
                             {/* Set Number */}
-                            <div className="col-span-2 flex items-center gap-1 font-mono font-extrabold text-slate-700 text-xs">
+                            <div className="col-span-1 flex items-center gap-1 font-mono font-extrabold text-slate-700 text-xs">
                               <span>{setIdx + 1}</span>
                               {set.indicator && set.indicator !== 'normal' && (
                                 <span className="text-[10px] uppercase px-1 py-0.2 bg-amber-100 text-amber-800 rounded font-bold">
@@ -734,7 +754,7 @@ export default function LiveWorkoutLogger({
                             </div>
 
                             {/* Previous Performance */}
-                            <div className="col-span-3 text-center text-xs text-slate-400 font-mono font-medium truncate">
+                            <div className="col-span-4 text-center text-xs text-slate-400 font-mono font-medium truncate">
                               {prevText}
                             </div>
 
@@ -743,21 +763,23 @@ export default function LiveWorkoutLogger({
                               <input
                                 type="number"
                                 step="any"
-                                placeholder="0"
+                                placeholder={placeholderWeight}
                                 value={set.weight_kg ?? set.distance_km ?? set.duration_seconds ?? ''}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'weight_kg', e.target.value)}
-                                className="w-full text-center py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono"
+                                className="w-full text-center py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono placeholder:text-slate-300"
                               />
                             </div>
 
                             {/* REPS Input */}
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <input
                                 type="number"
-                                placeholder="0"
+                                placeholder={placeholderReps}
                                 value={set.reps ?? ''}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'reps', e.target.value)}
-                                className="w-full text-center py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono"
+                                className="w-full text-center py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono placeholder:text-slate-300"
                               />
                             </div>
 
@@ -775,18 +797,30 @@ export default function LiveWorkoutLogger({
                                 <Check className="w-4 h-4 stroke-[3]" />
                               </button>
                             </div>
+
+                            {/* Delete Individual Set Button */}
+                            <div className="col-span-1 flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSet(exIdx, setIdx)}
+                                className="p-1 text-slate-300 hover:text-rose-600 rounded-lg transition-colors"
+                                title="Delete Set"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
 
-                      {/* + Agregar Serie Full-Width Pill Button (Screenshots 2 & 4) */}
+                      {/* + Add Set Full-Width Pill Button */}
                       <button
                         type="button"
                         onClick={() => handleAddSet(exIdx)}
                         className="w-full mt-2 py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors border border-slate-200/60"
                       >
                         <Plus className="w-4 h-4" />
-                        <span>Agregar Serie</span>
+                        <span>Add Set</span>
                       </button>
                     </div>
                   </Card>
@@ -807,7 +841,47 @@ export default function LiveWorkoutLogger({
         </>
       )}
 
-      {/* Exercise 3-Dots Context Menu Bottom Sheet (Screenshot 3) */}
+      {/* Rest Target Selector Modal */}
+      {editingRestForExerciseIndex !== null && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 cursor-pointer animate-in fade-in duration-150"
+          onClick={() => setEditingRestForExerciseIndex(null)}
+        >
+          <div
+            className="w-full max-w-xs bg-white rounded-t-3xl sm:rounded-2xl p-5 space-y-4 shadow-2xl border border-slate-200 cursor-default animate-in slide-in-from-bottom duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="font-bold text-slate-900 text-sm">Select Rest Target</h3>
+              <button onClick={() => setEditingRestForExerciseIndex(null)} className="p-1 text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 30, 60, 90, 120, 150, 180, 240, 300].map((sec) => (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => {
+                    handleUpdateExerciseRest(editingRestForExerciseIndex, sec);
+                    setEditingRestForExerciseIndex(null);
+                  }}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${
+                    (workoutExercises[editingRestForExerciseIndex]?.rest_seconds ?? 90) === sec
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                      : 'bg-slate-50 border-slate-200/80 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  {sec === 0 ? 'OFF' : `${sec}s`}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exercise 3-Dots Context Menu Bottom Sheet */}
       {menuExerciseIndex !== null && (
         <div
           className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 cursor-pointer animate-in fade-in duration-150"
@@ -820,7 +894,7 @@ export default function LiveWorkoutLogger({
             {/* Grab Handle Bar */}
             <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-2" />
 
-            {/* Option 1: Reordenar */}
+            {/* Option 1: Reorder */}
             <button
               type="button"
               onClick={() => {
@@ -830,10 +904,10 @@ export default function LiveWorkoutLogger({
               className="w-full flex items-center gap-3 p-3.5 text-slate-800 hover:bg-slate-100 rounded-xl text-sm font-bold transition-colors"
             >
               <GripVertical className="w-5 h-5 text-slate-600" />
-              <span>Reordenar</span>
+              <span>Reorder</span>
             </button>
 
-            {/* Option 2: Reemplazar Ejercicio */}
+            {/* Option 2: Replace Exercise */}
             <button
               type="button"
               onClick={() => {
@@ -845,10 +919,10 @@ export default function LiveWorkoutLogger({
               className="w-full flex items-center gap-3 p-3.5 text-slate-800 hover:bg-slate-100 rounded-xl text-sm font-bold transition-colors"
             >
               <RotateCcw className="w-5 h-5 text-slate-600" />
-              <span>Reemplazar Ejercicio</span>
+              <span>Replace Exercise</span>
             </button>
 
-            {/* Option 3: Agregar a Superserie */}
+            {/* Option 3: Add to Superset */}
             <button
               type="button"
               onClick={() => {
@@ -857,10 +931,10 @@ export default function LiveWorkoutLogger({
               className="w-full flex items-center gap-3 p-3.5 text-slate-800 hover:bg-slate-100 rounded-xl text-sm font-bold transition-colors"
             >
               <Plus className="w-5 h-5 text-slate-600" />
-              <span>Agregar a Superserie</span>
+              <span>Add to Superset</span>
             </button>
 
-            {/* Option 4: Eliminar Ejercicio */}
+            {/* Option 4: Remove Exercise */}
             <button
               type="button"
               onClick={() => {
@@ -871,13 +945,13 @@ export default function LiveWorkoutLogger({
               className="w-full flex items-center gap-3 p-3.5 text-rose-600 hover:bg-rose-50 rounded-xl text-sm font-bold transition-colors pt-3 border-t border-slate-100"
             >
               <Trash2 className="w-5 h-5 text-rose-600" />
-              <span>Eliminar Ejercicio</span>
+              <span>Remove Exercise</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* Dedicated Reorder View Modal (Screenshot 1) */}
+      {/* Interactive Drag & Drop Reorder View Modal */}
       {isReorderMode && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col p-4 sm:p-6 space-y-5 animate-in fade-in duration-150 overflow-y-auto">
           {/* Reorder Header */}
@@ -889,7 +963,7 @@ export default function LiveWorkoutLogger({
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h3 className="text-lg font-bold text-slate-900">Reordenar</h3>
+            <h3 className="text-lg font-bold text-slate-900">Reorder Exercises</h3>
             <div className="w-9" />
           </div>
 
@@ -898,10 +972,18 @@ export default function LiveWorkoutLogger({
             {workoutExercises.map((item, exIdx) => {
               const exName = item.exercise.name || item.exercise.name_es;
               const initials = getExerciseInitials(exName);
+              const isBeingDragged = draggedItemIndex === exIdx;
+
               return (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-2xs"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, exIdx)}
+                  onDragOver={(e) => handleDragOver(e, exIdx)}
+                  onDrop={(e) => handleDrop(e, exIdx)}
+                  className={`flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-2xs cursor-grab active:cursor-grabbing transition-all ${
+                    isBeingDragged ? 'opacity-40 scale-95 border-indigo-400' : 'hover:border-slate-300'
+                  }`}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {/* Red Minus Remove Circle */}
@@ -942,21 +1024,21 @@ export default function LiveWorkoutLogger({
                     >
                       <ArrowDown className="w-4 h-4" />
                     </button>
-                    <GripVertical className="w-5 h-5 text-slate-400 ml-1" />
+                    <GripVertical className="w-5 h-5 text-slate-400 ml-1 cursor-grab" />
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Bottom Primary Ok Button */}
+          {/* Bottom Primary Done Button */}
           <Button
             variant="primary"
             size="lg"
             className="w-full justify-center py-3.5 rounded-2xl font-extrabold text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
             onClick={() => setIsReorderMode(false)}
           >
-            Ok
+            Done
           </Button>
         </div>
       )}
