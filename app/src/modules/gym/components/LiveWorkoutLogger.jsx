@@ -44,12 +44,12 @@ function getExerciseInitials(name) {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
-export function getLastPerformanceForExercise(targetExercise, workouts = []) {
+export function getLastPerformanceForExercise(targetExercise, workouts = [], catalogExercises = []) {
   if (!targetExercise || !workouts || workouts.length === 0) return null;
 
   for (const w of workouts) {
     const sets = w.workout_sets || [];
-    const exSets = sets.filter((s) => doesSetMatchExercise(s, targetExercise));
+    const exSets = sets.filter((s) => doesSetMatchExercise(s, targetExercise, catalogExercises));
 
     if (exSets.length > 0) {
       return {
@@ -726,7 +726,7 @@ export default function LiveWorkoutLogger({
                       </div>
 
                       {item.sets.map((set, setIdx) => {
-                        const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts);
+                        const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
                         const prevSet = lastPerf?.sets?.[setIdx] || lastPerf?.sets?.[0];
                         let prevText = '-';
                         if (prevSet) {
@@ -1090,7 +1090,7 @@ export default function LiveWorkoutLogger({
               </h4>
               {(() => {
                 const matchedWorkouts = workouts.filter((w) =>
-                  (w.workout_sets || []).some((s) => doesSetMatchExercise(s, selectedExerciseForHistory))
+                  (w.workout_sets || []).some((s) => doesSetMatchExercise(s, selectedExerciseForHistory, exercises))
                 );
 
                 if (matchedWorkouts.length === 0) {
@@ -1105,7 +1105,7 @@ export default function LiveWorkoutLogger({
                   <div className="space-y-3">
                     {matchedWorkouts.slice(0, 10).map((w) => {
                       const sets = (w.workout_sets || []).filter((s) =>
-                        doesSetMatchExercise(s, selectedExerciseForHistory)
+                        doesSetMatchExercise(s, selectedExerciseForHistory, exercises)
                       );
 
                       return (

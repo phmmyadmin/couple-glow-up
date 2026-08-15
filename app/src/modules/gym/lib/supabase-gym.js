@@ -177,30 +177,53 @@ export function stripExerciseName(name) {
     .trim();
 }
 
-export function doesSetMatchExercise(set, targetExercise) {
+export function doesSetMatchExercise(set, targetExercise, catalogExercises = []) {
   if (!set || !targetExercise) return false;
 
   const sId = set.exercise_id || set.exercise?.id || set.exercises?.id;
-  if (sId && targetExercise.id && sId === targetExercise.id) return true;
+  const tId = targetExercise.id || targetExercise.exercise_id;
 
+  // 1. Direct ID equality
+  if (sId && tId && sId === tId) return true;
+
+  // 2. Resolve catalog objects if available
+  let setCatalogEx = set.exercise || set.exercises;
+  if (!setCatalogEx && sId && Array.isArray(catalogExercises) && catalogExercises.length > 0) {
+    setCatalogEx = catalogExercises.find((e) => e.id === sId);
+  }
+
+  let targetCatalogEx = targetExercise;
+  if (tId && Array.isArray(catalogExercises) && catalogExercises.length > 0) {
+    const found = catalogExercises.find((e) => e.id === tId);
+    if (found) targetCatalogEx = found;
+  }
+
+  // 3. Compare resolved catalog IDs
+  if (setCatalogEx?.id && targetCatalogEx?.id && setCatalogEx.id === targetCatalogEx.id) return true;
+
+  // 4. Extract raw exercise names
   const rawSetName = (
-    set.exercise?.name ||
-    set.exercise?.name_es ||
-    set.exercises?.name ||
-    set.exercises?.name_es ||
+    setCatalogEx?.name ||
+    setCatalogEx?.name_es ||
     set.exercise_name ||
     set.name ||
     ''
   ).toLowerCase().trim();
 
-  if (!rawSetName) return false;
+  const targetName = (
+    targetCatalogEx?.name ||
+    targetCatalogEx?.name_es ||
+    targetExercise.name ||
+    targetExercise.name_es ||
+    ''
+  ).toLowerCase().trim();
 
-  const targetName = (targetExercise.name || targetExercise.name_es || '').toLowerCase().trim();
+  if (!rawSetName || !targetName) return false;
 
-  // 1. Direct name equality
+  // 5. Direct name equality
   if (rawSetName === targetName) return true;
 
-  // 2. Map dictionary matching
+  // 6. Dictionary lookup
   const mappedEnglishName = SPANISH_TO_ENGLISH_EXERCISE_MAP[rawSetName];
   if (mappedEnglishName && mappedEnglishName === targetName) return true;
 
@@ -209,13 +232,13 @@ export function doesSetMatchExercise(set, targetExercise) {
 
   if (mappedEnglishName && targetMappedEnglishName && mappedEnglishName === targetMappedEnglishName) return true;
 
-  // 3. Stripped base name matching (ignoring accents, punctuation, and (Machine)/(máquina) tags)
+  // 7. Stripped base name fuzzy matching
   const strippedSet = stripExerciseName(mappedEnglishName || rawSetName);
   const strippedTarget = stripExerciseName(targetMappedEnglishName || targetName);
 
   if (strippedSet && strippedTarget) {
     if (strippedSet === strippedTarget) return true;
-    if (strippedSet.length >= 4 && strippedTarget.length >= 4) {
+    if (strippedSet.length >= 3 && strippedTarget.length >= 3) {
       if (strippedSet.includes(strippedTarget) || strippedTarget.includes(strippedSet)) return true;
     }
   }
