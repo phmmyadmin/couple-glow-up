@@ -108,17 +108,49 @@ export default function LiveWorkoutLogger({
   const [isRestTimerActive, setIsRestTimerActive] = useState(false);
   const [defaultRestSeconds, setDefaultRestSeconds] = useState(90);
 
+  const restEndTimeRef = React.useRef(
+    initialWorkoutState?.restEndTime || null
+  );
+
   // Duration Edit Modal State
   const [isEditingTimeModal, setIsEditingTimeModal] = useState(false);
   const [editMinutesInput, setEditMinutesInput] = useState('');
 
-  // Timer interval for main session duration
+  // Main session duration & rest timer updater (Timestamp-delta based for mobile screen lock support)
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsElapsed(Math.max(0, Math.floor((Date.now() - startTimeRef.current) / 1000)));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    const updateTimers = () => {
+      // 1. Update session duration timer
+      if (startTimeRef.current) {
+        setSecondsElapsed(Math.max(0, Math.floor((Date.now() - startTimeRef.current) / 1000)));
+      }
+
+      // 2. Update rest countdown timer
+      if (isRestTimerActive && restEndTimeRef.current) {
+        const remaining = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+        setRestTimerSeconds(remaining);
+        if (remaining <= 0) {
+          setIsRestTimerActive(false);
+          restEndTimeRef.current = null;
+        }
+      }
+    };
+
+    updateTimers();
+    const timer = setInterval(updateTimers, 1000);
+
+    const handleVisibilityOrFocus = () => {
+      updateTimers();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+    };
+  }, [isRestTimerActive]);
 
   // Auto-persist active workout state to localStorage
   useEffect(() => {
@@ -127,6 +159,7 @@ export default function LiveWorkoutLogger({
         workoutName,
         startTime: startTimeRef.current,
         secondsElapsed,
+        restEndTime: restEndTimeRef.current,
         workoutExercises,
         activeRoutine: initialRoutine,
         lastUpdated: Date.now(),
@@ -136,27 +169,26 @@ export default function LiveWorkoutLogger({
     }
   }, [workoutName, secondsElapsed, workoutExercises, initialRoutine]);
 
-  // Timer interval for rest countdown
-  useEffect(() => {
-    let interval = null;
-    if (isRestTimerActive && restTimerSeconds > 0) {
-      interval = setInterval(() => {
-        setRestTimerSeconds((prev) => {
-          if (prev <= 1) {
-            setIsRestTimerActive(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else if (restTimerSeconds === 0) {
-      setIsRestTimerActive(false);
-    }
-    return () => clearInterval(interval);
-  }, [isRestTimerActive, restTimerSeconds]);
-
   const startRestTimer = (seconds = defaultRestSeconds) => {
+    if (seconds <= 0) {
+      setIsRestTimerActive(false);
+      restEndTimeRef.current = null;
+      setRestTimerSeconds(0);
+      return;
+    }
+    restEndTimeRef.current = Date.now() + seconds * 1000;
     setRestTimerSeconds(seconds);
+    setIsRestTimerActive(true);
+  };
+
+  const handleAdd30sRest = () => {
+    if (restEndTimeRef.current) {
+      restEndTimeRef.current += 30 * 1000;
+    } else {
+      restEndTimeRef.current = Date.now() + 30 * 1000;
+    }
+    const remaining = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+    setRestTimerSeconds(remaining);
     setIsRestTimerActive(true);
   };
 
@@ -580,7 +612,7 @@ export default function LiveWorkoutLogger({
                   variant="secondary"
                   size="sm"
                   className="py-1 px-2.5 text-xs font-bold"
-                  onClick={() => setRestTimerSeconds((p) => p + 30)}
+                  onClick={handleAdd30sRest}
                 >
                   +30s
                 </Button>
