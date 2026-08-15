@@ -708,8 +708,8 @@ export default function LiveWorkoutLogger({
 
                     {/* Hevy Sets Table */}
                     <div className="space-y-2 pt-2 border-t border-slate-100">
-                      <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
-                        <span className="col-span-2 text-center">SET / TYPE</span>
+                      <div className="grid grid-cols-12 gap-1 sm:gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
+                        <span className="col-span-2 text-center">SET</span>
                         <span className="col-span-3 text-center">PREVIOUS</span>
                         <span className="col-span-3 text-center">{isDistanceDuration ? 'KM' : isDurationOnly ? 'TIME' : 'KG'}</span>
                         <span className="col-span-2 text-center">{isDistanceDuration ? 'TIME' : isDurationOnly ? '-' : 'REPS'}</span>
@@ -737,18 +737,18 @@ export default function LiveWorkoutLogger({
                         return (
                           <div
                             key={set.id || `set-${exIdx}-${setIdx}`}
-                            className={`grid grid-cols-12 gap-2 items-center p-2 rounded-xl border transition-all ${
+                            className={`grid grid-cols-12 gap-1 sm:gap-2 items-center p-1.5 sm:p-2 rounded-xl border transition-all ${
                               set.is_checked
                                 ? 'bg-emerald-50/50 border-emerald-200/70'
                                 : 'bg-white border-slate-200/80'
                             }`}
                           >
-                            {/* Explicit Set Type Dropdown & Number */}
+                            {/* Explicit Set Type Dropdown & Number (2 cols) */}
                             <div className="col-span-2 flex items-center justify-center">
                               <select
                                 value={set.indicator || 'normal'}
                                 onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'indicator', e.target.value)}
-                                className={`text-xs font-mono font-extrabold px-2 py-1 rounded-lg border appearance-none text-center cursor-pointer focus:outline-none transition-all shadow-2xs ${
+                                className={`text-[11px] sm:text-xs font-mono font-extrabold px-1 sm:px-2 py-1 rounded-lg border appearance-none text-center cursor-pointer focus:outline-none transition-all shadow-2xs ${
                                   set.indicator === 'warmup'
                                     ? 'bg-amber-100 border-amber-300 text-amber-900 font-extrabold'
                                     : set.indicator === 'drop'
@@ -760,18 +760,18 @@ export default function LiveWorkoutLogger({
                                 title="Set Type: Normal (1, 2, 3), Warmup (W), Drop Set (D), Failure (F)"
                               >
                                 <option value="normal">{setIdx + 1}</option>
-                                <option value="warmup">W (Warmup)</option>
-                                <option value="drop">D (Drop Set)</option>
-                                <option value="failure">F (Failure)</option>
+                                <option value="warmup">W</option>
+                                <option value="drop">D</option>
+                                <option value="failure">F</option>
                               </select>
                             </div>
 
-                            {/* Previous Performance */}
-                            <div className="col-span-4 text-center text-xs text-slate-400 font-mono font-medium truncate">
+                            {/* Previous Performance (3 cols) */}
+                            <div className="col-span-3 text-center text-[10px] sm:text-xs text-slate-400 font-mono font-medium truncate">
                               {prevText}
                             </div>
 
-                            {/* KG / Value Input */}
+                            {/* KG / Value Input (3 cols) */}
                             <div className="col-span-3">
                               <input
                                 type="number"
@@ -780,11 +780,11 @@ export default function LiveWorkoutLogger({
                                 value={set.weight_kg ?? set.distance_km ?? set.duration_seconds ?? ''}
                                 onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'weight_kg', e.target.value)}
-                                className="w-full text-center py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono placeholder:text-slate-300"
+                                className="w-full text-center py-1 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono placeholder:text-slate-300"
                               />
                             </div>
 
-                            {/* REPS Input */}
+                            {/* REPS Input (2 cols) */}
                             <div className="col-span-2">
                               <input
                                 type="number"
@@ -792,31 +792,31 @@ export default function LiveWorkoutLogger({
                                 value={set.reps ?? ''}
                                 onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'reps', e.target.value)}
-                                className="w-full text-center py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono placeholder:text-slate-300"
+                                className="w-full text-center py-1 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono placeholder:text-slate-300"
                               />
                             </div>
 
-                            {/* Checkmark Completion Button */}
+                            {/* Checkmark Completion Button (1 col) */}
                             <div className="col-span-1 flex justify-center">
                               <button
                                 type="button"
                                 onClick={() => handleUpdateSetField(exIdx, setIdx, 'is_checked', !set.is_checked)}
-                                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center transition-all ${
                                   set.is_checked
                                     ? 'bg-emerald-500 text-white shadow-2xs scale-105'
                                     : 'bg-slate-100 border border-slate-200 text-slate-400 hover:border-slate-300'
                                 }`}
                               >
-                                <Check className="w-4 h-4 stroke-[3]" />
+                                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
                               </button>
                             </div>
 
-                            {/* Delete Individual Set Button */}
+                            {/* Delete Individual Set Button (1 col) */}
                             <div className="col-span-1 flex justify-center">
                               <button
                                 type="button"
                                 onClick={() => handleRemoveSet(exIdx, setIdx)}
-                                className="p-1 text-slate-300 hover:text-rose-600 rounded-lg transition-colors"
+                                className="p-0.5 text-slate-300 hover:text-rose-600 rounded-lg transition-colors"
                                 title="Delete Set"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
