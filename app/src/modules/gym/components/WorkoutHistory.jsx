@@ -3,11 +3,12 @@ import { History, Trophy, Calendar, Clock, Flame, ChevronDown, ChevronUp, Search
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
-import { formatExerciseName } from '../lib/supabase-gym';
+import { formatExerciseName, doesSetMatchExercise } from '../lib/supabase-gym';
 import { getMuscleGroupLabel } from './ExerciseLibrary';
 
 export default function WorkoutHistory({
   workouts,
+  exercises = [],
   personalRecords,
   onDeleteWorkout,
   onUpdateWorkout,
@@ -15,6 +16,7 @@ export default function WorkoutHistory({
 }) {
   const [expandedWorkoutId, setExpandedWorkoutId] = useState(initialExpandedWorkoutId);
   const [searchFilter, setSearchFilter] = useState('');
+  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState(null);
 
   // Sync if initialExpandedWorkoutId changes externally
   React.useEffect(() => {
@@ -249,7 +251,11 @@ export default function WorkoutHistory({
                       className="space-y-2 border-b border-slate-100 last:border-0 pb-3.5 last:pb-0"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <h5 className="text-sm font-extrabold text-slate-900 leading-snug break-words">
+                        <h5
+                          onClick={() => setSelectedExerciseForHistory(exGroup.exerciseObj || { id: exGroup.id, name: exGroup.name, muscle_group: exGroup.muscle_group })}
+                          className="text-sm font-extrabold text-indigo-600 hover:text-indigo-800 leading-snug break-words cursor-pointer hover:underline"
+                          title="Click to view Exercise Performance History"
+                        >
                           {exGroup.sets.length}x {exGroup.name}
                         </h5>
                         {exGroup.muscle_group && (
@@ -356,6 +362,89 @@ export default function WorkoutHistory({
               </div>
             </form>
           </Card>
+        </div>
+      )}
+
+      {/* Exercise Performance History Modal */}
+      {selectedExerciseForHistory && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setSelectedExerciseForHistory(null)}
+        >
+          <div
+            className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto space-y-4 shadow-2xl border border-slate-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                  <Dumbbell className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+                    {selectedExerciseForHistory.name || selectedExerciseForHistory.name_es}
+                  </h3>
+                  <span className="text-xs text-indigo-600 font-semibold capitalize">
+                    {getMuscleGroupLabel(selectedExerciseForHistory.muscle_group)}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedExerciseForHistory(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 pt-1">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Performance History Across Workouts
+              </h4>
+              {(() => {
+                const matchedWorkouts = workouts.filter((w) =>
+                  (w.workout_sets || []).some((s) => doesSetMatchExercise(s, selectedExerciseForHistory, exercises))
+                );
+
+                if (matchedWorkouts.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-slate-400 text-sm">
+                      No logged workout history found for this exercise.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {matchedWorkouts.slice(0, 10).map((w) => {
+                      const sets = (w.workout_sets || []).filter((s) =>
+                        doesSetMatchExercise(s, selectedExerciseForHistory, exercises)
+                      );
+
+                      return (
+                        <div key={w.id} className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl space-y-2">
+                          <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                            <span>{w.name}</span>
+                            <span className="text-slate-400 font-normal">
+                              {new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap gap-1.5">
+                            {sets.map((s, idx) => (
+                              <span key={idx} className="bg-white border border-slate-200 text-slate-800 font-mono text-[11px] font-bold px-2 py-0.5 rounded-md shadow-2xs">
+                                {s.weight_kg ? `${s.weight_kg}kg × ` : ''}{s.reps ? `${s.reps}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       )}
     </div>

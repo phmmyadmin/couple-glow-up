@@ -439,6 +439,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
       {gymTab === 'history' && (
         <WorkoutHistory
           workouts={workouts}
+          exercises={exercises}
           personalRecords={personalRecords}
           onDeleteWorkout={handleDeleteWorkout}
           onUpdateWorkout={handleUpdateWorkout}
