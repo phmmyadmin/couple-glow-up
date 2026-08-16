@@ -56,7 +56,14 @@ export default function DailyTimeline({
         if (freshData && typeof setData === 'function') setData(freshData);
       }
     } else if (typeof setData === 'function' && data) {
-      const targetDate = selectedDate || new Date().toISOString().slice(0, 10);
+      const getLocalDateStr = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      const targetDate = selectedDate || getLocalDateStr();
       const updatedLogs = [...(data.dailyLogs || [])];
       const dayIdx = updatedLogs.findIndex((l) => l.date === targetDate);
       if (dayIdx >= 0 && updatedLogs[dayIdx].intakes) {
@@ -96,7 +103,14 @@ export default function DailyTimeline({
         if (freshData && typeof setData === 'function') setData(freshData);
       }
     } else if (typeof setData === 'function' && data) {
-      const targetDate = selectedDate || new Date().toISOString().slice(0, 10);
+      const getLocalDateStr = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      const targetDate = selectedDate || getLocalDateStr();
       const updatedLogs = [...(data.dailyLogs || [])];
       const dayIdx = updatedLogs.findIndex((l) => l.date === targetDate);
       if (dayIdx >= 0 && updatedLogs[dayIdx].intakes) {
@@ -252,11 +266,22 @@ export default function DailyTimeline({
     }
   };
 
+  const getItemMacros = (item) => {
+    if (!item) return { calories: 0, protein: 0, carbs: 0, fats: 0 };
+    return {
+      calories: item.macros?.calories ?? item.calories ?? 0,
+      protein: item.macros?.protein ?? item.protein ?? 0,
+      carbs: item.macros?.carbs ?? item.carbs ?? 0,
+      fats: item.macros?.fats ?? item.fats ?? 0,
+    };
+  };
+
   // Safety expansion: if any intake name contains '+' or '\+', expand it into sub-items
   const expandedIntakes = [];
   intakes.forEach((item, originalIdx) => {
     const rawName = item.name || item.description || '';
     let cleanName = rawName.replace(/^(?:Comida|Desayuno|Cena|Snack|Merienda)\s*\d*:\s*/i, '').trim();
+    const itemMacros = getItemMacros(item);
 
     if (cleanName.includes('+') || cleanName.includes('\\+')) {
       const parts = cleanName.split(/\\?\+/).map((p) => p.trim()).filter(Boolean);
@@ -264,6 +289,7 @@ export default function DailyTimeline({
       parts.forEach((part) => {
         const subName = part.replace(/^(?:Comida|Desayuno|Cena|Snack|Merienda)\s*\d*:\s*/i, '');
         expandedIntakes.push({
+          ...item,
           time: item.time || '12:00',
           dishName: item.dishName,
           name: subName,
@@ -271,10 +297,10 @@ export default function DailyTimeline({
           unit: 'porcion',
           category: item.category || 'other',
           macros: {
-            calories: Math.round(item.macros.calories / count),
-            protein: Math.round((item.macros.protein / count) * 10) / 10,
-            carbs: Math.round((item.macros.carbs / count) * 10) / 10,
-            fats: Math.round((item.macros.fats / count) * 10) / 10,
+            calories: Math.round(itemMacros.calories / count),
+            protein: Math.round((itemMacros.protein / count) * 10) / 10,
+            carbs: Math.round((itemMacros.carbs / count) * 10) / 10,
+            fats: Math.round((itemMacros.fats / count) * 10) / 10,
           },
           originalIndex: originalIdx,
         });
@@ -283,6 +309,7 @@ export default function DailyTimeline({
       expandedIntakes.push({
         ...item,
         name: cleanName,
+        macros: itemMacros,
         originalIndex: originalIdx,
       });
     }
@@ -472,10 +499,10 @@ export default function DailyTimeline({
                           </div>
 
                           <div className="flex flex-wrap gap-2.5 text-xs font-mono font-semibold">
-                            <span className="text-rose-500">{item.macros.calories} kcal</span>
-                            <span className="text-blue-600">{item.macros.protein}g P</span>
-                            <span className="text-emerald-600">{item.macros.carbs}g C</span>
-                            <span className="text-amber-600">{item.macros.fats}g F</span>
+                            <span className="text-rose-500">{item.macros?.calories ?? item.calories ?? 0} kcal</span>
+                            <span className="text-blue-600">{item.macros?.protein ?? item.protein ?? 0}g P</span>
+                            <span className="text-emerald-600">{item.macros?.carbs ?? item.carbs ?? 0}g C</span>
+                            <span className="text-amber-600">{item.macros?.fats ?? item.fats ?? 0}g F</span>
                           </div>
                         </div>
                       </div>
