@@ -1,8 +1,21 @@
 /**
  * Generic client-side parser fallback when Gemini LLM is unavailable or fails.
  * Strips command prefixes and parses multiple food items separated by commas, newlines, +, "y", "e".
- * Supports batch cooking & portion fraction calculations (e.g., "plato de 550g de tofu, 240g avena... me como 110g").
+ * Supports batch cooking & portion fraction calculations (e.g., "plato de 550g de tofu, 240g avena... me como 110g", "medio ice pop").
  */
+
+const KNOWN_UNIT_ITEMS = [
+  { keys: ['ice pop', 'polo', 'helado de hielo', 'popsicle', 'flash', 'polo de limon', 'polo de fresa', 'polo de naranja', 'helado de polo'], cals: 50, prot: 0, carbs: 12, fats: 0, cat: 'other' },
+  { keys: ['huevo', 'egg', 'huevos'], cals: 70, prot: 6.3, carbs: 0.5, fats: 5, cat: 'meat' },
+  { keys: ['manzana', 'apple'], cals: 80, prot: 0.4, carbs: 21, fats: 0.2, cat: 'fruit' },
+  { keys: ['platano', 'plátano', 'banana'], cals: 105, prot: 1.3, carbs: 27, fats: 0.3, cat: 'fruit' },
+  { keys: ['naranja', 'orange'], cals: 62, prot: 1.2, carbs: 15, fats: 0.2, cat: 'fruit' },
+  { keys: ['tostada', 'toast', 'rebanada de pan', 'slice of bread'], cals: 75, prot: 2.5, carbs: 14, fats: 1, cat: 'grains' },
+  { keys: ['galleta', 'cookie'], cals: 50, prot: 0.7, carbs: 7, fats: 2, cat: 'bakery' },
+  { keys: ['yogur', 'yogurt'], cals: 80, prot: 4, carbs: 10, fats: 2.5, cat: 'dairy' },
+  { keys: ['lata de atun', 'atun en lata', 'can of tuna'], cals: 120, prot: 26, carbs: 0, fats: 1.5, cat: 'meat' },
+];
+
 export function parseFoodTextLocal(text) {
   let rawText = text
     .replace(/^(?:añade|agrega|registra|hoy he comido|comí|comi|desayuné|desayune|cené|cene)\s+/i, '')
@@ -48,32 +61,59 @@ export function parseFoodTextLocal(text) {
     let unit = 'ud';
     let cleanName = seg;
 
-    // Grams match: "550g tofu" or "tofu 550g" or "240 gramos de avena"
-    const gramsMatch = lower.match(/^(\d+(?:\.\d+)?)\s*g(?:ramos|r)?\s+(?:de\s+)?(.+)$/i) ||
-                       lower.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*g(?:ramos|r)?$/i);
+    // Detect fraction words or symbols ("medio", "media", "1/2", "0.5", "cuarto")
+    let isFractionDetected = false;
 
-    // Qty match: "2 plátanos" or "plátano 2"
-    const qtyMatch = lower.match(/^(\d+(?:\.\d+)?)\s+(?:de\s+)?(.+)$/i) ||
-                     lower.match(/^(.+?)\s+(\d+(?:\.\d+)?)$/i);
+    if (/^(?:medio|media|mitad\s+de|mitad|half\s+a|half)\s+(.+)$/i.test(lower)) {
+      const match = lower.match(/^(?:medio|media|mitad\s+de|mitad|half\s+a|half)\s+(.+)$/i);
+      quantity = 0.5;
+      cleanName = match[1];
+      isFractionDetected = true;
+    } else if (/^(?:1\/2|0\.5)\s+(?:de\s+)?(.+)$/i.test(lower)) {
+      const match = lower.match(/^(?:1\/2|0\.5)\s+(?:de\s+)?(.+)$/i);
+      quantity = 0.5;
+      cleanName = match[1];
+      isFractionDetected = true;
+    } else if (/^(?:cuarto|un\s+cuarto|1\/4|0\.25)\s+(?:de\s+)?(.+)$/i.test(lower)) {
+      const match = lower.match(/^(?:cuarto|un\s+cuarto|1\/4|0\.25)\s+(?:de\s+)?(.+)$/i);
+      quantity = 0.25;
+      cleanName = match[1];
+      isFractionDetected = true;
+    } else if (/^(?:tres\s+cuartos|3\/4|0\.75)\s+(?:de\s+)?(.+)$/i.test(lower)) {
+      const match = lower.match(/^(?:tres\s+cuartos|3\/4|0\.75)\s+(?:de\s+)?(.+)$/i);
+      quantity = 0.75;
+      cleanName = match[1];
+      isFractionDetected = true;
+    }
 
-    if (gramsMatch) {
-      if (!isNaN(gramsMatch[1])) {
-        quantity = parseFloat(gramsMatch[1]);
-        cleanName = gramsMatch[2];
-      } else {
-        quantity = parseFloat(gramsMatch[2]);
-        cleanName = gramsMatch[1];
+    if (!isFractionDetected) {
+      // Grams match: "550g tofu" or "tofu 550g" or "240 gramos de avena"
+      const gramsMatch = lower.match(/^(\d+(?:\.\d+)?)\s*g(?:ramos|r)?\s+(?:de\s+)?(.+)$/i) ||
+                         lower.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*g(?:ramos|r)?$/i);
+
+      // Qty match: "2 plátanos" or "plátano 2"
+      const qtyMatch = lower.match(/^(\d+(?:\.\d+)?)\s+(?:de\s+)?(.+)$/i) ||
+                       lower.match(/^(.+?)\s+(\d+(?:\.\d+)?)$/i);
+
+      if (gramsMatch) {
+        if (!isNaN(gramsMatch[1])) {
+          quantity = parseFloat(gramsMatch[1]);
+          cleanName = gramsMatch[2];
+        } else {
+          quantity = parseFloat(gramsMatch[2]);
+          cleanName = gramsMatch[1];
+        }
+        unit = 'g';
+      } else if (qtyMatch) {
+        if (!isNaN(qtyMatch[1])) {
+          quantity = parseFloat(qtyMatch[1]);
+          cleanName = qtyMatch[2];
+        } else {
+          quantity = parseFloat(qtyMatch[2]);
+          cleanName = qtyMatch[1];
+        }
+        unit = 'ud';
       }
-      unit = 'g';
-    } else if (qtyMatch) {
-      if (!isNaN(qtyMatch[1])) {
-        quantity = parseFloat(qtyMatch[1]);
-        cleanName = qtyMatch[2];
-      } else {
-        quantity = parseFloat(qtyMatch[2]);
-        cleanName = qtyMatch[1];
-      }
-      unit = 'ud';
     }
 
     cleanName = cleanName.replace(/^(?:de\s+)/i, '').trim();
@@ -120,17 +160,43 @@ export function parseFoodTextLocal(text) {
     let estimatedCarbs = 0;
     let estimatedFats = 0;
 
+    const knownItem = KNOWN_UNIT_ITEMS.find((k) =>
+      k.keys.some((key) => lowerName.includes(key))
+    );
+
     if (unit === 'g') {
       const factor = finalQty / 100;
       estimatedCals = Math.round(calsPer100g * factor);
       estimatedProt = Math.round(protPer100g * factor * 10) / 10;
       estimatedCarbs = Math.round(carbsPer100g * factor * 10) / 10;
       estimatedFats = Math.round(fatsPer100g * factor * 10) / 10;
+    } else if (knownItem) {
+      estimatedCals = Math.round(knownItem.cals * quantity);
+      estimatedProt = Math.round(knownItem.prot * quantity * 10) / 10;
+      estimatedCarbs = Math.round(knownItem.carbs * quantity * 10) / 10;
+      estimatedFats = Math.round(knownItem.fats * quantity * 10) / 10;
+      if (category === 'other' && knownItem.cat) category = knownItem.cat;
     } else {
-      estimatedCals = Math.round(quantity * 110);
-      estimatedProt = Math.round((estimatedCals * 0.25 / 4) * 10) / 10;
-      estimatedCarbs = Math.round((estimatedCals * 0.45 / 4) * 10) / 10;
-      estimatedFats = Math.round((estimatedCals * 0.30 / 9) * 10) / 10;
+      // Sensible category-based unit defaults (NOT hardcoded 110 cals with high protein!)
+      let baseUnitCals = 65;
+      let baseProt = 1.5;
+      let baseCarbs = 10;
+      let baseFats = 1.5;
+
+      if (category === 'fruit') {
+        baseUnitCals = 75; baseProt = 0.8; baseCarbs = 18; baseFats = 0.2;
+      } else if (category === 'meat') {
+        baseUnitCals = 140; baseProt = 18; baseCarbs = 0; baseFats = 7;
+      } else if (category === 'bakery' || category === 'grains') {
+        baseUnitCals = 90; baseProt = 2.5; baseCarbs = 16; baseFats = 1.5;
+      } else if (category === 'dairy') {
+        baseUnitCals = 80; baseProt = 4; baseCarbs = 9; baseFats = 2.5;
+      }
+
+      estimatedCals = Math.round(quantity * baseUnitCals);
+      estimatedProt = Math.round(quantity * baseProt * 10) / 10;
+      estimatedCarbs = Math.round(quantity * baseCarbs * 10) / 10;
+      estimatedFats = Math.round(quantity * baseFats * 10) / 10;
     }
 
     matches.push({

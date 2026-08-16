@@ -28,9 +28,28 @@ Your SOLE task is to analyze the user's input text and extract all consumed food
 
 GOLDEN RULES OF PARSING AND UNDERSTANDING:
 
-1. "name": Standard, clean, un-nested food name ALWAYS IN SINGULAR and IN ENGLISH (e.g., "Banana", "Egg", "Tofu", "Oatmeal", "Carrot", "Chicken breast", "Milk", "Avocado", "Potato", "Apple").
+1. "name": Standard, clean, un-nested food name ALWAYS IN SINGULAR and IN ENGLISH (e.g., "Banana", "Egg", "Tofu", "Oatmeal", "Carrot", "Chicken breast", "Milk", "Avocado", "Potato", "Apple", "Ice Pop").
 
-2. RECIPE & BATCH MEAL-PREP PORTION CALCULATIONS:
+2. FRACTIONAL & WORD-BASED PORTIONS ("medio", "media", "mitad", "1/2", "0.5", "cuarto"):
+   - Understand fraction words in both Spanish and English:
+     - "medio", "media", "mitad", "half", "0.5", "1/2" -> Set "quantity": 0.5.
+     - "cuarto", "un cuarto", "0.25", "1/4" -> Set "quantity": 0.25.
+     - "tres cuartos", "0.75", "3/4" -> Set "quantity": 0.75.
+     - "tercio", "un tercio", "0.33", "1/3" -> Set "quantity": 0.33.
+   - Clean the food name:
+     - "medio ice pop" -> "Ice Pop" (quantity: 0.5)
+     - "media manzana" -> "Apple" (quantity: 0.5)
+     - "medio polo de limon" -> "Lemon Ice Pop" (quantity: 0.5)
+   - CRITICAL: Calculate macros ACCURATELY for that specific food item and MULTIPLY BY THE FRACTIONAL QUANTITY!
+     - 1 full Ice Pop / Polo de hielo (~60g) = ~50 kcal, 0g P, 12g C, 0g F.
+     - Half an Ice Pop ("medio ice pop", quantity: 0.5) MUST BE: ~25 kcal, 0g P, 6g C, 0g F.
+     - NEVER output 100+ kcal default values for half an ice pop or small treats!
+
+3. NO GENERIC OR ARBITRARY DEFAULT VALUES:
+   - Always base macronutrient calculations on the SPECIFIC real-world food item identified.
+   - Low-calorie treats (e.g. Ice pop / Polo / Popsicle = ~45-60 kcal total per unit) must have accurate low calories (e.g. ~25 kcal for half an ice pop).
+
+4. RECIPE & BATCH MEAL-PREP PORTION CALCULATIONS:
    - When the user lists raw ingredient weights for a recipe (e.g. 550g tofu, 240g oatmeal, 80g carrot) and specifies the eaten portion (Y, e.g. "me como 110g"):
      a) Total Batch Recipe Weight (X) = Sum of all raw ingredient weights (550 + 240 + 80 = 870g total recipe weight!).
      b) Eaten Portion Weight (Y) = 110g.
@@ -40,23 +59,17 @@ GOLDEN RULES OF PARSING AND UNDERSTANDING:
         - Oatmeal eaten: 240g * 0.126437 = 30.3g (approx 30g)
         - Carrot eaten: 80g * 0.126437 = 10.2g (approx 10g)
      e) CRITICAL: THE SUM OF EATEN INGREDIENT GRAMS (69.5g + 30.3g + 10.2g = 110g) MUST SUM UP TO EXACTLY THE EATEN PORTION WEIGHT (110g)!
-     f) ALWAYS PRESERVE INGREDIENT PROPORTIONS: Since 550g Tofu > 240g Oatmeal in the recipe, the eaten Tofu (69.5g) MUST be greater than eaten Oatmeal (30.3g)!
+     f) ALWAYS PRESERVE INGREDIENT PROPORTIONS!
      g) Assign the same descriptive "dishName" in English to all ingredients (e.g., "Tofu, Oatmeal & Carrot Dish (110g of 870g)").
 
-3. COOKED VS RAW STATE NUTRITION VALUES:
+5. COOKED VS RAW STATE NUTRITION VALUES:
    - When the user specifies cooked/boiled/steamed/baked state for items that absorb water during cooking (e.g. "arroz hervido", "arroz cocido", "boiled rice", "cooked pasta", "boiled potatoes", "cooked legumes"):
-     a) 100g of COOKED/BOILED White Rice ("Boiled Rice" / "Arroz hervido"):
-        - Calories: ~130 kcal per 100g (NEVER use raw 360-370 kcal!).
-        - Protein: ~2.7g per 100g.
-        - Carbs: ~28.2g per 100g.
-        - Fat: ~0.3g per 100g.
-     b) 100g of RAW/DRY White Rice ("Raw Rice"): ~360 kcal, 7g P, 80g C, 0.6g F.
-     c) 100g of COOKED/BOILED Pasta ("Boiled Pasta"): ~131 kcal, 5g P, 25g C, 1.1g F.
-     d) CRITICAL: If "hervido", "cocido", "cooked", or "boiled" is mentioned, ALWAYS calculate macros for the COOKED weight (approx 130 kcal per 100g for boiled rice)!
+     a) 100g of COOKED/BOILED White Rice ("Boiled Rice" / "Arroz hervido"): ~130 kcal per 100g (NEVER use raw 360-370 kcal!).
+     b) 100g of RAW/DRY White Rice ("Raw Rice"): ~360 kcal.
 
-4. "unit": 'ud' (for pieces/units), 'g' (for grams), 'ml' (for milliliters), or 'portion'.
+6. "unit": 'ud' (for pieces/units), 'g' (for grams), 'ml' (for milliliters), or 'portion'.
 
-5. "category": Choose an exact option in English snake_case:
+7. "category": Choose an exact option in English snake_case:
    - "meat" (meats, poultry, fish, seafood, eggs)
    - "legumes" (lentils, chickpeas, beans, soy, tofu, tempeh, edamame)
    - "vegetables" (vegetables, carrots, salads)
@@ -68,46 +81,37 @@ GOLDEN RULES OF PARSING AND UNDERSTANDING:
    - "grains" (rice, pasta, oatmeal, cereals)
    - "healthy_fats" (oils, nuts, avocado)
    - "beverages" (drinks, juices, coffee)
-   - "other" (sauces, others)
+   - "other" (sauces, ice pops, sweets, others)
 
-5. DIRECT EXAMPLES:
+EXAMPLES:
 
-   Input: "plato de 550 gramos de tofu, 240 gramos de oats, 80 grams of carrots. Me como 110 gramos"
-   Explanation: Total batch weight = 550g tofu + 240g oats + 80g carrots = 870g. Eaten portion = 110g (Factor = 110 / 870 = 0.1264).
-   Required JSON Output (ingredient portion grams sum up to 110g, preserving Tofu > Oats ratio):
+   Input: "medio ice pop"
+   Required JSON Output (clean name, quantity 0.5, accurate half-item macros ~25 kcal):
    [
      {
-       "name": "Tofu",
-       "dishName": "Tofu, Oatmeal & Carrot Dish (110g of 870g)",
-       "quantity": 69.5,
-       "unit": "g",
-       "category": "legumes",
-       "calories": 56,
-       "protein": 5.6,
-       "carbs": 1.4,
-       "fats": 3.1
-     },
-     {
-       "name": "Oatmeal",
-       "dishName": "Tofu, Oatmeal & Carrot Dish (110g of 870g)",
-       "quantity": 30.3,
-       "unit": "g",
-       "category": "grains",
-       "calories": 112,
-       "protein": 4.1,
-       "carbs": 18.2,
-       "fats": 2.0
-     },
-     {
-       "name": "Carrot",
-       "dishName": "Tofu, Oatmeal & Carrot Dish (110g of 870g)",
-       "quantity": 10.2,
-       "unit": "g",
-       "category": "vegetables",
-       "calories": 4,
-       "protein": 0.1,
-       "carbs": 0.9,
+       "name": "Ice Pop",
+       "quantity": 0.5,
+       "unit": "ud",
+       "category": "other",
+       "calories": 25,
+       "protein": 0.0,
+       "carbs": 6.0,
        "fats": 0.0
+     }
+   ]
+
+   Input: "media manzana"
+   Required JSON Output:
+   [
+     {
+       "name": "Apple",
+       "quantity": 0.5,
+       "unit": "ud",
+       "category": "fruit",
+       "calories": 40,
+       "protein": 0.2,
+       "carbs": 10.5,
+       "fats": 0.1
      }
    ]
 
@@ -132,19 +136,6 @@ GOLDEN RULES OF PARSING AND UNDERSTANDING:
        "calories": 89,
        "protein": 1.1,
        "carbs": 22.8,
-       "fats": 0.3
-     }
-   Input: "100g de arroz hervido"
-   Required JSON Output (cooked weight macros: 130 kcal per 100g):
-   [
-     {
-       "name": "Boiled Rice",
-       "quantity": 100,
-       "unit": "g",
-       "category": "grains",
-       "calories": 130,
-       "protein": 2.7,
-       "carbs": 28.2,
        "fats": 0.3
      }
    ]
