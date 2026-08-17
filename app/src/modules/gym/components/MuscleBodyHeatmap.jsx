@@ -1,7 +1,7 @@
 import React from 'react';
 import Card from '../../../shared/ui/Card';
 
-export default function MuscleBodyHeatmap({ activeMuscles = [], title = 'Muscles Worked' }) {
+export default function MuscleBodyHeatmap({ activeMuscles = [], title = 'Muscles Worked', hideHeader = false }) {
   // Normalize active muscle strings
   const activeSet = new Set(activeMuscles.map((m) => String(m).toLowerCase().trim()));
 
@@ -127,17 +127,19 @@ export default function MuscleBodyHeatmap({ activeMuscles = [], title = 'Muscles
     };
   };
 
-  return (
-    <Card className="p-4 sm:p-5 space-y-3 shadow-sm border border-slate-200/90 rounded-2xl bg-white flex flex-col justify-between">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
-          <span>{title}</span>
-        </h4>
-        <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100 uppercase">
-          {activeSet.size} Group{activeSet.size !== 1 ? 's' : ''}
-        </span>
-      </div>
+  const content = (
+    <div className="space-y-3 flex flex-col justify-between h-full">
+      {!hideHeader && (
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
+            <span>{title}</span>
+          </h4>
+          <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100 uppercase">
+            {activeSet.size} Group{activeSet.size !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
 
       {/* Front & Back Anatomical Silhouettes */}
       <div className="flex items-center justify-center gap-6 py-2">
@@ -245,6 +247,14 @@ export default function MuscleBodyHeatmap({ activeMuscles = [], title = 'Muscles
           ))
         )}
       </div>
+    </div>
+  );
+
+  if (hideHeader) return content;
+
+  return (
+    <Card className="p-4 sm:p-5 space-y-3 shadow-sm border border-slate-200/90 rounded-2xl bg-white flex flex-col justify-between">
+      {content}
     </Card>
   );
 }

@@ -7,7 +7,7 @@ import { formatExerciseName, doesSetMatchExercise } from '../lib/supabase-gym';
 import { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 import WorkoutCalendar from './WorkoutCalendar';
-import MuscleBodyHeatmap from './MuscleBodyHeatmap';
+import MuscleAnalyticsContainer from './MuscleAnalyticsContainer';
 
 export default function WorkoutHistory({
   workouts,
@@ -139,13 +139,10 @@ export default function WorkoutHistory({
           onSelectWorkout={handleScrollToWorkout}
         />
 
-        <MuscleBodyHeatmap
-          activeMuscles={activeMuscles}
-          title={
-            selectedCalendarDay
-              ? `Muscles (${selectedCalendarDay.dateFormatted})`
-              : 'Muscles Worked (Last 7 Days)'
-          }
+        <MuscleAnalyticsContainer
+          workouts={workouts}
+          exercises={exercises}
+          selectedCalendarDay={selectedCalendarDay}
         />
       </div>
 
