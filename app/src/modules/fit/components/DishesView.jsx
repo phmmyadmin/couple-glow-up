@@ -185,6 +185,17 @@ export default function DishesView({
     }
   };
 
+  // Helper to extract or calculate base per-unit macros (per 1 unit/gram)
+  const getBasePerUnit = (ing) => {
+    const qty = Number(ing.quantity) > 0 ? Number(ing.quantity) : 1;
+    const baseCals = ing.baseCals !== undefined ? ing.baseCals : (Number(ing.calories) || 0) / qty;
+    const baseProt = ing.baseProt !== undefined ? ing.baseProt : (Number(ing.protein) || 0) / qty;
+    const baseCarbs = ing.baseCarbs !== undefined ? ing.baseCarbs : (Number(ing.carbs) || 0) / qty;
+    const baseFats = ing.baseFats !== undefined ? ing.baseFats : (Number(ing.fats) || 0) / qty;
+
+    return { baseCals, baseProt, baseCarbs, baseFats };
+  };
+
   // Process AI ingredients input for editingDish
   const handleParseAiIngredients = async (e) => {
     if (e) e.preventDefault();
@@ -198,17 +209,29 @@ export default function DishesView({
       }
 
       if (parsed && parsed.length > 0) {
-        const newIngredients = parsed.map((item, idx) => ({
-          id: `ing_${Date.now()}_${idx}`,
-          name: item.name || 'Ingredient',
-          quantity: item.quantity || 100,
-          unit: item.unit || 'g',
-          category: item.category || 'other',
-          calories: Math.round(item.calories ?? item.macros?.calories ?? 0),
-          protein: Math.round(((item.protein ?? item.macros?.protein ?? 0)) * 10) / 10,
-          carbs: Math.round(((item.carbs ?? item.macros?.carbs ?? 0)) * 10) / 10,
-          fats: Math.round(((item.fats ?? item.macros?.fats ?? 0)) * 10) / 10,
-        }));
+        const newIngredients = parsed.map((item, idx) => {
+          const qty = item.quantity || 100;
+          const cals = Math.round(item.calories ?? item.macros?.calories ?? 0);
+          const prot = Math.round(((item.protein ?? item.macros?.protein ?? 0)) * 10) / 10;
+          const carbs = Math.round(((item.carbs ?? item.macros?.carbs ?? 0)) * 10) / 10;
+          const fats = Math.round(((item.fats ?? item.macros?.fats ?? 0)) * 10) / 10;
+
+          return {
+            id: `ing_${Date.now()}_${idx}`,
+            name: item.name || 'Ingredient',
+            quantity: qty,
+            unit: item.unit || 'g',
+            category: item.category || 'other',
+            calories: cals,
+            protein: prot,
+            carbs: carbs,
+            fats: fats,
+            baseCals: qty > 0 ? cals / qty : 0,
+            baseProt: qty > 0 ? prot / qty : 0,
+            baseCarbs: qty > 0 ? carbs / qty : 0,
+            baseFats: qty > 0 ? fats / qty : 0,
+          };
+        });
 
         setEditingDish((prev) => {
           const currentIngs = prev?.ingredients || [];
@@ -232,16 +255,26 @@ export default function DishesView({
 
   // Add custom manual blank ingredient row
   const handleAddManualIngredient = () => {
+    const qty = 100;
+    const cals = 100;
+    const prot = 5;
+    const carbs = 10;
+    const fats = 2;
+
     const newIng = {
       id: `ing_${Date.now()}`,
       name: '',
-      quantity: 100,
+      quantity: qty,
       unit: 'g',
       category: 'other',
-      calories: 100,
-      protein: 5,
-      carbs: 10,
-      fats: 2,
+      calories: cals,
+      protein: prot,
+      carbs: carbs,
+      fats: fats,
+      baseCals: cals / qty,
+      baseProt: prot / qty,
+      baseCarbs: carbs / qty,
+      baseFats: fats / qty,
     };
     setEditingDish((prev) => ({
       ...prev,
@@ -253,36 +286,61 @@ export default function DishesView({
   const handleUpdateIngredient = (ingId, field, value) => {
     setEditingDish((prev) => {
       const updatedIngs = (prev?.ingredients || []).map((ing) => {
-        if (ing.id === ingId) {
-          if (field === 'quantity') {
-            if (value === '' || value === null) {
-              return { ...ing, quantity: '' };
-            }
-            const newQty = Number(value);
-            const oldQty = Number(ing.quantity) || 1;
-            const ratio = oldQty > 0 ? newQty / oldQty : 1;
+        if (ing.id !== ingId) return ing;
 
-            return {
-              ...ing,
-              quantity: newQty,
-              calories: Math.round((Number(ing.calories) || 0) * ratio),
-              protein: Math.round((Number(ing.protein) || 0) * ratio * 10) / 10,
-              carbs: Math.round((Number(ing.carbs) || 0) * ratio * 10) / 10,
-              fats: Math.round((Number(ing.fats) || 0) * ratio * 10) / 10,
-            };
+        const { baseCals, baseProt, baseCarbs, baseFats } = getBasePerUnit(ing);
+
+        if (field === 'quantity') {
+          if (value === '' || value === null) {
+            return { ...ing, quantity: '' };
           }
 
-          if (value === '' || value === null) {
-            return { ...ing, [field]: '' };
+          const newQty = Number(value);
+          if (isNaN(newQty) || newQty < 0) {
+            return { ...ing, quantity: value };
           }
 
           return {
             ...ing,
-            [field]: field === 'name' || field === 'unit' || field === 'category' ? value : Number(value),
+            quantity: newQty,
+            baseCals,
+            baseProt,
+            baseCarbs,
+            baseFats,
+            calories: Math.round(baseCals * newQty),
+            protein: Math.round(baseProt * newQty * 10) / 10,
+            carbs: Math.round(baseCarbs * newQty * 10) / 10,
+            fats: Math.round(baseFats * newQty * 10) / 10,
           };
         }
-        return ing;
+
+        if (field === 'calories' || field === 'protein' || field === 'carbs' || field === 'fats') {
+          if (value === '' || value === null) {
+            return { ...ing, [field]: '' };
+          }
+
+          const numVal = Number(value);
+          const currentQty = Number(ing.quantity) > 0 ? Number(ing.quantity) : 1;
+
+          const updatedIng = {
+            ...ing,
+            [field]: isNaN(numVal) ? value : numVal,
+          };
+
+          if (field === 'calories') updatedIng.baseCals = numVal / currentQty;
+          if (field === 'protein') updatedIng.baseProt = numVal / currentQty;
+          if (field === 'carbs') updatedIng.baseCarbs = numVal / currentQty;
+          if (field === 'fats') updatedIng.baseFats = numVal / currentQty;
+
+          return updatedIng;
+        }
+
+        return {
+          ...ing,
+          [field]: value,
+        };
       });
+
       return { ...prev, ingredients: updatedIngs };
     });
   };
