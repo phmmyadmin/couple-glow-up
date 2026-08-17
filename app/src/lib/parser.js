@@ -145,7 +145,21 @@ export function parseFoodTextLocal(text) {
     let carbsPer100g = 15;
     let fatsPer100g = 3;
 
-    if (category === 'legumes' || lowerName.includes('tofu')) {
+    if (lowerName.includes('arroz') || lowerName.includes('rice')) {
+      if (lowerName.includes('crudo') || lowerName.includes('seco') || lowerName.includes('raw') || lowerName.includes('dry')) {
+        calsPer100g = 365; protPer100g = 7; carbsPer100g = 79; fatsPer100g = 0.6;
+      } else {
+        // Default for arroz, arroz cocido, arroz hervido, cooked rice -> ~130 kcal / 100g
+        calsPer100g = 130; protPer100g = 2.7; carbsPer100g = 28; fatsPer100g = 0.3;
+      }
+    } else if (lowerName.includes('pasta') || lowerName.includes('macarrones') || lowerName.includes('espaguetis') || lowerName.includes('spaghetti')) {
+      if (lowerName.includes('cruda') || lowerName.includes('seca') || lowerName.includes('raw') || lowerName.includes('dry')) {
+        calsPer100g = 355; protPer100g = 12; carbsPer100g = 73; fatsPer100g = 1.5;
+      } else {
+        // Default for pasta cocida, cooked pasta -> ~131 kcal / 100g
+        calsPer100g = 131; protPer100g = 5; carbsPer100g = 25; fatsPer100g = 1.1;
+      }
+    } else if (category === 'legumes' || lowerName.includes('tofu')) {
       calsPer100g = 80; protPer100g = 8; carbsPer100g = 2; fatsPer100g = 4.5;
     } else if (category === 'grains' || lowerName.includes('avena')) {
       calsPer100g = 370; protPer100g = 13.5; carbsPer100g = 60; fatsPer100g = 6.5;

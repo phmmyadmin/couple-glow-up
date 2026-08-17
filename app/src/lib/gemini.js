@@ -62,10 +62,11 @@ GOLDEN RULES OF PARSING AND UNDERSTANDING:
      f) ALWAYS PRESERVE INGREDIENT PROPORTIONS!
      g) Assign the same descriptive "dishName" in English to all ingredients (e.g., "Tofu, Oatmeal & Carrot Dish (110g of 870g)").
 
-5. COOKED VS RAW STATE NUTRITION VALUES:
-   - When the user specifies cooked/boiled/steamed/baked state for items that absorb water during cooking (e.g. "arroz hervido", "arroz cocido", "boiled rice", "cooked pasta", "boiled potatoes", "cooked legumes"):
-     a) 100g of COOKED/BOILED White Rice ("Boiled Rice" / "Arroz hervido"): ~130 kcal per 100g (NEVER use raw 360-370 kcal!).
-     b) 100g of RAW/DRY White Rice ("Raw Rice"): ~360 kcal.
+5. COOKED VS RAW STATE NUTRITION VALUES (CRITICAL!):
+   - When the user logs cooked/boiled/steamed items (e.g. "arroz cocido", "arroz hervido", "arroz", "cooked rice", "boiled rice", "pasta cocida", "cooked pasta"):
+     a) 100g of COOKED / BOILED White Rice ("Cooked Rice" / "Arroz cocido") = EXACTLY ~130 kcal per 100g (2.7g Protein, 28g Carbs, 0.3g Fat). NEVER use 360-370 kcal for cooked rice!
+     b) Unless the user explicitly types "crudo", "seco", "raw", or "dry", ALWAYS treat rice logged in grams for a daily food log as COOKED RICE (~130 kcal / 100g).
+     c) 100g of RAW / DRY Rice ("Raw Rice") = ~360 kcal.
 
 6. "unit": 'ud' (for pieces/units), 'g' (for grams), 'ml' (for milliliters), or 'portion'.
 
@@ -84,6 +85,21 @@ GOLDEN RULES OF PARSING AND UNDERSTANDING:
    - "other" (sauces, ice pops, sweets, others)
 
 EXAMPLES:
+
+   Input: "100g arroz cocido"
+   Required JSON Output (cooked rice ~130 kcal per 100g, NOT 360-370 kcal!):
+   [
+     {
+       "name": "Cooked Rice",
+       "quantity": 100,
+       "unit": "g",
+       "category": "grains",
+       "calories": 130,
+       "protein": 2.7,
+       "carbs": 28.0,
+       "fats": 0.3
+     }
+   ]
 
    Input: "medio ice pop"
    Required JSON Output (clean name, quantity 0.5, accurate half-item macros ~25 kcal):
