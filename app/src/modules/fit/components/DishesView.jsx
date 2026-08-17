@@ -29,6 +29,7 @@ import {
   supabase,
   saveIntakesToSupabase,
   fetchDailyLogsFromSupabase,
+  saveToCatalog,
 } from '../../../lib/supabase';
 
 const LOCAL_DISHES_KEY = 'glowup_custom_dishes';
@@ -83,14 +84,14 @@ export default function DishesView({
           .eq('profile_id', activeProfileId)
           .order('created_at', { ascending: false });
 
-        if (!error && dbDishes) {
+        if (!error && dbDishes && dbDishes.length > 0) {
           loadedDishes = dbDishes.map((d) => ({
             ...d,
             ingredients: Array.isArray(d.ingredients) ? d.ingredients : [],
           }));
         }
       } catch (e) {
-        console.error('Error fetching custom_dishes from Supabase:', e);
+        // Silently fallback if custom_dishes table doesn't exist yet
       }
     }
 
@@ -117,9 +118,9 @@ export default function DishesView({
     } catch (e) {}
 
     if (supabase && activeProfileId) {
-      try {
-        for (const dish of updatedDishes) {
-          await supabase.from('custom_dishes').upsert(
+      for (const dish of updatedDishes) {
+        try {
+          const { error } = await supabase.from('custom_dishes').upsert(
             {
               id: dish.id,
               profile_id: activeProfileId,
@@ -131,9 +132,21 @@ export default function DishesView({
             },
             { onConflict: 'id' }
           );
+
+          if (error) {
+            // If custom_dishes table does not exist, save ingredients to catalog tables
+            if (Array.isArray(dish.ingredients) && dish.ingredients.length > 0) {
+              await saveToCatalog(
+                dish.ingredients.map((ing) => ({
+                  ...ing,
+                  dishName: dish.name,
+                }))
+              );
+            }
+          }
+        } catch (e) {
+          // Silently handle missing table error
         }
-      } catch (e) {
-        console.error('Error saving custom dishes to Supabase:', e);
       }
     }
   };
