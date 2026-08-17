@@ -255,7 +255,10 @@ export default function DishesView({
       const updatedIngs = (prev?.ingredients || []).map((ing) => {
         if (ing.id === ingId) {
           if (field === 'quantity') {
-            const newQty = Number(value) || 0;
+            if (value === '' || value === null) {
+              return { ...ing, quantity: '' };
+            }
+            const newQty = Number(value);
             const oldQty = Number(ing.quantity) || 1;
             const ratio = oldQty > 0 ? newQty / oldQty : 1;
 
@@ -269,9 +272,13 @@ export default function DishesView({
             };
           }
 
+          if (value === '' || value === null) {
+            return { ...ing, [field]: '' };
+          }
+
           return {
             ...ing,
-            [field]: field === 'name' || field === 'unit' || field === 'category' ? value : Number(value) || 0,
+            [field]: field === 'name' || field === 'unit' || field === 'category' ? value : Number(value),
           };
         }
         return ing;
@@ -752,6 +759,7 @@ export default function DishesView({
                             type="number"
                             placeholder="Qty"
                             value={ing.quantity}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => handleUpdateIngredient(ing.id, 'quantity', e.target.value)}
                             className="col-span-3 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold font-mono text-slate-900 focus:outline-hidden focus:border-indigo-500"
                           />
@@ -783,6 +791,7 @@ export default function DishesView({
                             <input
                               type="number"
                               value={ing.calories}
+                              onFocus={(e) => e.target.select()}
                               onChange={(e) => handleUpdateIngredient(ing.id, 'calories', e.target.value)}
                               className="w-full bg-white border border-slate-200 rounded-md px-1 py-0.5 text-xs font-extrabold font-mono text-center text-rose-600"
                             />
@@ -794,6 +803,7 @@ export default function DishesView({
                               type="number"
                               step="0.1"
                               value={ing.protein}
+                              onFocus={(e) => e.target.select()}
                               onChange={(e) => handleUpdateIngredient(ing.id, 'protein', e.target.value)}
                               className="w-full bg-white border border-slate-200 rounded-md px-1 py-0.5 text-xs font-extrabold font-mono text-center text-blue-600"
                             />
@@ -805,6 +815,7 @@ export default function DishesView({
                               type="number"
                               step="0.1"
                               value={ing.carbs}
+                              onFocus={(e) => e.target.select()}
                               onChange={(e) => handleUpdateIngredient(ing.id, 'carbs', e.target.value)}
                               className="w-full bg-white border border-slate-200 rounded-md px-1 py-0.5 text-xs font-extrabold font-mono text-center text-emerald-600"
                             />
@@ -816,6 +827,7 @@ export default function DishesView({
                               type="number"
                               step="0.1"
                               value={ing.fats}
+                              onFocus={(e) => e.target.select()}
                               onChange={(e) => handleUpdateIngredient(ing.id, 'fats', e.target.value)}
                               className="w-full bg-white border border-slate-200 rounded-md px-1 py-0.5 text-xs font-extrabold font-mono text-center text-amber-600"
                             />
@@ -938,6 +950,7 @@ export default function DishesView({
                     min="1"
                     placeholder="e.g. 110"
                     value={portionGrams}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setPortionGrams(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-xl pl-4 pr-12 py-2.5 text-lg font-extrabold font-mono text-slate-900 focus:outline-hidden focus:border-indigo-500 shadow-2xs"
                   />
