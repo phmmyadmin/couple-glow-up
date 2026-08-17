@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Loader2, Mic, MicOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { parseFoodWithGemini } from '../../../lib/gemini';
+import { parseFoodTextLocal } from '../../../lib/parser';
 import { saveIntakesToSupabase, fetchDailyLogsFromSupabase } from '../../../lib/supabase';
 
 export default function ChatInputBar({
@@ -20,23 +21,27 @@ export default function ChatInputBar({
   const recognitionRef = useRef(null);
 
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
+    try {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
 
-      recognition.onresult = (event) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        setText(transcript);
-      };
+        recognition.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          setText(transcript);
+        };
 
-      recognition.onerror = () => setIsListening(false);
-      recognition.onend = () => setIsListening(false);
-      recognitionRef.current = recognition;
+        recognition.onerror = () => setIsListening(false);
+        recognition.onend = () => setIsListening(false);
+        recognitionRef.current = recognition;
+      }
+    } catch (e) {
+      console.warn('SpeechRecognition not supported or disabled on this device:', e);
     }
   }, []);
 
@@ -79,17 +84,21 @@ export default function ChatInputBar({
         return;
       }
 
-      // Send 100% directly to Gemini AI (no local fallback)
+      // Try Gemini AI first, and fallback to local parser if Gemini is unavailable on mobile
       let parsedItems = null;
       try {
         parsedItems = await parseFoodWithGemini(foodText);
       } catch (err) {
-        console.error('Error with Gemini AI parsing:', err);
+        console.warn('Gemini AI call failed on mobile:', err);
+      }
+
+      if (!parsedItems || parsedItems.length === 0) {
+        parsedItems = parseFoodTextLocal(foodText);
       }
 
       if (!parsedItems || parsedItems.length === 0) {
         if (typeof setToastMessage === 'function') {
-          setToastMessage('⚠️ Gemini error: Could not process food intake. Please try again.');
+          setToastMessage(t('toast.couldNotParse', 'Could not parse food item. Please check your input.'));
         }
         return;
       }

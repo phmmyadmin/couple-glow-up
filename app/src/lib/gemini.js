@@ -5,7 +5,8 @@ const genAI = apiKey && typeof apiKey === 'string' && apiKey.trim() ? new Google
 
 export async function parseFoodWithGemini(userText) {
   if (!genAI || !apiKey) {
-    throw new Error('VITE_GEMINI_API_KEY is missing or not configured.');
+    console.warn('VITE_GEMINI_API_KEY is missing or not configured.');
+    return null;
   }
 
   const modelsToTry = [
@@ -175,5 +176,6 @@ Return EXCLUSIVELY the strict JSON array:`;
     }
   }
 
-  throw new Error('All Gemini AI models failed to process the request.');
+  console.warn('All Gemini AI models failed to process the request.');
+  return null;
 }
