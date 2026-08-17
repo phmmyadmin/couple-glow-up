@@ -53,6 +53,21 @@ export default function DishesView({
   const [loggingDish, setLoggingDish] = useState(null);
   const [portionGrams, setPortionGrams] = useState(100);
 
+  // Handle Escape key to close open modals
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (loggingDish) {
+          setLoggingDish(null);
+        } else if (isEditorOpen) {
+          setIsEditorOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loggingDish, isEditorOpen]);
+
   // Load custom dishes from Supabase / localStorage
   useEffect(() => {
     loadDishes();
@@ -586,7 +601,12 @@ export default function DishesView({
 
       {/* DISH CREATION / EDITING MODAL */}
       {isEditorOpen && editingDish && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsEditorOpen(false);
+          }}
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+        >
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
@@ -847,7 +867,12 @@ export default function DishesView({
 
       {/* LOG PORTION TO DIARY MODAL */}
       {loggingDish && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setLoggingDish(null);
+          }}
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">

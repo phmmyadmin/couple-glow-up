@@ -30,6 +30,16 @@ export default function EditDrawer({
     }
   }, [item]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   if (!item) return null;
 
   const rawName = item.name || item.description || '';
