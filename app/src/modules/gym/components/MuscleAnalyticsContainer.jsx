@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Card from '../../../shared/ui/Card';
 import MuscleBodyHeatmap from './MuscleBodyHeatmap';
-import MuscleRadarChart from './MuscleRadarChart';
+import MuscleRadarChart, { computeMuscleSetsMap } from './MuscleRadarChart';
 
 export default function MuscleAnalyticsContainer({
   workouts = [],
@@ -19,6 +19,11 @@ export default function MuscleAnalyticsContainer({
       return workouts.filter((w) => new Date(w.started_at).getTime() >= sevenDaysAgo);
     }
   }, [selectedCalendarDay, workouts]);
+
+  // Compute set volume map for volume-based heatmap color intensity & radar chart
+  const muscleVolumeMap = React.useMemo(() => {
+    return computeMuscleSetsMap(targetWorkouts, exercises);
+  }, [targetWorkouts, exercises]);
 
   // Derive active muscle list for Heatmap
   const activeMuscles = React.useMemo(() => {
@@ -81,7 +86,12 @@ export default function MuscleAnalyticsContainer({
       {/* Content Body: Heatmap or Radar */}
       <div className="flex-1 flex flex-col justify-center">
         {activeTab === 'heatmap' ? (
-          <MuscleBodyHeatmap activeMuscles={activeMuscles} title={titleText} hideHeader />
+          <MuscleBodyHeatmap
+            activeMuscles={activeMuscles}
+            muscleVolumeMap={muscleVolumeMap}
+            title={titleText}
+            hideHeader
+          />
         ) : (
           <MuscleRadarChart targetWorkouts={targetWorkouts} exercises={exercises} />
         )}

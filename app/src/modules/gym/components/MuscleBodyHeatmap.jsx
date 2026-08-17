@@ -1,7 +1,12 @@
 import React from 'react';
 import Card from '../../../shared/ui/Card';
 
-export default function MuscleBodyHeatmap({ activeMuscles = [], title = 'Muscles Worked', hideHeader = false }) {
+export default function MuscleBodyHeatmap({
+  activeMuscles = [],
+  muscleVolumeMap = null,
+  title = 'Muscles Worked',
+  hideHeader = false,
+}) {
   // Normalize active muscle strings
   const activeSet = new Set(activeMuscles.map((m) => String(m).toLowerCase().trim()));
 
@@ -112,17 +117,76 @@ export default function MuscleBodyHeatmap({ activeMuscles = [], title = 'Muscles
     return false;
   };
 
-  const activeColor = '#2563eb'; // Vibrant Blue
-  const activeStroke = '#1d4ed8';
-  const inactiveColor = '#e2e8f0'; // Light Slate
-  const inactiveStroke = '#cbd5e1';
+  // Resolve set volume for a given SVG muscle key
+  const getSetsForMuscleKey = (muscleKey) => {
+    if (!muscleVolumeMap) {
+      return isMuscleActive(muscleKey) ? 5 : 0;
+    }
+
+    if (muscleKey === 'chest') return muscleVolumeMap.chest || 0;
+    if (muscleKey === 'shoulders') return muscleVolumeMap.shoulders || 0;
+    if (muscleKey === 'biceps') return muscleVolumeMap.biceps || 0;
+    if (muscleKey === 'triceps') return muscleVolumeMap.triceps || 0;
+    if (muscleKey === 'abs') return muscleVolumeMap.abs || 0;
+    if (muscleKey === 'quadriceps') return muscleVolumeMap.quads || 0;
+    if (muscleKey === 'hamstrings') return muscleVolumeMap.hamstrings || 0;
+    if (muscleKey === 'glutes') return muscleVolumeMap.glutes || 0;
+    if (muscleKey === 'calves') return muscleVolumeMap.calves || 0;
+    if (muscleKey === 'lats' || muscleKey === 'upper_back' || muscleKey === 'lower_back') {
+      return muscleVolumeMap.back || 0;
+    }
+    if (muscleKey === 'forearms') return (muscleVolumeMap.biceps || 0) * 0.5;
+
+    return 0;
+  };
 
   const getStyle = (muscleKey) => {
-    const active = isMuscleActive(muscleKey);
+    const sets = getSetsForMuscleKey(muscleKey);
+
+    if (sets <= 0) {
+      return {
+        fill: '#e2e8f0', // Inactive light slate
+        stroke: '#cbd5e1',
+        strokeWidth: 1,
+        transition: 'all 0.3s ease',
+      };
+    }
+
+    if (sets <= 3) {
+      // Low Volume (1-3 sets) -> Light Sky Blue
+      return {
+        fill: '#93c5fd',
+        stroke: '#3b82f6',
+        strokeWidth: 1.2,
+        transition: 'all 0.3s ease',
+      };
+    }
+
+    if (sets <= 6) {
+      // Moderate Volume (4-6 sets) -> Vibrant Royal Blue
+      return {
+        fill: '#3b82f6',
+        stroke: '#1d4ed8',
+        strokeWidth: 1.5,
+        transition: 'all 0.3s ease',
+      };
+    }
+
+    if (sets <= 10) {
+      // High Volume (7-10 sets) -> Deep Blue
+      return {
+        fill: '#1d4ed8',
+        stroke: '#1e40af',
+        strokeWidth: 1.8,
+        transition: 'all 0.3s ease',
+      };
+    }
+
+    // Max Volume (10+ sets) -> Electric Indigo/Purple
     return {
-      fill: active ? activeColor : inactiveColor,
-      stroke: active ? activeStroke : inactiveStroke,
-      strokeWidth: active ? 1.5 : 1,
+      fill: '#4338ca',
+      stroke: '#312e81',
+      strokeWidth: 2.0,
       transition: 'all 0.3s ease',
     };
   };
@@ -232,20 +296,27 @@ export default function MuscleBodyHeatmap({ activeMuscles = [], title = 'Muscles
         </div>
       </div>
 
-      {/* Active Muscle Labels Pill Bar */}
-      <div className="flex flex-wrap items-center justify-center gap-1 pt-1 border-t border-slate-100 min-h-[28px]">
-        {Array.from(activeSet).length === 0 ? (
-          <span className="text-[11px] text-slate-400 font-medium italic">No muscles targeted</span>
-        ) : (
-          Array.from(activeSet).map((mKey) => (
-            <span
-              key={mKey}
-              className="text-[10px] bg-blue-50 text-blue-700 font-extrabold px-2 py-0.5 rounded-md border border-blue-100 capitalize"
-            >
-              {mKey.replace('_', ' ')}
-            </span>
-          ))
-        )}
+      {/* Volume Color Intensity Legend */}
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[10px] font-bold text-slate-500 flex-wrap gap-1">
+        <span>Volume Scale:</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#93c5fd]" />
+            <span>Low (1-3s)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#3b82f6]" />
+            <span>Med (4-6s)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#1d4ed8]" />
+            <span>High (7-10s)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#4338ca]" />
+            <span>Max (10+s)</span>
+          </div>
+        </div>
       </div>
     </div>
   );
