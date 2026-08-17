@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, LayoutDashboard, LineChart, User } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, LayoutDashboard, LineChart, User, UtensilsCrossed } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import MacroRing from './components/MacroRing';
 import DailyTimeline from './components/DailyTimeline';
+import DishesView from './components/DishesView';
 import ReportView from './components/ReportView';
 import ChatInputBar from './components/ChatInputBar';
 import EditDrawer from './components/EditDrawer';
@@ -146,6 +147,7 @@ export default function FitApp({
           <Tabs
             items={[
               { id: 'dashboard', label: t('nav.diary', 'Diary'), icon: LayoutDashboard },
+              { id: 'dishes', label: t('nav.dishes', 'Dishes'), icon: UtensilsCrossed },
               { id: 'report', label: t('nav.report', 'Report & Progress'), icon: LineChart },
               { id: 'profile', label: t('nav.profile', 'Profile'), icon: User },
             ]}
@@ -196,6 +198,16 @@ export default function FitApp({
             }}
           />
         </div>
+      )}
+
+      {fitTab === 'dishes' && (
+        <DishesView
+          selectedDate={selectedDate}
+          data={data}
+          setData={setData}
+          activeProfileId={activeProfile?.id}
+          setToastMessage={setToastMessage}
+        />
       )}
 
       {fitTab === 'report' && (
