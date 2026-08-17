@@ -249,11 +249,26 @@ export default function DishesView({
     }));
   };
 
-  // Update ingredient property
+  // Update ingredient property & recalculate macros & dish totals in real-time
   const handleUpdateIngredient = (ingId, field, value) => {
     setEditingDish((prev) => {
       const updatedIngs = (prev?.ingredients || []).map((ing) => {
         if (ing.id === ingId) {
+          if (field === 'quantity') {
+            const newQty = Number(value) || 0;
+            const oldQty = Number(ing.quantity) || 1;
+            const ratio = oldQty > 0 ? newQty / oldQty : 1;
+
+            return {
+              ...ing,
+              quantity: newQty,
+              calories: Math.round((Number(ing.calories) || 0) * ratio),
+              protein: Math.round((Number(ing.protein) || 0) * ratio * 10) / 10,
+              carbs: Math.round((Number(ing.carbs) || 0) * ratio * 10) / 10,
+              fats: Math.round((Number(ing.fats) || 0) * ratio * 10) / 10,
+            };
+          }
+
           return {
             ...ing,
             [field]: field === 'name' || field === 'unit' || field === 'category' ? value : Number(value) || 0,
