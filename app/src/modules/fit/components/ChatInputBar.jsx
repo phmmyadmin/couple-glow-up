@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Loader2, Mic, MicOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { parseFoodWithGemini } from '../../../lib/gemini';
-import { parseFoodTextLocal } from '../../../lib/parser';
 import { saveIntakesToSupabase, fetchDailyLogsFromSupabase } from '../../../lib/supabase';
 
 export default function ChatInputBar({
@@ -84,21 +83,21 @@ export default function ChatInputBar({
         return;
       }
 
-      // Try Gemini AI first, and fallback to local parser if Gemini is unavailable on mobile
+      // Send 100% directly to Gemini AI (no non-AI local parser)
       let parsedItems = null;
       try {
         parsedItems = await parseFoodWithGemini(foodText);
       } catch (err) {
-        console.warn('Gemini AI call failed on mobile:', err);
-      }
-
-      if (!parsedItems || parsedItems.length === 0) {
-        parsedItems = parseFoodTextLocal(foodText);
+        console.error('Gemini AI error:', err);
+        if (typeof setToastMessage === 'function') {
+          setToastMessage(`⚠️ ${err.message || 'Gemini AI parsing failed.'}`);
+        }
+        return;
       }
 
       if (!parsedItems || parsedItems.length === 0) {
         if (typeof setToastMessage === 'function') {
-          setToastMessage(t('toast.couldNotParse', 'Could not parse food item. Please check your input.'));
+          setToastMessage('⚠️ Gemini AI could not identify foods in input. Please try again.');
         }
         return;
       }

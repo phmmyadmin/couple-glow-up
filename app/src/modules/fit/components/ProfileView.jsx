@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Save, User, Activity, Target } from 'lucide-react';
+import { Save, User, Activity, Target, Key } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { saveProfile } from '../../../lib/supabase';
 import { calculateProfileTargets } from '../../../utils/profile';
+import { getGeminiApiKey, setGeminiApiKey } from '../../../lib/gemini';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
@@ -48,6 +49,7 @@ export default function ProfileView({
   const [formData, setFormData] = useState(() => getNormalizedProfile(targetProf));
   const [isSaving, setIsSaving] = useState(false);
   const [autoCalculate, setAutoCalculate] = useState(true);
+  const [geminiKeyInput, setGeminiKeyInput] = useState(() => getGeminiApiKey());
 
   useEffect(() => {
     const current = profile || activeProfile;
@@ -270,6 +272,43 @@ export default function ProfileView({
               disabled={autoCalculate}
               className="font-mono font-bold"
             />
+          </div>
+        </div>
+
+        {/* Gemini AI API Key Configuration */}
+        <div className="space-y-2 pt-3 border-t border-slate-100">
+          <CardTitle icon={Key} className="text-sm">
+            Google Gemini AI API Key
+          </CardTitle>
+
+          <p className="text-xs text-slate-500">
+            100% of food parsing routes through Gemini AI. If you experience authentication errors on this device, enter your Google AI Studio API key below.
+          </p>
+
+          <div className="flex items-center gap-2">
+            <Input
+              type="password"
+              placeholder="AIzaSy..."
+              value={geminiKeyInput}
+              onChange={(e) => {
+                setGeminiKeyInput(e.target.value);
+                setGeminiApiKey(e.target.value);
+              }}
+              className="font-mono text-xs flex-1"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setGeminiApiKey(geminiKeyInput);
+                if (typeof setToastMessage === 'function') {
+                  setToastMessage('✅ Gemini API Key saved to local storage.');
+                }
+              }}
+            >
+              Save Key
+            </Button>
           </div>
         </div>
 

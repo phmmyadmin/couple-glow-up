@@ -1,20 +1,46 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = apiKey && typeof apiKey === 'string' && apiKey.trim() ? new GoogleGenerativeAI(apiKey.trim()) : null;
+export function getGeminiApiKey() {
+  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (envKey && typeof envKey === 'string' && envKey.trim() && !envKey.includes('undefined')) {
+    return envKey.trim();
+  }
+  try {
+    const localKey = localStorage.getItem('glowup_gemini_api_key');
+    if (localKey && typeof localKey === 'string' && localKey.trim()) {
+      return localKey.trim();
+    }
+  } catch (e) {}
+  return '';
+}
+
+export function setGeminiApiKey(keyStr) {
+  try {
+    if (keyStr && typeof keyStr === 'string' && keyStr.trim()) {
+      localStorage.setItem('glowup_gemini_api_key', keyStr.trim());
+    } else {
+      localStorage.removeItem('glowup_gemini_api_key');
+    }
+  } catch (e) {}
+}
 
 export async function parseFoodWithGemini(userText) {
-  if (!genAI || !apiKey) {
-    console.warn('VITE_GEMINI_API_KEY is missing or not configured.');
-    return null;
+  const apiKey = getGeminiApiKey();
+
+  if (!apiKey) {
+    throw new Error('Gemini API Key is missing. Please set VITE_GEMINI_API_KEY or save your API Key in Profile Settings.');
   }
 
+  const genAI = new GoogleGenerativeAI(apiKey);
+
   const modelsToTry = [
+    'gemini-2.5-flash',
     'gemini-flash-latest',
     'gemini-flash-lite-latest',
-    'gemini-2.5-flash',
     'gemini-pro-latest'
   ];
+
+  let lastError = null;
 
   for (const modelName of modelsToTry) {
     try {
@@ -117,46 +143,6 @@ EXAMPLES:
      }
    ]
 
-   Input: "media manzana"
-   Required JSON Output:
-   [
-     {
-       "name": "Apple",
-       "quantity": 0.5,
-       "unit": "ud",
-       "category": "fruit",
-       "calories": 40,
-       "protein": 0.2,
-       "carbs": 10.5,
-       "fats": 0.1
-     }
-   ]
-
-   Input: "2 huevos cocidos y 1 platano"
-   Required JSON Output (names in English):
-   [
-     {
-       "name": "Egg",
-       "quantity": 2,
-       "unit": "ud",
-       "category": "meat",
-       "calories": 155,
-       "protein": 13.0,
-       "carbs": 1.1,
-       "fats": 11.0
-     },
-     {
-       "name": "Banana",
-       "quantity": 1,
-       "unit": "ud",
-       "category": "fruit",
-       "calories": 89,
-       "protein": 1.1,
-       "carbs": 22.8,
-       "fats": 0.3
-     }
-   ]
-
 User Input: "${userText}"
 
 Return EXCLUSIVELY the strict JSON array:`;
@@ -173,9 +159,13 @@ Return EXCLUSIVELY the strict JSON array:`;
       }
     } catch (err) {
       console.warn(`Gemini model ${modelName} failed:`, err);
+      lastError = err;
     }
   }
 
-  console.warn('All Gemini AI models failed to process the request.');
-  return null;
+  if (lastError && (lastError.message?.includes('401') || lastError.message?.includes('invalid authentication') || lastError.message?.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED'))) {
+    throw new Error('Gemini API Key is invalid or unauthorized (401). Please update your Gemini API Key in Profile Settings.');
+  }
+
+  throw new Error(lastError?.message || 'Gemini AI failed to process the request.');
 }
