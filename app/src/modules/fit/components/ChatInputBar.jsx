@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Loader2, Mic, MicOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { parseFoodWithGemini } from '../../../lib/gemini';
-import { parseFoodTextLocal } from '../../../lib/parser';
 import { saveIntakesToSupabase, fetchDailyLogsFromSupabase } from '../../../lib/supabase';
 
 export default function ChatInputBar({
@@ -80,15 +79,17 @@ export default function ChatInputBar({
         return;
       }
 
-      // Send direct to AI (Gemini) with local parser fallback
-      let parsedItems = await parseFoodWithGemini(foodText);
-      if (!parsedItems || parsedItems.length === 0) {
-        parsedItems = parseFoodTextLocal(foodText);
+      // Send 100% directly to Gemini AI (no local fallback)
+      let parsedItems = null;
+      try {
+        parsedItems = await parseFoodWithGemini(foodText);
+      } catch (err) {
+        console.error('Error with Gemini AI parsing:', err);
       }
 
       if (!parsedItems || parsedItems.length === 0) {
         if (typeof setToastMessage === 'function') {
-          setToastMessage(t('toast.couldNotParse', 'Could not parse food item'));
+          setToastMessage('⚠️ Gemini error: Could not process food intake. Please try again.');
         }
         return;
       }

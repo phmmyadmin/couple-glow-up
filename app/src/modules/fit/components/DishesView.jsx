@@ -22,7 +22,6 @@ import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
 import { parseFoodWithGemini } from '../../../lib/gemini';
-import { parseFoodTextLocal } from '../../../lib/parser';
 import { getFoodEmoji } from '../../../utils/emoji';
 import { getCategoryInfo } from '../../../utils/category';
 import {
@@ -205,7 +204,10 @@ export default function DishesView({
     try {
       let parsed = await parseFoodWithGemini(aiInputText);
       if (!parsed || parsed.length === 0) {
-        parsed = parseFoodTextLocal(aiInputText);
+        if (typeof setToastMessage === 'function') {
+          setToastMessage('⚠️ Gemini error: Could not process ingredients.');
+        }
+        return;
       }
 
       if (parsed && parsed.length > 0) {
