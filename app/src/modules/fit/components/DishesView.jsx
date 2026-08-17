@@ -16,6 +16,7 @@ import {
   PlusCircle,
   Calendar,
   Flame,
+  Scale,
 } from 'lucide-react';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
@@ -50,8 +51,7 @@ export default function DishesView({
 
   // Portion Logging Modal state
   const [loggingDish, setLoggingDish] = useState(null);
-  const [portionMode, setPortionMode] = useState('grams'); // 'grams' or 'servings'
-  const [portionValue, setPortionValue] = useState(100);
+  const [portionGrams, setPortionGrams] = useState(100);
 
   // Load custom dishes from Supabase / localStorage
   useEffect(() => {
@@ -94,7 +94,6 @@ export default function DishesView({
   const saveDishesState = async (updatedDishes) => {
     setDishes(updatedDishes);
 
-    // Save to localStorage
     try {
       localStorage.setItem(
         `${LOCAL_DISHES_KEY}_${activeProfileId || 'default'}`,
@@ -102,17 +101,15 @@ export default function DishesView({
       );
     } catch (e) {}
 
-    // Save to Supabase if available
     if (supabase && activeProfileId) {
       try {
-        // Upsert all custom dishes for this profile
         for (const dish of updatedDishes) {
           await supabase.from('custom_dishes').upsert(
             {
               id: dish.id,
               profile_id: activeProfileId,
               name: dish.name,
-              servings: dish.servings || 1,
+              servings: 1,
               total_weight_grams: dish.totalWeightGrams || 0,
               ingredients: dish.ingredients || [],
               updated_at: new Date().toISOString(),
@@ -130,8 +127,6 @@ export default function DishesView({
     setEditingDish({
       id: `dish_${Date.now()}`,
       name: '',
-      servings: 1,
-      totalWeightGrams: 0,
       ingredients: [],
     });
     setAiInputText('');
@@ -250,49 +245,6 @@ export default function DishesView({
     }));
   };
 
-  // Save full dish
-  const handleSaveDishSubmit = async (e) => {
-    if (e) e.preventDefault();
-    if (!editingDish.name.trim()) {
-      alert('Please enter a dish name.');
-      return;
-    }
-    if (!editingDish.ingredients || editingDish.ingredients.length === 0) {
-      alert('Please add at least one ingredient.');
-      return;
-    }
-
-    // Compute total dish weight from grams
-    const computedGrams = editingDish.ingredients.reduce((sum, ing) => {
-      if (ing.unit === 'g') return sum + (Number(ing.quantity) || 0);
-      return sum;
-    }, 0);
-
-    const finalDish = {
-      ...editingDish,
-      name: editingDish.name.trim(),
-      servings: Number(editingDish.servings) || 1,
-      totalWeightGrams: editingDish.totalWeightGrams || computedGrams || 100,
-    };
-
-    const existingIdx = dishes.findIndex((d) => d.id === finalDish.id);
-    let updatedList = [];
-    if (existingIdx >= 0) {
-      updatedList = [...dishes];
-      updatedList[existingIdx] = finalDish;
-    } else {
-      updatedList = [finalDish, ...dishes];
-    }
-
-    await saveDishesState(updatedList);
-    setIsEditorOpen(false);
-    setEditingDish(null);
-
-    if (typeof setToastMessage === 'function') {
-      setToastMessage(`🍲 Saved dish "${finalDish.name}"`);
-    }
-  };
-
   // Calculate totals for a dish object
   const getDishTotals = (dish) => {
     const ings = dish?.ingredients || [];
@@ -312,39 +264,64 @@ export default function DishesView({
       protein: Math.round(totals.protein * 10) / 10,
       carbs: Math.round(totals.carbs * 10) / 10,
       fats: Math.round(totals.fats * 10) / 10,
-      totalGrams: dish?.totalWeightGrams || totals.grams || 100,
+      totalGrams: totals.grams > 0 ? totals.grams : 100,
     };
+  };
+
+  // Save full dish
+  const handleSaveDishSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!editingDish.name.trim()) {
+      alert('Please enter a dish name.');
+      return;
+    }
+    if (!editingDish.ingredients || editingDish.ingredients.length === 0) {
+      alert('Please add at least one ingredient.');
+      return;
+    }
+
+    const totals = getDishTotals(editingDish);
+
+    const finalDish = {
+      ...editingDish,
+      name: editingDish.name.trim(),
+      totalWeightGrams: totals.totalGrams,
+    };
+
+    const existingIdx = dishes.findIndex((d) => d.id === finalDish.id);
+    let updatedList = [];
+    if (existingIdx >= 0) {
+      updatedList = [...dishes];
+      updatedList[existingIdx] = finalDish;
+    } else {
+      updatedList = [finalDish, ...dishes];
+    }
+
+    await saveDishesState(updatedList);
+    setIsEditorOpen(false);
+    setEditingDish(null);
+
+    if (typeof setToastMessage === 'function') {
+      setToastMessage(`🍲 Saved dish "${finalDish.name}" (${totals.totalGrams}g total)`);
+    }
   };
 
   // Open Log Portion modal
   const handleOpenLogPortion = (dish) => {
     const totals = getDishTotals(dish);
     setLoggingDish(dish);
-    setPortionMode('grams');
-    setPortionValue(Math.round(totals.totalGrams / (dish.servings || 1)) || 100);
+    setPortionGrams(100);
   };
 
-  // Submit portion to Diary
+  // Submit eaten portion to Diary
   const handleConfirmLogPortion = async () => {
     if (!loggingDish) return;
     const totals = getDishTotals(loggingDish);
+    const eatenWeight = Number(portionGrams) || 100;
+    const totalGrams = totals.totalGrams || 100;
+    const ratio = eatenWeight / totalGrams;
 
-    let ratio = 1;
-    let eatenGramsDesc = '';
-
-    if (portionMode === 'grams') {
-      const eatenGrams = Number(portionValue) || 100;
-      const totalGrams = totals.totalGrams || 100;
-      ratio = eatenGrams / totalGrams;
-      eatenGramsDesc = `${eatenGrams}g of ${totalGrams}g`;
-    } else {
-      const eatenServings = Number(portionValue) || 1;
-      const totalServings = Number(loggingDish.servings) || 1;
-      ratio = eatenServings / totalServings;
-      eatenGramsDesc = `${eatenServings} serving(s) of ${totalServings}`;
-    }
-
-    const dishNameDesc = `${loggingDish.name} (${eatenGramsDesc})`;
+    const dishNameDesc = `${loggingDish.name} (${eatenWeight}g of ${totalGrams}g)`;
 
     // Scale ingredient items for diary
     const diaryItems = loggingDish.ingredients.map((ing) => {
@@ -373,7 +350,15 @@ export default function DishesView({
       };
     });
 
-    const targetDate = selectedDate || new Date().toISOString().slice(0, 10);
+    const getLocalDateStr = () => {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const targetDate = selectedDate || getLocalDateStr();
 
     if (supabase && activeProfileId) {
       const result = await saveIntakesToSupabase({
@@ -416,7 +401,7 @@ export default function DishesView({
     setLoggingDish(null);
 
     if (typeof setToastMessage === 'function') {
-      setToastMessage(`🍱 Added ${dishNameDesc} (${totalEatenCals} kcal) to Diary`);
+      setToastMessage(`🍱 Added ${eatenWeight}g of "${loggingDish.name}" (${totalEatenCals} kcal) to Diary`);
     }
   };
 
@@ -435,7 +420,7 @@ export default function DishesView({
               <span>Saved Dishes & Recipes</span>
             </h2>
             <p className="text-xs sm:text-sm text-indigo-200/90 max-w-xl">
-              Create multi-ingredient dishes with AI macro calculations. Edit any value and log portion sizes directly into your daily diary.
+              Create multi-ingredient recipes with AI macro calculations. Total weight is automatically summed so you can easily log any portion in grams to your diary.
             </p>
           </div>
 
@@ -504,9 +489,10 @@ export default function DishesView({
                         {dish.name}
                       </h3>
                       <p className="text-xs text-slate-500 font-medium flex items-center gap-2 pt-0.5">
-                        <span>{dish.servings || 1} Serving{(dish.servings || 1) > 1 ? 's' : ''}</span>
+                        <Scale className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                        <span className="font-extrabold text-slate-800 font-mono">{totals.totalGrams}g Total Batch</span>
                         <span>•</span>
-                        <span>{totals.totalGrams}g Total Batch</span>
+                        <span className="font-mono">~{per100gCals} kcal / 100g</span>
                       </p>
                     </div>
 
@@ -530,10 +516,10 @@ export default function DishesView({
                     </div>
                   </div>
 
-                  {/* Macro Badges Grid */}
+                  {/* Total Batch Macro Badges Grid */}
                   <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 grid grid-cols-4 gap-2 text-center">
                     <div>
-                      <span className="block text-[10px] font-extrabold text-slate-400 uppercase">Calories</span>
+                      <span className="block text-[10px] font-extrabold text-slate-400 uppercase">Total Cals</span>
                       <span className="text-sm font-extrabold text-rose-600 font-mono">{totals.calories}</span>
                       <span className="text-[9px] text-slate-400 block font-mono">kcal</span>
                     </div>
@@ -583,15 +569,15 @@ export default function DishesView({
 
                 {/* Log to Diary Primary Action */}
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-                  <span className="text-[11px] text-slate-400 font-mono font-medium">
-                    ~{per100gCals} kcal / 100g
+                  <span className="text-xs font-bold text-slate-500 font-mono">
+                    Batch: {totals.totalGrams}g
                   </span>
                   <Button
                     onClick={() => handleOpenLogPortion(dish)}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-xl shadow-2xs flex items-center gap-1.5"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Log to Diary</span>
+                    <span>Log Portion to Diary</span>
                   </Button>
                 </div>
               </Card>
@@ -615,7 +601,7 @@ export default function DishesView({
                     {editingDish.name ? `Edit "${editingDish.name}"` : 'Create Custom Dish'}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Add ingredients via AI or manually, adjust macros, and save your dish recipe.
+                    Add ingredients via AI or manually. Total dish weight is auto-calculated from ingredient quantities.
                   </p>
                 </div>
               </div>
@@ -631,33 +617,18 @@ export default function DishesView({
 
             {/* Modal Scrollable Body */}
             <div className="p-5 space-y-5 overflow-y-auto flex-1">
-              {/* Dish Name & Servings Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
-                    Dish / Recipe Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Tofu & Oat Meal Prep Bowl"
-                    value={editingDish.name}
-                    onChange={(e) => setEditingDish({ ...editingDish, name: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-bold text-slate-900 focus:outline-hidden focus:border-indigo-500 focus:bg-white"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
-                    Servings / Portions
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editingDish.servings}
-                    onChange={(e) => setEditingDish({ ...editingDish, servings: Math.max(1, Number(e.target.value)) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-bold text-slate-900 focus:outline-hidden focus:border-indigo-500 focus:bg-white"
-                  />
-                </div>
+              {/* Dish Name Input */}
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+                  Dish / Recipe Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Tofu & Oat Meal Prep Bowl"
+                  value={editingDish.name}
+                  onChange={(e) => setEditingDish({ ...editingDish, name: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:outline-hidden focus:border-indigo-500 focus:bg-white"
+                />
               </div>
 
               {/* AI Quick Ingredient Parser Bar */}
@@ -667,7 +638,7 @@ export default function DishesView({
                     <Sparkles className="w-4 h-4 text-indigo-600" />
                     <span>Calculate Ingredients via AI</span>
                   </label>
-                  <span className="text-[10px] text-indigo-700/80 font-medium">Type text or recipe ingredients</span>
+                  <span className="text-[10px] text-indigo-700/80 font-medium">Type raw ingredients & quantities</span>
                 </div>
 
                 <form onSubmit={handleParseAiIngredients} className="flex gap-2">
@@ -693,8 +664,11 @@ export default function DishesView({
               {/* Ingredients Table */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
-                    Ingredients ({editingDish.ingredients?.length || 0})
+                  <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                    <span>Ingredients ({editingDish.ingredients?.length || 0})</span>
+                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                      {getDishTotals(editingDish).totalGrams}g Total Weight
+                    </span>
                   </h4>
                   <button
                     type="button"
@@ -750,7 +724,7 @@ export default function DishesView({
                           <button
                             type="button"
                             onClick={() => handleRemoveIngredient(ing.id)}
-                            className="col-span-1 text-slate-400 hover:text-rose-600 p-1 flex items-center justify-center"
+                            className="col-span-1 text-slate-400 hover:text-rose-600 p-1 flex items-center justify-center cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -811,7 +785,7 @@ export default function DishesView({
               {editingDish.ingredients?.length > 0 && (
                 <Card className="p-4 bg-slate-900 text-white rounded-2xl space-y-2 shadow-inner">
                   <div className="flex items-center justify-between text-xs font-extrabold text-slate-300">
-                    <span>Total Calculated Dish Macros</span>
+                    <span>Total Dish Batch Macros</span>
                     <span className="font-mono text-indigo-300">
                       {getDishTotals(editingDish).totalGrams}g Total Weight
                     </span>
@@ -880,12 +854,12 @@ export default function DishesView({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <UtensilsCrossed className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-base font-extrabold text-slate-900">Log Dish to Diary</h3>
+                <h3 className="text-base font-extrabold text-slate-900">Log Dish Portion to Diary</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setLoggingDish(null)}
-                className="p-1 text-slate-400 hover:text-slate-700"
+                className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -894,66 +868,37 @@ export default function DishesView({
             <div className="space-y-4">
               <div>
                 <h4 className="font-extrabold text-slate-900 text-base">{loggingDish.name}</h4>
-                <p className="text-xs text-slate-500 font-medium">
-                  {getDishTotals(loggingDish).totalGrams}g Total Batch • {loggingDish.servings || 1} Servings
+                <p className="text-xs text-slate-500 font-medium pt-0.5">
+                  Total Batch Weight: <span className="font-bold text-slate-800 font-mono">{getDishTotals(loggingDish).totalGrams}g</span>
                 </p>
               </div>
 
-              {/* Mode Selector Tabs */}
-              <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPortionMode('grams');
-                    setPortionValue(110);
-                  }}
-                  className={`flex-1 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
-                    portionMode === 'grams'
-                      ? 'bg-white text-indigo-700 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  By Weight (Grams)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPortionMode('servings');
-                    setPortionValue(1);
-                  }}
-                  className={`flex-1 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
-                    portionMode === 'servings'
-                      ? 'bg-white text-indigo-700 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  By Servings
-                </button>
-              </div>
-
-              {/* Value Input */}
-              <div className="space-y-1">
-                <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
-                  {portionMode === 'grams' ? 'Eaten Weight (Grams)' : 'Eaten Servings'}
+              {/* Grams Input */}
+              <div className="space-y-1.5 bg-slate-50 p-4 border border-slate-200/80 rounded-2xl">
+                <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                  <span>How many grams did you eat?</span>
+                  <span className="text-indigo-600 font-mono text-[11px]">
+                    {Math.round(((Number(portionGrams) || 0) / getDishTotals(loggingDish).totalGrams) * 100)}% of batch
+                  </span>
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={portionValue}
-                  onChange={(e) => setPortionValue(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-base font-extrabold font-mono text-slate-900 focus:outline-hidden focus:border-indigo-500"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 110"
+                    value={portionGrams}
+                    onChange={(e) => setPortionGrams(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded-xl pl-4 pr-12 py-2.5 text-lg font-extrabold font-mono text-slate-900 focus:outline-hidden focus:border-indigo-500 shadow-2xs"
+                  />
+                  <span className="absolute right-4 top-3 text-xs font-bold text-slate-400 font-mono">grams</span>
+                </div>
               </div>
 
               {/* Eaten Portion Macros Preview Card */}
               {(() => {
                 const totals = getDishTotals(loggingDish);
-                let ratio = 1;
-                if (portionMode === 'grams') {
-                  ratio = (Number(portionValue) || 100) / (totals.totalGrams || 100);
-                } else {
-                  ratio = (Number(portionValue) || 1) / (Number(loggingDish.servings) || 1);
-                }
+                const eatenGrams = Number(portionGrams) || 100;
+                const ratio = eatenGrams / (totals.totalGrams || 100);
 
                 const eatenCals = Math.round(totals.calories * ratio);
                 const eatenProt = Math.round(totals.protein * ratio * 10) / 10;
@@ -963,7 +908,7 @@ export default function DishesView({
                 return (
                   <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4 space-y-2">
                     <span className="text-[11px] font-extrabold text-indigo-900 uppercase block tracking-wider">
-                      Eaten Portion Macros Preview
+                      Eaten Portion Macros Preview ({eatenGrams}g)
                     </span>
                     <div className="grid grid-cols-4 gap-2 text-center">
                       <div>
@@ -1000,7 +945,7 @@ export default function DishesView({
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-5 flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
-                <span>Add to Diary</span>
+                <span>Log {portionGrams || 100}g to Diary</span>
               </Button>
             </div>
           </div>
