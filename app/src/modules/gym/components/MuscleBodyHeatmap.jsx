@@ -7,15 +7,108 @@ export default function MuscleBodyHeatmap({ activeMuscles = [], title = 'Muscles
 
   const isMuscleActive = (muscleKey) => {
     if (activeSet.has(muscleKey)) return true;
-    if (muscleKey === 'chest' && activeSet.has('pecs')) return true;
-    if (muscleKey === 'shoulders' && (activeSet.has('delts') || activeSet.has('shoulder'))) return true;
-    if (muscleKey === 'quadriceps' && (activeSet.has('quads') || activeSet.has('legs'))) return true;
-    if (muscleKey === 'hamstrings' && activeSet.has('legs')) return true;
-    if (muscleKey === 'glutes' && activeSet.has('legs')) return true;
-    if (muscleKey === 'calves' && activeSet.has('legs')) return true;
-    if (muscleKey === 'lats' && activeSet.has('back')) return true;
-    if (muscleKey === 'upper_back' && activeSet.has('back')) return true;
-    if (muscleKey === 'lower_back' && activeSet.has('back')) return true;
+
+    // Abs / Core / Abdominals mapping
+    if (
+      muscleKey === 'abs' &&
+      (activeSet.has('abdominals') ||
+        activeSet.has('abs') ||
+        activeSet.has('abdominales') ||
+        activeSet.has('core') ||
+        activeSet.has('abdominal') ||
+        activeSet.has('obliques') ||
+        activeSet.has('oblicuos'))
+    ) {
+      return true;
+    }
+
+    // Chest mapping
+    if (
+      muscleKey === 'chest' &&
+      (activeSet.has('pecs') || activeSet.has('pecho') || activeSet.has('pectoral') || activeSet.has('pectorales'))
+    ) {
+      return true;
+    }
+
+    // Shoulders mapping
+    if (
+      muscleKey === 'shoulders' &&
+      (activeSet.has('delts') || activeSet.has('shoulder') || activeSet.has('hombro') || activeSet.has('hombros') || activeSet.has('deltoides'))
+    ) {
+      return true;
+    }
+
+    // Biceps mapping
+    if (muscleKey === 'biceps' && (activeSet.has('bicep') || activeSet.has('brazo') || activeSet.has('arms'))) {
+      return true;
+    }
+
+    // Triceps mapping
+    if (muscleKey === 'triceps' && (activeSet.has('tricep') || activeSet.has('brazo') || activeSet.has('arms'))) {
+      return true;
+    }
+
+    // Forearms mapping
+    if (muscleKey === 'forearms' && (activeSet.has('forearm') || activeSet.has('antebrazo') || activeSet.has('antebrazos'))) {
+      return true;
+    }
+
+    // Quads mapping
+    if (
+      muscleKey === 'quadriceps' &&
+      (activeSet.has('quads') || activeSet.has('quad') || activeSet.has('cuadriceps') || activeSet.has('cuádriceps') || activeSet.has('legs') || activeSet.has('piernas'))
+    ) {
+      return true;
+    }
+
+    // Hamstrings mapping
+    if (
+      muscleKey === 'hamstrings' &&
+      (activeSet.has('hamstring') || activeSet.has('isquios') || activeSet.has('isquiotibiales') || activeSet.has('femoral') || activeSet.has('legs') || activeSet.has('piernas'))
+    ) {
+      return true;
+    }
+
+    // Glutes mapping
+    if (
+      muscleKey === 'glutes' &&
+      (activeSet.has('glute') || activeSet.has('gluteos') || activeSet.has('glúteos') || activeSet.has('gluteo') || activeSet.has('legs') || activeSet.has('piernas'))
+    ) {
+      return true;
+    }
+
+    // Calves mapping
+    if (
+      muscleKey === 'calves' &&
+      (activeSet.has('calf') || activeSet.has('gemelos') || activeSet.has('pantorrillas') || activeSet.has('legs') || activeSet.has('piernas'))
+    ) {
+      return true;
+    }
+
+    // Lats mapping
+    if (
+      muscleKey === 'lats' &&
+      (activeSet.has('lat') || activeSet.has('dorsal') || activeSet.has('dorsales') || activeSet.has('back') || activeSet.has('espalda'))
+    ) {
+      return true;
+    }
+
+    // Upper Back mapping
+    if (
+      muscleKey === 'upper_back' &&
+      (activeSet.has('upper back') || activeSet.has('traps') || activeSet.has('trapecio') || activeSet.has('trapecios') || activeSet.has('back') || activeSet.has('espalda'))
+    ) {
+      return true;
+    }
+
+    // Lower Back mapping
+    if (
+      muscleKey === 'lower_back' &&
+      (activeSet.has('lower back') || activeSet.has('lumbar') || activeSet.has('lumbares') || activeSet.has('back') || activeSet.has('espalda'))
+    ) {
+      return true;
+    }
+
     return false;
   };
 
@@ -73,8 +166,21 @@ export default function MuscleBodyHeatmap({ activeMuscles = [], title = 'Muscles
             <path d="M 25 66 Q 20 80 23 92 Q 27 88 28 67 Z" style={getStyle('forearms')} />
             <path d="M 75 66 Q 80 80 77 92 Q 73 88 72 67 Z" style={getStyle('forearms')} />
 
-            {/* Abs / Core */}
-            <path d="M 37 56 L 63 56 L 61 88 L 39 88 Z" style={getStyle('abs')} />
+            {/* Abs / Core (6-pack & obliques grid) */}
+            <g style={{ transition: 'all 0.3s ease' }}>
+              {/* Upper Abs */}
+              <rect x="41" y="56" width="8" height="9" rx="2" style={getStyle('abs')} />
+              <rect x="51" y="56" width="8" height="9" rx="2" style={getStyle('abs')} />
+              {/* Mid Abs */}
+              <rect x="41" y="67" width="8" height="9" rx="2" style={getStyle('abs')} />
+              <rect x="51" y="67" width="8" height="9" rx="2" style={getStyle('abs')} />
+              {/* Lower Abs */}
+              <path d="M 41 78 L 49 78 L 47 88 L 42 88 Z" style={getStyle('abs')} />
+              <path d="M 51 78 L 59 78 L 58 88 L 53 88 Z" style={getStyle('abs')} />
+              {/* Obliques */}
+              <path d="M 35 56 L 39 56 L 39 86 L 37 86 Z" style={getStyle('abs')} />
+              <path d="M 61 56 L 65 56 L 63 86 L 61 86 Z" style={getStyle('abs')} />
+            </g>
 
             {/* Quadriceps (Front Thighs) */}
             <path d="M 37 92 Q 35 125 43 140 Q 48 135 48 93 Z" style={getStyle('quadriceps')} />
