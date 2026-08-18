@@ -348,6 +348,50 @@ export default function LiveWorkoutLogger({
     }
   }, [initialRoutine, exercises, workouts]);
 
+  // Re-hydrate lastPerformance on workoutExercises whenever workouts array updates
+  useEffect(() => {
+    if (!workouts || workouts.length === 0) return;
+
+    setWorkoutExercises((prev) => {
+      if (prev.length === 0) return prev;
+
+      let hasChanges = false;
+      const updated = prev.map((item) => {
+        const freshPerf = getLastPerformanceForExercise(item.exercise, workouts, exercises);
+        const oldPerf = item.lastPerformance;
+
+        if (freshPerf && (!oldPerf || JSON.stringify(oldPerf.sets) !== JSON.stringify(freshPerf.sets))) {
+          hasChanges = true;
+
+          const updatedSets = item.sets.map((s, setIdx) => {
+            const prevSet = freshPerf.sets[setIdx] || freshPerf.sets[freshPerf.sets.length - 1];
+            const newWeight = (s.weight_kg !== undefined && s.weight_kg !== '' && s.weight_kg !== 0)
+              ? s.weight_kg
+              : (prevSet?.weight_kg ?? '');
+            const newReps = (s.reps !== undefined && s.reps !== '' && s.reps !== 0)
+              ? s.reps
+              : (prevSet?.reps ?? '');
+
+            return {
+              ...s,
+              weight_kg: newWeight,
+              reps: newReps,
+            };
+          });
+
+          return {
+            ...item,
+            lastPerformance: freshPerf,
+            sets: updatedSets,
+          };
+        }
+        return item;
+      });
+
+      return hasChanges ? updated : prev;
+    });
+  }, [workouts, exercises]);
+
   // Handle exercise selection or replacement
   const handleAddOrReplaceExercise = (exercise) => {
     if (replaceExerciseIndex !== null) {

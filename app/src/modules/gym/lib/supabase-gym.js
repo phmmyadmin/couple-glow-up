@@ -164,6 +164,18 @@ export const SPANISH_TO_ENGLISH_EXERCISE_MAP = {
   'adductor': 'hip adduction (machine)',
   'hip abduction': 'hip abduction (machine)',
   'hip adduction': 'hip adduction (machine)',
+  'squat en smith': 'smith machine squat',
+  'sentadilla en smith': 'smith machine squat',
+  'sentadilla smith': 'smith machine squat',
+  'sentadilla en multipower': 'smith machine squat',
+  'sentadilla multipower': 'smith machine squat',
+  'multipower squat': 'smith machine squat',
+  'smith squat': 'smith machine squat',
+  'smith machine squat': 'smith machine squat',
+  'prensa': 'leg press',
+  'prensa de piernas': 'leg press',
+  'extensiones de cuadriceps': 'leg extensions',
+  'extension de cuadriceps': 'leg extensions',
   'plancha': 'plank',
 };
 
@@ -201,45 +213,63 @@ export function doesSetMatchExercise(set, targetExercise, catalogExercises = [])
   // 3. Compare resolved catalog IDs
   if (setCatalogEx?.id && targetCatalogEx?.id && setCatalogEx.id === targetCatalogEx.id) return true;
 
-  // 4. Extract raw exercise names
-  const rawSetName = (
-    setCatalogEx?.name ||
-    setCatalogEx?.name_es ||
-    set.exercise_name ||
-    set.name ||
-    ''
-  ).toLowerCase().trim();
+  // 4. Extract all name variants for set and target
+  const extractNames = (obj) => {
+    if (!obj) return [];
+    const list = [];
+    const push = (v) => {
+      if (v && typeof v === 'string' && v.trim()) list.push(v.trim());
+    };
+    push(obj.name);
+    push(obj.name_es);
+    push(obj.title);
+    push(obj.es_title);
+    push(obj.exercise_title);
+    if (obj.exercise) {
+      push(obj.exercise.name);
+      push(obj.exercise.name_es);
+      push(obj.exercise.title);
+    }
+    if (obj.exercises) {
+      push(obj.exercises.name);
+      push(obj.exercises.name_es);
+      push(obj.exercises.title);
+    }
+    return list;
+  };
 
-  const targetName = (
-    targetCatalogEx?.name ||
-    targetCatalogEx?.name_es ||
-    targetExercise.name ||
-    targetExercise.name_es ||
-    ''
-  ).toLowerCase().trim();
+  const setNames = extractNames(set).concat(extractNames(setCatalogEx));
+  const targetNames = extractNames(targetExercise).concat(extractNames(targetCatalogEx));
 
-  if (!rawSetName || !targetName) return false;
+  if (setNames.length === 0 || targetNames.length === 0) return false;
 
-  // 5. Direct name equality
-  if (rawSetName === targetName) return true;
+  for (const sRaw of setNames) {
+    const sLow = sRaw.toLowerCase().trim();
+    const sMap = SPANISH_TO_ENGLISH_EXERCISE_MAP[sLow] || sLow;
+    const sStrip = stripExerciseName(sMap);
 
-  // 6. Dictionary lookup
-  const mappedEnglishName = SPANISH_TO_ENGLISH_EXERCISE_MAP[rawSetName];
-  if (mappedEnglishName && mappedEnglishName === targetName) return true;
+    for (const tRaw of targetNames) {
+      const tLow = tRaw.toLowerCase().trim();
+      const tMap = SPANISH_TO_ENGLISH_EXERCISE_MAP[tLow] || tLow;
+      const tStrip = stripExerciseName(tMap);
 
-  const targetMappedEnglishName = SPANISH_TO_ENGLISH_EXERCISE_MAP[targetName];
-  if (targetMappedEnglishName && targetMappedEnglishName === rawSetName) return true;
+      // Direct match
+      if (sLow === tLow || sMap === tMap || (sStrip && tStrip && sStrip === tStrip)) {
+        return true;
+      }
 
-  if (mappedEnglishName && targetMappedEnglishName && mappedEnglishName === targetMappedEnglishName) return true;
+      // Smith machine / multipower fuzzy match
+      const sIsSmith = /smith|multipower/.test(sLow);
+      const tIsSmith = /smith|multipower/.test(tLow);
+      if (sIsSmith && tIsSmith) {
+        const sIsSquat = /squat|sentadilla/.test(sLow);
+        const tIsSquat = /squat|sentadilla/.test(tLow);
+        if (sIsSquat && tIsSquat) return true;
 
-  // 7. Stripped base name fuzzy matching
-  const strippedSet = stripExerciseName(mappedEnglishName || rawSetName);
-  const strippedTarget = stripExerciseName(targetMappedEnglishName || targetName);
-
-  if (strippedSet && strippedTarget) {
-    if (strippedSet === strippedTarget) return true;
-    if (strippedSet.length >= 3 && strippedTarget.length >= 3) {
-      if (strippedSet.includes(strippedTarget) || strippedTarget.includes(strippedSet)) return true;
+        const sIsPress = /press/.test(sLow);
+        const tIsPress = /press/.test(tLow);
+        if (sIsPress && tIsPress) return true;
+      }
     }
   }
 
