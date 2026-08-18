@@ -292,7 +292,7 @@ export default function LiveWorkoutLogger({
               equipment_category: item.equipment_category || 'dumbbell',
             };
 
-        const lastPerf = getLastPerformanceForExercise(finalExercise, workouts);
+        const lastPerf = getLastPerformanceForExercise(finalExercise, workouts, exercises);
 
         let initialSets = [];
         if (Array.isArray(item.sets) && item.sets.length > 0) {
@@ -348,7 +348,7 @@ export default function LiveWorkoutLogger({
     }
   }, [initialRoutine, exercises, workouts]);
 
-  // Re-hydrate lastPerformance on workoutExercises whenever workouts array updates
+  // Re-hydrate lastPerformance and pre-fill set values whenever workouts array updates
   useEffect(() => {
     if (!workouts || workouts.length === 0) return;
 
@@ -358,33 +358,37 @@ export default function LiveWorkoutLogger({
       let hasChanges = false;
       const updated = prev.map((item) => {
         const freshPerf = getLastPerformanceForExercise(item.exercise, workouts, exercises);
-        const oldPerf = item.lastPerformance;
 
-        if (freshPerf && (!oldPerf || JSON.stringify(oldPerf.sets) !== JSON.stringify(freshPerf.sets))) {
-          hasChanges = true;
+        if (!freshPerf || !freshPerf.sets || freshPerf.sets.length === 0) {
+          return item;
+        }
 
-          const updatedSets = item.sets.map((s, setIdx) => {
-            const prevSet = freshPerf.sets[setIdx] || freshPerf.sets[freshPerf.sets.length - 1];
-            const newWeight = (s.weight_kg !== undefined && s.weight_kg !== '' && s.weight_kg !== 0)
-              ? s.weight_kg
-              : (prevSet?.weight_kg ?? '');
-            const newReps = (s.reps !== undefined && s.reps !== '' && s.reps !== 0)
-              ? s.reps
-              : (prevSet?.reps ?? '');
+        let setsNeedUpdating = false;
+        const updatedSets = item.sets.map((s, setIdx) => {
+          const prevSet = freshPerf.sets[setIdx] || freshPerf.sets[freshPerf.sets.length - 1];
+          const shouldFillWeight = (s.weight_kg === undefined || s.weight_kg === null || s.weight_kg === '') && (prevSet?.weight_kg !== undefined && prevSet?.weight_kg !== null && prevSet?.weight_kg !== '');
+          const shouldFillReps = (s.reps === undefined || s.reps === null || s.reps === '') && (prevSet?.reps !== undefined && prevSet?.reps !== null && prevSet?.reps !== '');
 
+          if (shouldFillWeight || shouldFillReps) {
+            setsNeedUpdating = true;
             return {
               ...s,
-              weight_kg: newWeight,
-              reps: newReps,
+              weight_kg: shouldFillWeight ? prevSet.weight_kg : s.weight_kg,
+              reps: shouldFillReps ? prevSet.reps : s.reps,
             };
-          });
+          }
+          return s;
+        });
 
+        if (setsNeedUpdating || !item.lastPerformance) {
+          hasChanges = true;
           return {
             ...item,
             lastPerformance: freshPerf,
             sets: updatedSets,
           };
         }
+
         return item;
       });
 
