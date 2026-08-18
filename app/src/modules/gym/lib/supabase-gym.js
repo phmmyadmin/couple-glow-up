@@ -773,3 +773,58 @@ export function calculate1RM(weight, reps) {
   // Epley formula: 1RM = weight * (1 + reps / 30)
   return Math.round(weight * (1 + reps / 30) * 100) / 100;
 }
+
+// ── REALTIME SUBSCRIPTIONS ──
+export function subscribeToWorkouts(onChange) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('gym_workouts_live')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'workouts' },
+      (payload) => {
+        if (onChange) onChange(payload);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export function subscribeToPersonalRecords(onChange) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('gym_prs_live')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'personal_records' },
+      (payload) => {
+        if (onChange) onChange(payload);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export function subscribeToRoutines(onChange) {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel('gym_routines_live')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'routines' },
+      (payload) => {
+        if (onChange) onChange(payload);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}

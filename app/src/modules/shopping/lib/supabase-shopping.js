@@ -343,3 +343,49 @@ export function subscribeToShoppingItems(listId, onChange) {
     supabase.removeChannel(channel);
   };
 }
+
+export function subscribeToProductPrices(onChange) {
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('shopping_prices_live')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'product_prices',
+      },
+      (payload) => {
+        if (onChange) onChange(payload);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export function subscribeToMarkets(onChange) {
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('shopping_markets_live')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'markets',
+      },
+      (payload) => {
+        if (onChange) onChange(payload);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}

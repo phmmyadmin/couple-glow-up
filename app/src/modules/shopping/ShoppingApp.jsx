@@ -22,6 +22,8 @@ import {
   saveProductPrice,
   deleteProductPriceFromSupabase,
   subscribeToShoppingItems,
+  subscribeToProductPrices,
+  subscribeToMarkets,
 } from './lib/supabase-shopping';
 import { createFeedEventInSupabase } from '../feed/lib/supabase-feed';
 
@@ -121,6 +123,23 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
 
     return () => unsubscribe();
   }, [activeList]);
+
+  useEffect(() => {
+    const unsubPrices = subscribeToProductPrices(async () => {
+      const dbPrices = await fetchProductPrices();
+      if (Array.isArray(dbPrices)) setProductPrices(dbPrices);
+    });
+
+    const unsubMarkets = subscribeToMarkets(async () => {
+      const dbMarkets = await fetchMarkets();
+      if (Array.isArray(dbMarkets)) setMarkets(dbMarkets);
+    });
+
+    return () => {
+      unsubPrices();
+      unsubMarkets();
+    };
+  }, []);
 
   const handleAddItem = async (newItem) => {
     const itemWithList = {

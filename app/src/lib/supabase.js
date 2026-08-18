@@ -621,3 +621,73 @@ export async function applyCatalogMacros(items) {
   }
 }
 
+// ── REALTIME SUBSCRIPTION HELPERS FOR FIT MODULE ──
+export function subscribeToIntakes(onChange) {
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('fit_intakes_live')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'intakes',
+      },
+      (payload) => {
+        if (onChange) onChange(payload);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export function subscribeToDailyLogs(onChange) {
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('fit_daily_logs_live')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'daily_logs',
+      },
+      (payload) => {
+        if (onChange) onChange(payload);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export function subscribeToWeightLogs(onChange) {
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('fit_weight_logs_live')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'weight_logs',
+      },
+      (payload) => {
+        if (onChange) onChange(payload);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+

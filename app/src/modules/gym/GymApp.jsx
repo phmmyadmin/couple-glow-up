@@ -22,6 +22,9 @@ import {
   updateWorkoutInSupabase,
   fetchPersonalRecordsFromSupabase,
   evaluateAndSavePRs,
+  subscribeToWorkouts,
+  subscribeToPersonalRecords,
+  subscribeToRoutines,
 } from './lib/supabase-gym';
 import { createFeedEventInSupabase } from '../feed/lib/supabase-feed';
 
@@ -125,6 +128,38 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     }
 
     loadGymData();
+  }, [activeProfile]);
+
+  // Realtime Subscriptions for Gym Module
+  useEffect(() => {
+    const unsubWorkouts = subscribeToWorkouts(async () => {
+      const profileId = activeProfile?.id || null;
+      const dbWorkouts = await fetchWorkoutsFromSupabase(profileId);
+      if (dbWorkouts) {
+        const pending = JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
+        setWorkouts([...pending, ...dbWorkouts]);
+      }
+    });
+
+    const unsubPRs = subscribeToPersonalRecords(async () => {
+      const profileId = activeProfile?.id || null;
+      if (profileId) {
+        const dbPRs = await fetchPersonalRecordsFromSupabase(profileId);
+        setPersonalRecords(dbPRs);
+      }
+    });
+
+    const unsubRoutines = subscribeToRoutines(async () => {
+      const profileId = activeProfile?.id || null;
+      const dbRoutines = await fetchRoutinesFromSupabase(profileId);
+      if (dbRoutines) setRoutines(dbRoutines);
+    });
+
+    return () => {
+      unsubWorkouts();
+      unsubPRs();
+      unsubRoutines();
+    };
   }, [activeProfile]);
 
   // Sync offline workouts handler

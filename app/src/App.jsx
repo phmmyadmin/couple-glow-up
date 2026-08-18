@@ -115,6 +115,38 @@ export default function App() {
     loadData();
   }, []);
 
+  // Realtime Subscriptions for Fit / Nutrition Module
+  useEffect(() => {
+    if (!activeProfileId) return;
+
+    const unsubIntakes = subscribeToIntakes(async () => {
+      if (activeProfileId) {
+        const supabaseData = await fetchDailyLogsFromSupabase(activeProfileId);
+        if (supabaseData) setData(supabaseData);
+      }
+    });
+
+    const unsubLogs = subscribeToDailyLogs(async () => {
+      if (activeProfileId) {
+        const supabaseData = await fetchDailyLogsFromSupabase(activeProfileId);
+        if (supabaseData) setData(supabaseData);
+      }
+    });
+
+    const unsubWeight = subscribeToWeightLogs(async () => {
+      if (activeProfileId) {
+        const supabaseData = await fetchDailyLogsFromSupabase(activeProfileId);
+        if (supabaseData) setData(supabaseData);
+      }
+    });
+
+    return () => {
+      unsubIntakes();
+      unsubLogs();
+      unsubWeight();
+    };
+  }, [activeProfileId]);
+
   const handleProfileChange = (newProfileId) => {
     setActiveProfileId(newProfileId);
     if (newProfileId) {
