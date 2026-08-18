@@ -261,6 +261,13 @@ export function doesSetMatchExercise(set, targetExercise, catalogExercises = [])
         return true;
       }
 
+      // Substring fuzzy match
+      if (sStrip && tStrip && sStrip.length >= 4 && tStrip.length >= 4) {
+        if (sStrip.includes(tStrip) || tStrip.includes(sStrip)) {
+          return true;
+        }
+      }
+
       // Smith machine / multipower fuzzy match
       const sIsSmith = /smith|multipower/.test(sLow);
       const tIsSmith = /smith|multipower/.test(tLow);
@@ -451,35 +458,49 @@ export async function deleteRoutineFromSupabase(routineId) {
 
 // ── WORKOUTS & SETS ──
 export async function fetchWorkoutsFromSupabase(profileId) {
-  if (!supabase || !profileId) return [];
+  if (!supabase) return [];
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('workouts')
       .select('*, workout_sets(*, exercises(*))')
-      .eq('profile_id', profileId)
       .order('started_at', { ascending: false });
-    if (error) throw error;
 
-    const enriched = (data || []).map((w) => {
-      const sets = (w.workout_sets || []).map((s) => {
-        const exObj = s.exercises || s.exercise || {
-          name: s.exercise_name || s.name || 'Exercise',
-        };
-        return {
-          ...s,
-          exercise: exObj,
-          exercises: exObj,
-          exercise_name: exObj?.name || exObj?.name_es || s.exercise_name || 'Exercise',
-        };
-      });
-      return { ...w, workout_sets: sets };
-    });
+    if (profileId) {
+      query = query.or(`profile_id.eq.${profileId},profile_id.is.null`);
+    }
 
-    return enriched;
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching workouts with profile filter:', error);
+      const { data: fallbackData } = await supabase
+        .from('workouts')
+        .select('*, workout_sets(*, exercises(*))')
+        .order('started_at', { ascending: false });
+      return enrichWorkoutList(fallbackData || []);
+    }
+
+    return enrichWorkoutList(data || []);
   } catch (err) {
     console.error('Error fetching workouts:', err);
     return [];
   }
+}
+
+function enrichWorkoutList(data) {
+  return (data || []).map((w) => {
+    const sets = (w.workout_sets || []).map((s) => {
+      const exObj = s.exercises || s.exercise || {
+        name: s.exercise_name || s.name || 'Exercise',
+      };
+      return {
+        ...s,
+        exercise: exObj,
+        exercises: exObj,
+        exercise_name: exObj?.name || exObj?.name_es || s.exercise_name || 'Exercise',
+      };
+    });
+    return { ...w, name: w.name || 'Workout', workout_sets: sets };
+  });
 }
 
 export async function saveWorkoutSessionToSupabase(workoutObj, sets) {
