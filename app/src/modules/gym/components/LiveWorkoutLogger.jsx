@@ -368,6 +368,32 @@ export default function LiveWorkoutLogger({
           return item;
         }
 
+        const isUnfilled = item.sets.every(
+          (s) => !s.is_checked && (s.weight_kg === undefined || s.weight_kg === null || s.weight_kg === '')
+        );
+
+        if (!item.lastPerformance || isUnfilled) {
+          hasChanges = true;
+          const rehydratedSets = freshPerf.sets.map((prevSet, sIdx) => ({
+            id: `${Date.now()}-${sIdx}`,
+            indicator: prevSet.indicator || 'normal',
+            weight_kg: prevSet.weight_kg ?? '',
+            reps: prevSet.reps ?? '',
+            duration_seconds: prevSet.duration_seconds || null,
+            distance_meters: prevSet.distance_meters || null,
+            distance_km: prevSet.distance_km || null,
+            is_checked: false,
+          }));
+
+          console.log('✨ [LIVE LOGGER] Complete re-hydration of sets for exercise:', item.exercise.name, freshPerf);
+
+          return {
+            ...item,
+            lastPerformance: freshPerf,
+            sets: rehydratedSets,
+          };
+        }
+
         let setsNeedUpdating = false;
         const updatedSets = item.sets.map((s, setIdx) => {
           const prevSet = freshPerf.sets[setIdx] || freshPerf.sets[freshPerf.sets.length - 1];
@@ -385,9 +411,9 @@ export default function LiveWorkoutLogger({
           return s;
         });
 
-        if (setsNeedUpdating || !item.lastPerformance) {
+        if (setsNeedUpdating) {
           hasChanges = true;
-          console.log('✨ [LIVE LOGGER] Pre-filled values for exercise:', item.exercise.name, freshPerf);
+          console.log('✨ [LIVE LOGGER] Partial pre-fill for exercise:', item.exercise.name, freshPerf);
           return {
             ...item,
             lastPerformance: freshPerf,
