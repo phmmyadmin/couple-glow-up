@@ -225,15 +225,18 @@ export function doesSetMatchExercise(set, targetExercise, catalogExercises = [])
     push(obj.title);
     push(obj.es_title);
     push(obj.exercise_title);
+    push(obj.exercise_name);
     if (obj.exercise) {
       push(obj.exercise.name);
       push(obj.exercise.name_es);
       push(obj.exercise.title);
+      push(obj.exercise.exercise_name);
     }
     if (obj.exercises) {
       push(obj.exercises.name);
       push(obj.exercises.name_es);
       push(obj.exercises.title);
+      push(obj.exercises.exercise_name);
     }
     return list;
   };
@@ -456,7 +459,23 @@ export async function fetchWorkoutsFromSupabase(profileId) {
       .eq('profile_id', profileId)
       .order('started_at', { ascending: false });
     if (error) throw error;
-    return data || [];
+
+    const enriched = (data || []).map((w) => {
+      const sets = (w.workout_sets || []).map((s) => {
+        const exObj = s.exercises || s.exercise || {
+          name: s.exercise_name || s.name || 'Exercise',
+        };
+        return {
+          ...s,
+          exercise: exObj,
+          exercises: exObj,
+          exercise_name: exObj?.name || exObj?.name_es || s.exercise_name || 'Exercise',
+        };
+      });
+      return { ...w, workout_sets: sets };
+    });
+
+    return enriched;
   } catch (err) {
     console.error('Error fetching workouts:', err);
     return [];
@@ -475,20 +494,26 @@ export async function saveWorkoutSessionToSupabase(workoutObj, sets) {
 
     if (workoutErr) throw workoutErr;
 
-    // 2. Prepare sets with workout_id
-    const formattedSets = sets.map((s, idx) => ({
-      workout_id: workoutData.id,
-      exercise_id: s.exercise_id,
-      set_index: idx,
-      indicator: s.indicator || 'normal',
-      weight_kg: s.weight_kg !== undefined ? parseFloat(s.weight_kg) : null,
-      reps: s.reps !== undefined ? parseInt(s.reps, 10) : null,
-      duration_seconds: s.duration_seconds !== undefined ? parseInt(s.duration_seconds, 10) : null,
-      distance_meters: s.distance_meters !== undefined ? parseFloat(s.distance_meters) : null,
-      rpe: s.rpe ? parseFloat(s.rpe) : null,
-      superset_id: s.superset_id || null,
-      prs: s.prs || [],
-    }));
+    // 2. Prepare sets with valid exercise_id (UUID check)
+    const formattedSets = sets.map((s, idx) => {
+      const exObj = s.exercise || s.exercises;
+      const rawId = s.exercise_id || exObj?.id;
+      const isUUID = rawId && typeof rawId === 'string' && rawId.length >= 30 && !rawId.startsWith('ex-');
+
+      return {
+        workout_id: workoutData.id,
+        exercise_id: isUUID ? rawId : null,
+        set_index: idx,
+        indicator: s.indicator || 'normal',
+        weight_kg: s.weight_kg !== undefined && s.weight_kg !== '' ? parseFloat(s.weight_kg) : null,
+        reps: s.reps !== undefined && s.reps !== '' ? parseInt(s.reps, 10) : null,
+        duration_seconds: s.duration_seconds !== undefined && s.duration_seconds !== '' ? parseInt(s.duration_seconds, 10) : null,
+        distance_meters: s.distance_meters !== undefined && s.distance_meters !== '' ? parseFloat(s.distance_meters) : null,
+        rpe: s.rpe ? parseFloat(s.rpe) : null,
+        superset_id: s.superset_id || null,
+        prs: s.prs || [],
+      };
+    });
 
     // 3. Insert sets and join exercises relation
     const { data: setData, error: setErr } = await supabase
@@ -498,7 +523,20 @@ export async function saveWorkoutSessionToSupabase(workoutObj, sets) {
 
     if (setErr) throw setErr;
 
-    return { ...workoutData, workout_sets: setData };
+    const enrichedSets = (setData || []).map((s, idx) => {
+      const originalSet = sets[idx];
+      const exObj = s.exercises || originalSet?.exercise || originalSet?.exercises || {
+        name: originalSet?.exercise_name || originalSet?.name || 'Exercise',
+      };
+      return {
+        ...s,
+        exercise: exObj,
+        exercises: exObj,
+        exercise_name: exObj?.name || exObj?.name_es || originalSet?.exercise_name || 'Exercise',
+      };
+    });
+
+    return { ...workoutData, workout_sets: enrichedSets };
   } catch (err) {
     console.error('Error saving workout session:', err);
     return null;
