@@ -556,6 +556,17 @@ export default function LiveWorkoutLogger({
     }
   };
 
+  const handleApplyCustomTime = (e) => {
+    if (e) e.preventDefault();
+    const mins = parseInt(editMinutesInput, 10);
+    if (!isNaN(mins) && mins >= 0) {
+      const newSecs = mins * 60;
+      setSecondsElapsed(newSecs);
+      startTimeRef.current = Date.now() - newSecs * 1000;
+    }
+    setIsEditingTimeModal(false);
+  };
+
   const handleFinish = () => {
     localStorage.removeItem('couple_glow_up_active_workout');
     window.dispatchEvent(new Event('active_workout_updated'));
@@ -594,15 +605,6 @@ export default function LiveWorkoutLogger({
       },
       allSets
     );
-  };
-
-  const handleApplyCustomTime = (e) => {
-    e.preventDefault();
-    const mins = parseInt(editMinutesInput, 10);
-    if (!isNaN(mins) && mins >= 0) {
-      setSecondsElapsed(mins * 60);
-    }
-    setIsEditingTimeModal(false);
   };
 
   return (
@@ -712,9 +714,21 @@ export default function LiveWorkoutLogger({
 
             {/* Sub-Header Metrics Row (Hevy Style) */}
             <div className="grid grid-cols-4 items-center pt-3 border-t border-slate-100 text-xs">
-              <div>
-                <span className="text-[11px] font-medium text-slate-400 block">Duration</span>
-                <span className="font-mono font-extrabold text-indigo-600 text-sm">{formatTimer(secondsElapsed)}</span>
+              <div
+                onClick={() => {
+                  setEditMinutesInput(String(Math.max(1, Math.round(secondsElapsed / 60))));
+                  setIsEditingTimeModal(true);
+                }}
+                className="cursor-pointer group select-none"
+                title="Click to edit workout duration"
+              >
+                <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+                  <span>Duration</span>
+                  <Edit3 className="w-3 h-3 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                </span>
+                <span className="font-mono font-extrabold text-indigo-600 text-sm group-hover:underline">
+                  {formatTimer(secondsElapsed)}
+                </span>
               </div>
 
               <div className="text-center">
@@ -1152,24 +1166,44 @@ export default function LiveWorkoutLogger({
 
       {/* Time Edit Modal */}
       {isEditingTimeModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <Card className="max-w-xs w-full p-5 space-y-4 shadow-xl">
-            <CardTitle>Edit Session Duration</CardTitle>
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setIsEditingTimeModal(false)}
+        >
+          <Card
+            className="max-w-xs w-full p-5 space-y-4 shadow-xl border border-slate-200 cursor-default rounded-2xl bg-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <CardTitle icon={Clock}>Edit Session Duration</CardTitle>
+              <button
+                type="button"
+                onClick={() => setIsEditingTimeModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
             <form onSubmit={handleApplyCustomTime} className="space-y-4">
               <Input
                 label="Duration in Minutes"
                 type="number"
                 min="0"
+                max="600"
                 value={editMinutesInput}
                 onChange={(e) => setEditMinutesInput(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 placeholder="e.g. 45"
                 autoFocus
+                required
+                className="font-mono font-bold text-center text-lg"
               />
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setIsEditingTimeModal(false)}>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditingTimeModal(false)}>
                   Cancel
                 </Button>
-                <Button variant="primary" size="sm" type="submit">
+                <Button variant="primary" size="sm" type="submit" icon={Save}>
                   Save
                 </Button>
               </div>
