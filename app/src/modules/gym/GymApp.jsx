@@ -337,6 +337,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   if (isLiveSessionActive) {
     return (
       <LiveWorkoutLogger
+        workouts={workouts}
         exercises={exercises}
         onSaveWorkout={handleSaveWorkout}
         onCancel={() => {
