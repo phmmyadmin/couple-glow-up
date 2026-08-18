@@ -49,10 +49,11 @@ export function getLastPerformanceForExercise(targetExercise, workouts = [], cat
   if (!targetExercise || !workouts || workouts.length === 0) return null;
 
   for (const w of workouts) {
-    const sets = w.workout_sets || [];
+    const sets = w.workout_sets || w.sets || [];
     const exSets = sets.filter((s) => doesSetMatchExercise(s, targetExercise, catalogExercises));
 
     if (exSets.length > 0) {
+      console.log('🎯 [LAST PERF FOUND]', { target: targetExercise.name, workoutName: w.name, setsCount: exSets.length, sampleSet: exSets[0] });
       return {
         workoutName: w.name,
         dateStr: new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -61,6 +62,7 @@ export function getLastPerformanceForExercise(targetExercise, workouts = [], cat
     }
   }
 
+  console.log('⚠️ [LAST PERF NOT FOUND]', { target: targetExercise.name, workoutsChecked: workouts.length });
   return null;
 }
 
