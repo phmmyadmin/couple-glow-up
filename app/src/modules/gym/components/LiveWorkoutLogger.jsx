@@ -297,28 +297,37 @@ export default function LiveWorkoutLogger({
         let initialSets = [];
         if (Array.isArray(item.sets) && item.sets.length > 0) {
           initialSets = item.sets.map((s, setIdx) => {
+            const prevSet = lastPerf?.sets?.[setIdx] || lastPerf?.sets?.[lastPerf.sets.length - 1];
+            const weightVal = (s.weight_kg !== undefined && s.weight_kg !== '' && s.weight_kg !== 0)
+              ? s.weight_kg
+              : (prevSet?.weight_kg ?? '');
+            const repsVal = (s.reps !== undefined && s.reps !== '' && s.reps !== 0)
+              ? s.reps
+              : (prevSet?.reps ?? '');
+
             return {
               id: `${Date.now()}-${idx}-${setIdx}`,
               indicator: s.indicator || s.set_type || 'normal',
-              weight_kg: (s.weight_kg !== undefined && s.weight_kg !== '' && s.weight_kg !== 0) ? s.weight_kg : '',
-              reps: (s.reps !== undefined && s.reps !== '' && s.reps !== 0) ? s.reps : '',
-              duration_seconds: s.duration_seconds || null,
-              distance_meters: s.distance_meters || null,
-              distance_km: s.distance_km || null,
+              weight_kg: weightVal,
+              reps: repsVal,
+              duration_seconds: s.duration_seconds || prevSet?.duration_seconds || null,
+              distance_meters: s.distance_meters || prevSet?.distance_meters || null,
+              distance_km: s.distance_km || prevSet?.distance_km || null,
               is_checked: false,
             };
           });
         } else {
           const targetSetsCount = parseInt(item.target_sets, 10) || (lastPerf?.sets.length || 3);
           initialSets = Array.from({ length: targetSetsCount }).map((_, setIdx) => {
+            const prevSet = lastPerf?.sets?.[setIdx] || lastPerf?.sets?.[lastPerf.sets.length - 1];
             return {
               id: `${Date.now()}-${idx}-${setIdx}`,
               indicator: 'normal',
-              weight_kg: '',
-              reps: '',
-              duration_seconds: null,
-              distance_meters: null,
-              distance_km: null,
+              weight_kg: prevSet?.weight_kg ?? '',
+              reps: prevSet?.reps ?? '',
+              duration_seconds: prevSet?.duration_seconds || null,
+              distance_meters: prevSet?.distance_meters || null,
+              distance_km: prevSet?.distance_km || null,
               is_checked: false,
             };
           });
@@ -366,18 +375,18 @@ export default function LiveWorkoutLogger({
   // Add new exercise to active session
   const handleAddExercise = (exercise) => {
     const isDist = exercise.exercise_type === 'distance_duration';
-    const lastPerf = getLastPerformanceForExercise(exercise, workouts);
+    const lastPerf = getLastPerformanceForExercise(exercise, workouts, exercises);
 
     let initialSets = [];
-    if (lastPerf && lastPerf.sets.length > 0) {
-      initialSets = lastPerf.sets.map((_, sIdx) => ({
+    if (lastPerf && lastPerf.sets && lastPerf.sets.length > 0) {
+      initialSets = lastPerf.sets.map((prevSet, sIdx) => ({
         id: `${Date.now()}-${sIdx}`,
-        indicator: 'normal',
-        weight_kg: '',
-        reps: '',
-        duration_seconds: null,
-        distance_meters: null,
-        distance_km: null,
+        indicator: prevSet.indicator || 'normal',
+        weight_kg: prevSet.weight_kg ?? '',
+        reps: prevSet.reps ?? '',
+        duration_seconds: prevSet.duration_seconds || null,
+        distance_meters: prevSet.distance_meters || null,
+        distance_km: prevSet.distance_km || null,
         is_checked: false,
       }));
     } else {
@@ -464,11 +473,26 @@ export default function LiveWorkoutLogger({
     setWorkoutExercises((prev) => {
       return prev.map((item, idx) => {
         if (idx === exIndex) {
+          const currentSets = item.sets || [];
+          const lastSetInCurrentSession = currentSets[currentSets.length - 1];
+          const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
+          const nextPerfSet = lastPerf?.sets?.[currentSets.length] || lastPerf?.sets?.[lastPerf.sets.length - 1];
+
+          const defaultWeight = (lastSetInCurrentSession?.weight_kg !== undefined && lastSetInCurrentSession?.weight_kg !== '')
+            ? lastSetInCurrentSession.weight_kg
+            : (nextPerfSet?.weight_kg ?? '');
+
+          const defaultReps = (lastSetInCurrentSession?.reps !== undefined && lastSetInCurrentSession?.reps !== '')
+            ? lastSetInCurrentSession.reps
+            : (nextPerfSet?.reps ?? '');
+
           const newSet = {
             id: Date.now().toString(),
-            indicator: 'normal',
-            weight_kg: '',
-            reps: '',
+            indicator: lastSetInCurrentSession?.indicator || 'normal',
+            weight_kg: defaultWeight,
+            reps: defaultReps,
+            duration_seconds: lastSetInCurrentSession?.duration_seconds || nextPerfSet?.duration_seconds || null,
+            distance_km: lastSetInCurrentSession?.distance_km || nextPerfSet?.distance_km || null,
             is_checked: false,
           };
           return { ...item, sets: [...item.sets, newSet] };
@@ -499,8 +523,18 @@ export default function LiveWorkoutLogger({
           const updatedSets = item.sets.map((s, sIdx) => {
             if (sIdx === setIndex) {
               const updated = { ...s, [field]: value };
-              // Auto launch rest timer using exercise-specific rest target
+              // Auto launch rest timer and auto-fill previous kg/reps if checking set while empty
               if (field === 'is_checked' && value === true) {
+                const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
+                const prevSet = lastPerf?.sets?.[sIdx] || lastPerf?.sets?.[0];
+
+                if ((updated.weight_kg === undefined || updated.weight_kg === null || updated.weight_kg === '') && prevSet?.weight_kg) {
+                  updated.weight_kg = prevSet.weight_kg;
+                }
+                if ((updated.reps === undefined || updated.reps === null || updated.reps === '') && prevSet?.reps) {
+                  updated.reps = prevSet.reps;
+                }
+
                 startRestTimer(item.rest_seconds || defaultRestSeconds || 90);
               }
               return updated;
