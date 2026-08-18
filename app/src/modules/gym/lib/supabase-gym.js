@@ -458,7 +458,11 @@ export async function deleteRoutineFromSupabase(routineId) {
 
 // ── WORKOUTS & SETS ──
 export async function fetchWorkoutsFromSupabase(profileId) {
-  if (!supabase) return [];
+  console.log('🏋️ [SUPABASE GYM] fetchWorkoutsFromSupabase called with profileId:', profileId);
+  if (!supabase) {
+    console.warn('⚠️ [SUPABASE GYM] Supabase client is NOT initialized!');
+    return [];
+  }
   try {
     let query = supabase
       .from('workouts')
@@ -471,17 +475,24 @@ export async function fetchWorkoutsFromSupabase(profileId) {
 
     const { data, error } = await query;
     if (error) {
-      console.error('Error fetching workouts with profile filter:', error);
-      const { data: fallbackData } = await supabase
+      console.error('❌ [SUPABASE GYM] Error fetching workouts with profile filter:', error);
+      const { data: fallbackData, error: fbErr } = await supabase
         .from('workouts')
         .select('*, workout_sets(*, exercises(*))')
         .order('started_at', { ascending: false });
-      return enrichWorkoutList(fallbackData || []);
+      if (fbErr) console.error('❌ [SUPABASE GYM] Fallback fetch also failed:', fbErr);
+      const result = enrichWorkoutList(fallbackData || []);
+      console.log(`✅ [SUPABASE GYM] Fallback fetched ${result.length} workouts`);
+      return result;
     }
 
-    return enrichWorkoutList(data || []);
+    const result = enrichWorkoutList(data || []);
+    console.log(`✅ [SUPABASE GYM] Successfully fetched ${result.length} workouts from Supabase`, {
+      sampleWorkout: result[0] ? { name: result[0].name, setsCount: result[0].workout_sets?.length } : 'None'
+    });
+    return result;
   } catch (err) {
-    console.error('Error fetching workouts:', err);
+    console.error('💥 [SUPABASE GYM] Exception in fetchWorkoutsFromSupabase:', err);
     return [];
   }
 }
