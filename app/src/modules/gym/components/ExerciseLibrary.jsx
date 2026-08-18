@@ -233,7 +233,7 @@ export default function ExerciseLibrary({
 
     sortedWorkouts.forEach((w) => {
       const sets = w.workout_sets || [];
-      const exSets = sets.filter((s) => doesSetMatchExercise(s, targetEx));
+      const exSets = sets.filter((s) => doesSetMatchExercise(s, targetEx, exercises));
 
       if (exSets.length > 0) {
         let sessionMaxWeight = 0;

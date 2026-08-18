@@ -100,18 +100,20 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
         setExercises(dbEx);
       }
 
-      if (activeProfile?.id) {
-        const dbRoutines = await fetchRoutinesFromSupabase(activeProfile.id);
+      const profileId = activeProfile?.id || null;
+      const dbRoutines = await fetchRoutinesFromSupabase(profileId);
+      if (dbRoutines) {
         setRoutines(dbRoutines);
+      }
 
-        const dbWorkouts = await fetchWorkoutsFromSupabase(activeProfile.id);
-        if (dbWorkouts) {
-          // Merge with pending offline workouts if any
-          const pending = JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
-          setWorkouts([...pending, ...dbWorkouts]);
-        }
+      const dbWorkouts = await fetchWorkoutsFromSupabase(profileId);
+      if (dbWorkouts) {
+        const pending = JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
+        setWorkouts([...pending, ...dbWorkouts]);
+      }
 
-        const dbPRs = await fetchPersonalRecordsFromSupabase(activeProfile.id);
+      if (profileId) {
+        const dbPRs = await fetchPersonalRecordsFromSupabase(profileId);
         setPersonalRecords(dbPRs);
       }
     }
