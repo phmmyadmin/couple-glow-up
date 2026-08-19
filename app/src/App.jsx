@@ -13,7 +13,14 @@ import Avatar from './shared/Avatar';
 import NewProfileModal from './modules/fit/components/NewProfileModal';
 
 import Button from './shared/ui/Button';
-import { supabase, fetchDailyLogsFromSupabase, fetchProfiles } from './lib/supabase';
+import {
+  supabase,
+  fetchDailyLogsFromSupabase,
+  fetchProfiles,
+  subscribeToIntakes,
+  subscribeToDailyLogs,
+  subscribeToWeightLogs,
+} from './lib/supabase';
 import './index.css';
 
 const getLocalDateStr = () => {
