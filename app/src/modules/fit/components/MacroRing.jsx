@@ -82,6 +82,32 @@ export default function MacroRing({ current = {}, targets = {} }) {
           bgColor="#FFFBEB"
         />
       </div>
+
+      {/* Daily Dietary Fiber Tracker Bar */}
+      <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm">🌾</span>
+          <div>
+            <span className="text-xs font-bold text-slate-800">Dietary Fiber</span>
+            <span className="text-[11px] text-slate-400 block sm:inline sm:ml-2">
+              (Target: {targets.fiber || 30}g/day)
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 min-w-[140px] sm:min-w-[180px]">
+          <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-teal-500 rounded-full transition-all duration-500"
+              style={{
+                width: `${Math.min(100, Math.round(((current.fiber || 0) / (targets.fiber || 30)) * 100))}%`,
+              }}
+            />
+          </div>
+          <span className="text-xs font-mono font-extrabold text-slate-700 shrink-0">
+            {Math.round((current.fiber || 0) * 10) / 10} / {targets.fiber || 30}g
+          </span>
+        </div>
+      </div>
     </Card>
   );
 }

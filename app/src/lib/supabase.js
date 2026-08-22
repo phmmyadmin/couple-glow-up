@@ -77,18 +77,25 @@ export async function fetchDailyLogsFromSupabase(profileId) {
           quantity: i.quantity,
           unit: i.unit,
           category: i.category || 'other',
+          calories: i.calories,
+          protein: i.protein,
+          carbs: i.carbs,
+          fats: i.fats,
+          fiber: i.fiber || 0,
           macros: {
             calories: i.calories,
             protein: i.protein,
             carbs: i.carbs,
-            fats: i.fats
+            fats: i.fats,
+            fiber: i.fiber || 0,
           }
         })),
         dailyTotals: {
           calories: l.calories,
           protein: l.protein,
           carbs: l.carbs,
-          fats: l.fats
+          fats: l.fats,
+          fiber: (l.intakes || []).reduce((sum, item) => sum + (item.fiber || 0), 0),
         }
       };
     });

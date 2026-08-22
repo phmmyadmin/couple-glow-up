@@ -76,6 +76,12 @@ export default function FitApp({
       0
     ) || activeDateData?.dailyTotals?.fats || 0;
 
+  const totalFiber =
+    activeDateData?.intakes?.reduce(
+      (sum, item) => sum + (item.macros?.fiber ?? item.fiber ?? 0),
+      0
+    ) || activeDateData?.dailyTotals?.fiber || 0;
+
   const targetMacros =
     activeProfile?.target_macros ||
     data?.userProfile?.targetMacros ||
@@ -167,8 +173,12 @@ export default function FitApp({
               protein: totalProtein,
               carbs: totalCarbs,
               fats: totalFats,
+              fiber: totalFiber,
             }}
-            targets={targetMacros}
+            targets={{
+              ...targetMacros,
+              fiber: targetMacros.fiber || 30,
+            }}
           />
 
           {/* Chat Input Bar - Fixed right below Macro Ring */}

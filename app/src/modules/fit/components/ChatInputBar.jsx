@@ -118,11 +118,13 @@ export default function ChatInputBar({
         protein: item.protein || 0,
         carbs: item.carbs || 0,
         fats: item.fats || 0,
+        fiber: item.fiber || 0,
         macros: {
           calories: item.calories || 0,
           protein: item.protein || 0,
           carbs: item.carbs || 0,
           fats: item.fats || 0,
+          fiber: item.fiber || 0,
         },
       }));
 

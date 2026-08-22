@@ -503,6 +503,9 @@ export default function DailyTimeline({
                             <span className="text-blue-600">{item.macros?.protein ?? item.protein ?? 0}g P</span>
                             <span className="text-emerald-600">{item.macros?.carbs ?? item.carbs ?? 0}g C</span>
                             <span className="text-amber-600">{item.macros?.fats ?? item.fats ?? 0}g F</span>
+                            {Boolean(item.macros?.fiber || item.fiber) && (
+                              <span className="text-teal-600 font-bold">{item.macros?.fiber ?? item.fiber}g Fibra</span>
+                            )}
                           </div>
                         </div>
                       </div>
