@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Auditoría de Rendimiento y Progresión de Fuerza | Pablo (Élite S&C Coach - V2)</title>
+  <title>Auditoría de Rendimiento y Progresión de Fuerza | Pablo (Élite S&C Coach - V3)</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -95,7 +95,7 @@
         <div>
           <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-white flex items-center gap-2">
             Elite Performance & Strength Audit
-            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-md">V2 Calibrada (+20kg Smith)</span>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-md">Spine-Friendly Hypertrophy</span>
           </h1>
           <p class="text-xs text-slate-400 font-medium">Atleta: <strong>Pablo (28a, 174cm, 73kg)</strong> • Periodo: 242 Sesiones (3.818 Series)</p>
         </div>
@@ -119,13 +119,13 @@
 
       <div class="relative z-10 space-y-4">
         <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-400">
-          <span>📋 Veredicto de Rendimiento Calibrado (+20 kg Smith)</span>
+          <span>📋 Veredicto de Rendimiento: Alto SFR y Cero Carga Axial</span>
         </div>
         <h2 class="text-2xl sm:text-3xl font-black text-white leading-tight">
-          Excelente Retención de Fuerza: <span class="gradient-text">Tirón en Subida & Empuje Blindado</span>
+          Hipertrofia Moderna: <span class="gradient-text">Fuerza Blindada y Cero Fatiga Espinal</span>
         </h2>
         <p class="text-sm sm:text-base text-slate-300 leading-relaxed max-w-4xl font-normal">
-          Pablo, al calibrar la tara de 20 kg de la barra de la Smith Machine (que no se sumaba en el registro), se confirma que <strong>NO has perdido fuerza en el press de pecho</strong>. Pasaste de `50 kg × 7` en libre a `32 kg discos + 20 kg barra = 52 kg × 7 reps` en Smith (<span class="text-emerald-400 font-bold">64 kg 1RM, +2 kg de subida</span>). Tu aporte proteico de <strong>2.85 g/kg</strong> ha blindado tu masa magra en pleno corte de -711 kcal/día. El único punto de mejora real sigue siendo el <strong>desbalance de pierna y la ausencia de bisagra de cadera (RDL)</strong>.
+          Pablo, tu enfoque de <strong>evitar el Peso Muerto y cargas axiales pesadas está totalmente respaldado por la biomecánica moderna de hipertrofia (*Maeo et al., 2021; Kassem Hanson*)</strong>. Para hipertrofia pura, el Peso Muerto presenta un ratio estímulo-fatiga (SFR) pobre y genera compresión discal innecesaria. Al sumar los 20 kg de la barra Smith a tu press (`52 kg × 7 reps = 64 kg 1RM`) y mantener tu remo en `85 kg × 8`, tu rendimiento en déficit es <strong>impecable</strong>. La optimización de la cadena posterior se basa en <strong>Seated Leg Curl en posición estirada + Hip Thrust</strong>.
         </p>
       </div>
 
@@ -182,7 +182,7 @@
             <canvas id="progressionChart"></canvas>
           </div>
           <p class="text-xs text-slate-400 italic">
-            💡 Con los 20 kg de la barra Smith sumados a los 32 kg de discos, tu Press Inclinado se mantiene sólidamente en 64 kg de 1RM, alineado con tu mejor época en libre.
+            💡 Tanto en tracción como en empuje, tus marcas se han sostenido o incrementado en pleno déficit calórico de 711 kcal/día gracias al aporte de 2.85 g/kg de proteína.
           </p>
         </div>
 
@@ -199,7 +199,7 @@
             <canvas id="radarChart"></canvas>
           </div>
           <div class="text-[11px] text-center text-slate-400 pt-2 border-t border-slate-800">
-            Espalda & Brazos en <strong class="text-emerald-400">Intermedio-Alto</strong> • Empuje en <strong class="text-indigo-300">Intermedio</strong> • Piernas en <strong class="text-amber-400">Novicio-Intermedio</strong>
+            Espalda & Brazos en <strong class="text-emerald-400">Intermedio-Alto</strong> • Empuje & Piernas en <strong class="text-indigo-300">Intermedio</strong>
           </div>
         </div>
 
@@ -319,22 +319,40 @@
               <td class="py-3.5 px-3 text-right font-bold text-slate-300">Estable (~130-140 kg) ⏸️</td>
             </tr>
 
-            <!-- Row 6: RDL / Posterior Chain -->
-            <tr class="hover:bg-slate-800/40 transition-colors bg-rose-500/5">
+            <!-- Row 6: Seated Leg Curl -->
+            <tr class="hover:bg-slate-800/40 transition-colors">
               <td class="py-3.5 px-3 font-bold text-white flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-rose-400"></span>
-                Peso Muerto Rumano (RDL / Hinge)
+                <span class="w-2 h-2 rounded-full bg-pink-400"></span>
+                Curl Femoral Sentado (Máquina)
               </td>
-              <td class="py-3.5 px-3 font-mono text-slate-400">-</td>
-              <td class="py-3.5 px-3 font-mono text-rose-300 font-bold">3 series históricas</td>
-              <td class="py-3.5 px-3 font-mono font-bold text-rose-400">&lt; 50 kg</td>
-              <td class="py-3.5 px-3 font-mono text-rose-400 font-bold">&lt; 0.7× BW</td>
+              <td class="py-3.5 px-3 font-mono text-slate-400">54 kg × 11</td>
+              <td class="py-3.5 px-3 font-mono text-pink-300 font-bold">55 kg × 7</td>
+              <td class="py-3.5 px-3 font-mono font-bold text-white">68 kg</td>
+              <td class="py-3.5 px-3 font-mono text-pink-400 font-bold">0.93× BW</td>
               <td class="py-3.5 px-3">
-                <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">
-                  No Entrenado
+                <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                  Intermedio (Clave Isquios)
                 </span>
               </td>
-              <td class="py-3.5 px-3 text-right font-bold text-rose-400">Desatendido ⚠️</td>
+              <td class="py-3.5 px-3 text-right font-bold text-slate-300">Totalmente Mantenido ⏸️</td>
+            </tr>
+
+            <!-- Row 7: Hip Thrust Machine -->
+            <tr class="hover:bg-slate-800/40 transition-colors">
+              <td class="py-3.5 px-3 font-bold text-white flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                Hip Thrust (Máquina Glúteo)
+              </td>
+              <td class="py-3.5 px-3 font-mono text-slate-400">20 kg × 11</td>
+              <td class="py-3.5 px-3 font-mono text-emerald-300 font-bold">40 kg × 11 (Pico 150kg)</td>
+              <td class="py-3.5 px-3 font-mono font-bold text-white">55 kg</td>
+              <td class="py-3.5 px-3 font-mono text-emerald-400 font-bold">0.75× BW</td>
+              <td class="py-3.5 px-3">
+                <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                  Intermedio
+                </span>
+              </td>
+              <td class="py-3.5 px-3 text-right font-bold text-slate-300">Mantenido ⏸️</td>
             </tr>
           </tbody>
         </table>
@@ -404,9 +422,9 @@
     <section class="space-y-6">
       <div>
         <h3 class="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-2">
-          <span>⚖️</span> Radiografía de Volumen & Desbalances Musculares
+          <span>⚖️</span> Radiografía de Volumen & Biomecánica Spine-Friendly
         </h3>
-        <p class="text-xs sm:text-sm text-slate-400">Distribución de las 3.818 series realizadas y comparación frente a los rangos de volumen óptimo (MEV - MAV - MRV)</p>
+        <p class="text-xs sm:text-sm text-slate-400">Distribución de las 3.818 series realizadas y optimización sin compresión lumbar</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -431,38 +449,38 @@
           <div class="glass-card rounded-2xl p-4 sm:p-5 border border-amber-500/30 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                <span>⚠️</span> Desbalance Crítico #1: Síndrome de "Brazos > Piernas"
+                <span>⚠️</span> Balance de Volumen: Brazos vs. Piernas
               </span>
               <span class="text-xs font-mono font-bold text-slate-300">1.062 vs. 1.045 Series</span>
             </div>
             <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Has realizado <strong>más series de aislamiento de bíceps y tríceps que de todo tu tren inferior sumado</strong> (cuádriceps, isquios, glúteos, gemelos, aductores). El tren inferior representa el 50% de tu masa muscular corporal; descuidarlo frena tu metabolismo basal y crea un físico desproporcionado.
+              Has acumulado tantas series de aislamiento de bíceps y tríceps como de todo tu tren inferior sumado. Para ganar simetría y acelerar el gasto calórico, recortar 4–6 series semanales de brazos y transferirlas a pierna (prensa, curls y glúteo) creará una silueta atlética mucho más equilibrada.
             </p>
           </div>
 
-          <!-- Card 2: Missing Posterior Chain -->
-          <div class="glass-card rounded-2xl p-4 sm:p-5 border border-rose-500/30 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-                <span>🛑</span> Desbalance Crítico #2: Ausencia de Bisagra de Cadera (Hip Hinge)
-              </span>
-              <span class="text-xs font-mono font-bold text-rose-300">3 series de RDL en 242 entrenamientos</span>
-            </div>
-            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              De tus 231 series de isquiotibiales, <strong>221 son máquinas de curl sentado o tumbado</strong>. Las máquinas solo flexionan la rodilla, pero no entrenan la función principal de los isquios y glúteos: la extensión de cadera con carga excéntrica. <strong>Es obligatorio introducir Peso Muerto Rumano (RDL)</strong> para blindar tus rodillas y ganar densidad lumbar.
-            </p>
-          </div>
-
-          <!-- Card 3: Pressing Fatigue -->
+          <!-- Card 2: Spine-Friendly Hamstring Hypertrophy -->
           <div class="glass-card rounded-2xl p-4 sm:p-5 border border-emerald-500/30 space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                <span>🎯</span> Progresión de Empuje: 52 kg en Smith Machine
+                <span>🔬</span> Hipertrofia de Isquiotibiales: Seated Leg Curl en Posición Alargada
               </span>
-              <span class="text-xs font-mono font-bold text-emerald-300">32 kg discos + 20 kg barra</span>
+              <span class="text-xs font-mono font-bold text-emerald-300">Evidencia Maeo et al. (2021)</span>
             </div>
             <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Tu marca actual de 52 kg × 7 reps representa <strong>64 kg de 1RM</strong>. Mantén el rango de <strong>6–8 reps pesadas con RPE 8.5</strong>. Cuando completes 3 series de 8 reps con 32 kg en discos, sube a 35 kg en discos (55 kg totales).
+              El estudio de <strong>Maeo et al. (2021)</strong> demostró que el <strong>Curl Femoral Sentado</strong> produce significativamente más hipertrofia que el curl tumbado o el peso muerto, porque la cadera a 90º estira el bíceps femoral al máximo. Inclinando el torso ligeramente hacia adelante en la máquina se obtiene el máximo estímulo muscular con <strong>cero riesgo lumbar ni fatiga discal</strong>.
+            </p>
+          </div>
+
+          <!-- Card 3: Pressing Progression -->
+          <div class="glass-card rounded-2xl p-4 sm:p-5 border border-indigo-500/30 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                <span>🎯</span> Progresión en Smith Machine Inclinado
+              </span>
+              <span class="text-xs font-mono font-bold text-indigo-300">52 kg reales (32d + 20b) × 7</span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              La Smith Machine ofrece una trayectoria fija de alta estabilidad que minimiza la tensión articular en los hombros. Mantén la sobrecarga progresiva buscando completar 3 series de 8 reps con 32 kg en discos antes de subir a 35 kg (55 kg totales).
             </p>
           </div>
 
@@ -475,26 +493,36 @@
     <section class="glass-card rounded-3xl p-6 sm:p-8 space-y-6 border border-slate-800">
       <div>
         <h3 class="text-xl font-extrabold text-white flex items-center gap-2">
-          <span>🚀</span> Plan de Acción & Periodización (Prescripción Inmediata)
+          <span>🚀</span> Plan de Acción & Periodización (Protocolo Spine-Friendly)
         </h3>
-        <p class="text-xs sm:text-sm text-slate-400">Ajustes directos a implementar en tus rutinas para maximizar estética, fuerza y simetría</p>
+        <p class="text-xs sm:text-sm text-slate-400">Ajustes directos basados en alto estímulo, bajo impacto articular y cero compresión lumbar</p>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-3 relative overflow-hidden">
-          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-sm flex items-center justify-center font-mono">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 font-black text-sm flex items-center justify-center font-mono">
             01
           </div>
-          <h4 class="font-bold text-white text-sm">Peso Muerto Rumano (RDL)</h4>
+          <h4 class="font-bold text-white text-sm">Seated Leg Curl Estricto</h4>
           <p class="text-xs text-slate-400 leading-relaxed">
-            Añade <strong>3 series de 6–8 reps</strong> (con mancuernas de 24–28 kg o barra) 2 veces por semana. Tempo excéntrico 3 segundos.
+            3 series de <strong>8–10 reps al fallo (RIR 0)</strong> con torso inclinado hacia adelante y 3 segundos de bajada excéntrica.
           </p>
         </div>
 
         <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-3 relative overflow-hidden">
           <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-sm flex items-center justify-center font-mono">
             02
+          </div>
+          <h4 class="font-bold text-white text-sm">Hip Thrust en Máquina</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            3 series de <strong>10–12 reps</strong> con parada de 1.5 segundos arriba. Máxima activación de glúteo sin compresión espinal.
+          </p>
+        </div>
+
+        <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-3 relative overflow-hidden">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-sm flex items-center justify-center font-mono">
+            03
           </div>
           <h4 class="font-bold text-white text-sm">Sobrecarga en Smith Inclinado</h4>
           <p class="text-xs text-slate-400 leading-relaxed">
@@ -504,21 +532,11 @@
 
         <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-3 relative overflow-hidden">
           <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-sm flex items-center justify-center font-mono">
-            03
+            04
           </div>
           <h4 class="font-bold text-white text-sm">Poda de Volumen de Brazos</h4>
           <p class="text-xs text-slate-400 leading-relaxed">
-            Reduce de 18 a <strong>8-10 series semanales</strong> de bíceps/tríceps. Solo 2 ejercicios llevados al límite (RIR 0-1).
-          </p>
-        </div>
-
-        <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-3 relative overflow-hidden">
-          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-sm flex items-center justify-center font-mono">
-            04
-          </div>
-          <h4 class="font-bold text-white text-sm">Timing Peri-Entrenamiento</h4>
-          <p class="text-xs text-slate-400 leading-relaxed">
-            Consume 70g de carbohidratos rápidos 90 min antes de entrenar (arroz/avena/plátano) para garantizar glucógeno intra-sesión.
+            Reduce a <strong>8-10 series semanales</strong> de bíceps/tríceps para optimizar la recuperación sistémica en déficit.
           </p>
         </div>
 
@@ -610,11 +628,11 @@
     new Chart(ctxRadar, {
       type: 'radar',
       data: {
-        labels: ['Tracción Espalda', 'Flexores Bíceps', 'Tríceps / Empuje', 'Pectoral (Inclinado)', 'Cuádriceps', 'Isquios / Hinge'],
+        labels: ['Tracción Espalda', 'Flexores Bíceps', 'Tríceps / Empuje', 'Pectoral (Inclinado)', 'Cuádriceps', 'Isquiotibiales (Curl)'],
         datasets: [
           {
             label: 'Pablo (73 kg)',
-            data: [185, 175, 135, 135, 135, 75],
+            data: [185, 175, 135, 135, 135, 130],
             borderColor: '#6366f1',
             backgroundColor: 'rgba(99, 102, 241, 0.25)',
             borderWidth: 2.5,
