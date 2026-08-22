@@ -1,11 +1,39 @@
+let silentAudioCtx = null;
+
+function enableWebAudioKeepAlive() {
+  try {
+    if (!silentAudioCtx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        silentAudioCtx = new AudioCtx();
+      }
+    }
+    if (silentAudioCtx && silentAudioCtx.state === 'suspended') {
+      silentAudioCtx.resume();
+    }
+    if (silentAudioCtx) {
+      const buffer = silentAudioCtx.createBuffer(1, 1, 22050);
+      const source = silentAudioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(silentAudioCtx.destination);
+      source.start(0);
+    }
+  } catch (e) {
+    // Ignore audio context errors
+  }
+}
+
 export async function startBackgroundRestTimer(restEndTime, exerciseName = '') {
   if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
   if (Notification.permission !== 'granted') return;
 
+  // Activate silent Web Audio keep-alive node to prevent mobile OS from freezing JS execution while minimized
+  enableWebAudioKeepAlive();
+
   try {
     const reg = await navigator.serviceWorker.ready;
 
-    // Send background timer message to Service Worker so completion push fires even when app is minimized or screen locked!
+    // Send background timer message to Service Worker with timestamp
     if (navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
         type: 'START_REST_TIMER',

@@ -16,6 +16,30 @@ self.addEventListener('message', (event) => {
 
     const delay = Math.max(0, restEndTime - Date.now());
 
+    // 1. Try OS Native Scheduled Notification Trigger (Chrome / Android / W3C standard)
+    if ('showTrigger' in Notification.prototype && typeof TimestampTrigger !== 'undefined') {
+      try {
+        self.registration.showNotification('00:00 - Rest Time Over! 🔔', {
+          body: exerciseName ? `Time for your next set of ${exerciseName}! 🏋️` : 'Time for your next set! 🏋️',
+          icon: '/favicon.svg',
+          badge: '/favicon.svg',
+          tag: 'rest-timer-finished',
+          showTrigger: new TimestampTrigger(restEndTime),
+          renotify: true,
+          vibrate: [200, 100, 200, 100, 200, 100, 300],
+          data: { url: './' },
+          actions: [
+            { action: 'open', title: 'Open App 📲' },
+            { action: 'dismiss', title: 'Dismiss ✖️' },
+          ],
+        });
+        return;
+      } catch (err) {
+        console.warn('TimestampTrigger schedule failed, falling back to SW timer:', err);
+      }
+    }
+
+    // 2. Fallback SW background timer
     swRestTimeout = setTimeout(() => {
       self.registration.getNotifications({ tag: 'rest-timer-active' }).then((active) => {
         active.forEach((n) => n.close());
@@ -45,6 +69,11 @@ self.addEventListener('message', (event) => {
     self.registration.getNotifications({ tag: 'rest-timer-active' }).then((active) => {
       active.forEach((n) => n.close());
     });
+    self.registration.getNotifications({ tag: 'rest-timer-finished' }).then((finished) => {
+      finished.forEach((n) => {
+        if ('showTrigger' in n) n.close();
+      });
+    });
   }
 });
 
@@ -71,7 +100,7 @@ self.addEventListener('push', (event) => {
     },
     actions: [
       { action: 'open', title: 'Open App 📲' },
-      { action: 'dismiss', title: 'Close ✖️' },
+      { action: 'dismiss', title: 'Dismiss ✖️' },
     ],
     vibrate: [100, 50, 100],
     renotify: true,
