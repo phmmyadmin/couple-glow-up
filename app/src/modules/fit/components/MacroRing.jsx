@@ -83,19 +83,19 @@ export default function MacroRing({ current = {}, targets = {} }) {
         />
       </div>
 
-      {/* Daily Dietary Fiber Tracker Bar */}
-      <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <div className="flex items-center gap-2">
-          <span className="text-sm">🌾</span>
-          <div>
-            <span className="text-xs font-bold text-slate-800">Dietary Fiber</span>
-            <span className="text-[11px] text-slate-400 block sm:inline sm:ml-2">
-              (Target: {targets.fiber || 30}g/day)
+      {/* Daily Micronutrient & Health Bars (Fiber, Sugar, Sodium) */}
+      <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        {/* Fiber */}
+        <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-xl space-y-1.5 shadow-2xs">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-800 flex items-center gap-1.5">
+              <span>🌾</span> Fiber
+            </span>
+            <span className="font-mono font-extrabold text-teal-700">
+              {Math.round((current.fiber || 0) * 10) / 10} / {targets.fiber || 30}g
             </span>
           </div>
-        </div>
-        <div className="flex items-center gap-3 min-w-[140px] sm:min-w-[180px]">
-          <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden">
             <div
               className="h-full bg-teal-500 rounded-full transition-all duration-500"
               style={{
@@ -103,9 +103,50 @@ export default function MacroRing({ current = {}, targets = {} }) {
               }}
             />
           </div>
-          <span className="text-xs font-mono font-extrabold text-slate-700 shrink-0">
-            {Math.round((current.fiber || 0) * 10) / 10} / {targets.fiber || 30}g
-          </span>
+        </div>
+
+        {/* Sugar */}
+        <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-xl space-y-1.5 shadow-2xs">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-800 flex items-center gap-1.5">
+              <span>🍬</span> Sugar
+            </span>
+            <span className="font-mono font-extrabold text-pink-700">
+              {Math.round((current.sugar || 0) * 10) / 10} / {targets.sugar || 50}g
+            </span>
+          </div>
+          <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                (current.sugar || 0) > (targets.sugar || 50) ? 'bg-rose-500' : 'bg-pink-400'
+              }`}
+              style={{
+                width: `${Math.min(100, Math.round(((current.sugar || 0) / (targets.sugar || 50)) * 100))}%`,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Sodium */}
+        <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-xl space-y-1.5 shadow-2xs">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-800 flex items-center gap-1.5">
+              <span>🧂</span> Sodium
+            </span>
+            <span className="font-mono font-extrabold text-indigo-700">
+              {Math.round(current.sodium || 0)} / {targets.sodium || 2300}mg
+            </span>
+          </div>
+          <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                (current.sodium || 0) > (targets.sodium || 2300) ? 'bg-amber-500' : 'bg-indigo-400'
+              }`}
+              style={{
+                width: `${Math.min(100, Math.round(((current.sodium || 0) / (targets.sodium || 2300)) * 100))}%`,
+              }}
+            />
+          </div>
         </div>
       </div>
     </Card>

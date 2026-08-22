@@ -506,6 +506,12 @@ export default function DailyTimeline({
                             {Boolean(item.macros?.fiber || item.fiber) && (
                               <span className="text-teal-600 font-bold">{item.macros?.fiber ?? item.fiber}g Fibra</span>
                             )}
+                            {Boolean(item.macros?.sugar || item.sugar) && (
+                              <span className="text-pink-600 font-bold">{item.macros?.sugar ?? item.sugar}g Azúcar</span>
+                            )}
+                            {Boolean(item.macros?.sodium || item.sodium) && (
+                              <span className="text-slate-600 font-bold">{item.macros?.sodium ?? item.sodium}mg Sodio</span>
+                            )}
                           </div>
                         </div>
                       </div>

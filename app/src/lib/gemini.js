@@ -112,6 +112,8 @@ GOLDEN RULES OF PARSING AND UNDERSTANDING:
    - "other" (sauces, ice pops, sweets, others)
 
 8. "fiber": Estimated dietary fiber in grams (e.g. 2.5 for an apple, 3.0 for oatmeal, 0.0 for meat/oils).
+9. "sugar": Estimated total sugars in grams (e.g. 19.0 for an apple, 12.0 for ice pop, 0.0 for chicken/oil).
+10. "sodium": Estimated sodium in milligrams (e.g. 70 for an egg, 450 for salted chicken/curry/bread, 1 for an apple).
 
 EXAMPLES:
 
@@ -127,7 +129,9 @@ EXAMPLES:
        "protein": 2.7,
        "carbs": 28.0,
        "fats": 0.3,
-       "fiber": 0.4
+       "fiber": 0.4,
+       "sugar": 0.1,
+       "sodium": 1
      }
    ]
 
@@ -143,7 +147,9 @@ EXAMPLES:
        "protein": 0.0,
        "carbs": 6.0,
        "fats": 0.0,
-       "fiber": 0.0
+       "fiber": 0.0,
+       "sugar": 5.5,
+       "sodium": 10
      }
    ]
 

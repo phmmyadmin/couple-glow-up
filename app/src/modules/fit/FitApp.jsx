@@ -82,6 +82,18 @@ export default function FitApp({
       0
     ) || activeDateData?.dailyTotals?.fiber || 0;
 
+  const totalSugar =
+    activeDateData?.intakes?.reduce(
+      (sum, item) => sum + (item.macros?.sugar ?? item.sugar ?? 0),
+      0
+    ) || activeDateData?.dailyTotals?.sugar || 0;
+
+  const totalSodium =
+    activeDateData?.intakes?.reduce(
+      (sum, item) => sum + (item.macros?.sodium ?? item.sodium ?? 0),
+      0
+    ) || activeDateData?.dailyTotals?.sodium || 0;
+
   const targetMacros =
     activeProfile?.target_macros ||
     data?.userProfile?.targetMacros ||
@@ -174,10 +186,14 @@ export default function FitApp({
               carbs: totalCarbs,
               fats: totalFats,
               fiber: totalFiber,
+              sugar: totalSugar,
+              sodium: totalSodium,
             }}
             targets={{
               ...targetMacros,
               fiber: targetMacros.fiber || 30,
+              sugar: targetMacros.sugar || 50,
+              sodium: targetMacros.sodium || 2300,
             }}
           />
 

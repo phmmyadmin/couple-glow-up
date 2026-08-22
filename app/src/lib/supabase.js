@@ -82,12 +82,16 @@ export async function fetchDailyLogsFromSupabase(profileId) {
           carbs: i.carbs,
           fats: i.fats,
           fiber: i.fiber || 0,
+          sugar: i.sugar || 0,
+          sodium: i.sodium || 0,
           macros: {
             calories: i.calories,
             protein: i.protein,
             carbs: i.carbs,
             fats: i.fats,
             fiber: i.fiber || 0,
+            sugar: i.sugar || 0,
+            sodium: i.sodium || 0,
           }
         })),
         dailyTotals: {
@@ -96,6 +100,8 @@ export async function fetchDailyLogsFromSupabase(profileId) {
           carbs: l.carbs,
           fats: l.fats,
           fiber: (l.intakes || []).reduce((sum, item) => sum + (item.fiber || 0), 0),
+          sugar: (l.intakes || []).reduce((sum, item) => sum + (item.sugar || 0), 0),
+          sodium: (l.intakes || []).reduce((sum, item) => sum + (item.sodium || 0), 0),
         }
       };
     });
