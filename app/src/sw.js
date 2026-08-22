@@ -27,7 +27,7 @@ self.addEventListener('message', (event) => {
           showTrigger: new TimestampTrigger(restEndTime),
           renotify: true,
           vibrate: [200, 100, 200, 100, 200, 100, 300],
-          data: { url: './' },
+          data: { url: '/' },
           actions: [
             { action: 'open', title: 'Open App 📲' },
             { action: 'dismiss', title: 'Dismiss ✖️' },
@@ -52,7 +52,7 @@ self.addEventListener('message', (event) => {
         tag: 'rest-timer-finished',
         renotify: true,
         vibrate: [200, 100, 200, 100, 200, 100, 300],
-        data: { url: './' },
+        data: { url: '/' },
         actions: [
           { action: 'open', title: 'Open App 📲' },
           { action: 'dismiss', title: 'Dismiss ✖️' },
@@ -95,7 +95,7 @@ self.addEventListener('push', (event) => {
     badge: '/favicon.svg',
     tag: data.tag || 'glowup-notification',
     data: {
-      url: data.url || './',
+      url: data.url || '/',
       event_type: data.event_type || 'general',
     },
     actions: [
@@ -117,24 +117,24 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'dismiss') return;
 
-  const urlToOpen = event.notification.data?.url || './';
+  const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href;
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // If PWA window is already open, focus it
+    (async () => {
+      const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+
+      // 1. Try to find and focus an existing window for this origin
       for (const client of windowClients) {
-        if (client.url.includes(self.location.origin)) {
-          client.focus();
-          if ('navigate' in client && typeof client.navigate === 'function') {
-            client.navigate(urlToOpen);
-          }
+        if (client.url && client.url.startsWith(self.location.origin)) {
+          await client.focus();
           return;
         }
       }
-      // Otherwise open a new window
+
+      // 2. If no open window, open a new window with absolute URL
       if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
+        await clients.openWindow(targetUrl);
       }
-    })
+    })()
   );
 });
