@@ -72,7 +72,7 @@ export function subscribeToFeedEvents(onChange) {
           if (activeProfileId && newEv.profile_id && newEv.profile_id !== activeProfileId) {
             if ('Notification' in window && Notification.permission === 'granted') {
               const title = newEv.title || 'Couple Glow Up ✨';
-              const body = newEv.description || 'Nuevo evento en el feed';
+              const body = newEv.description || 'New feed update';
 
               if (navigator.serviceWorker) {
                 navigator.serviceWorker.ready.then((reg) => {

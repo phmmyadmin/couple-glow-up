@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, BellOff, BellRing, Check, Sparkles, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import {
@@ -10,6 +11,7 @@ import {
 } from '../lib/push-notifications';
 
 export default function NotificationPrompt({ activeProfile, setToastMessage }) {
+  const { t } = useTranslation();
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -39,7 +41,7 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
 
   const handleSubscribe = async () => {
     if (!activeProfile?.id) {
-      if (setToastMessage) setToastMessage('⚠️ Selecciona un perfil primero');
+      if (setToastMessage) setToastMessage('⚠️ Please select a profile first');
       return;
     }
 
@@ -51,13 +53,13 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
       setIsSubscribed(true);
       setPermission('granted');
       setShowModal(false);
-      if (setToastMessage) setToastMessage('🔔 Notificaciones push activadas correctamente!');
+      if (setToastMessage) setToastMessage('🔔 Push notifications enabled successfully!');
     } else {
       if (res.reason === 'permission_denied') {
         setPermission('denied');
-        if (setToastMessage) setToastMessage('❌ Permiso de notificaciones denegado en el navegador.');
+        if (setToastMessage) setToastMessage('❌ Notification permission denied in browser.');
       } else {
-        if (setToastMessage) setToastMessage(`⚠️ No se pudo activar: ${res.reason}`);
+        if (setToastMessage) setToastMessage(`⚠️ Could not enable: ${res.reason}`);
       }
     }
   };
@@ -69,7 +71,7 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
 
     if (success) {
       setIsSubscribed(false);
-      if (setToastMessage) setToastMessage('🔕 Notificaciones desactivadas');
+      if (setToastMessage) setToastMessage('🔕 Push notifications disabled');
     }
   };
 
@@ -79,13 +81,13 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
     try {
       const reg = await navigator.serviceWorker.ready;
       reg.showNotification('Couple Glow Up ✨', {
-        body: '¡Notificaciones push funcionando al 100%! 🚀',
+        body: 'Push notifications working 100%! 🚀',
         icon: '/favicon.svg',
         badge: '/favicon.svg',
         tag: 'test-push',
         vibrate: [100, 50, 100],
       });
-      if (setToastMessage) setToastMessage('🎉 Notificación de prueba enviada!');
+      if (setToastMessage) setToastMessage('🎉 Test notification sent!');
     } catch (err) {
       console.error('Error sending test notification:', err);
     }
@@ -95,7 +97,7 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
 
   return (
     <>
-      {/* Small Header Quick Badge Button */}
+      {/* Header Quick Badge Button */}
       <button
         type="button"
         onClick={() => setShowModal(true)}
@@ -106,7 +108,7 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
             ? 'bg-rose-50 text-rose-600 border-rose-200 opacity-80'
             : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 animate-pulse'
         }`}
-        title="Configurar Notificaciones Push"
+        title="Configure Push Notifications"
       >
         {isSubscribed ? (
           <BellRing className="w-3.5 h-3.5 text-emerald-600" />
@@ -114,7 +116,7 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
           <Bell className="w-3.5 h-3.5 text-amber-600" />
         )}
         <span className="hidden sm:inline">
-          {isSubscribed ? 'Notificaciones 🟢' : 'Activar Push 🔔'}
+          {isSubscribed ? 'Notifications 🟢' : 'Enable Push 🔔'}
         </span>
       </button>
 
@@ -128,7 +130,7 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
                   <BellRing className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Notificaciones Push</h3>
+                  <h3 className="text-base font-bold text-slate-900">Push Notifications</h3>
                   <p className="text-xs text-slate-500 font-medium">Couple Glow Up ✨</p>
                 </div>
               </div>
@@ -142,17 +144,17 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
 
             <div className="space-y-3 text-xs sm:text-sm text-slate-600">
               <p>
-                Recibe alertas instantáneas en tu dispositivo cuando tu pareja:
+                Get instant alerts on your device when your partner:
               </p>
               <ul className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 font-medium text-slate-700">
                 <li className="flex items-center gap-2">
-                  <span>🏋️</span> Completa un entrenamiento o supera un Récord (PR)
+                  <span>🏋️</span> Completes a workout or breaks a PR
                 </li>
                 <li className="flex items-center gap-2">
-                  <span>🛒</span> Añade o completa la lista de la compra
+                  <span>🛒</span> Adds to or completes the shopping list
                 </li>
                 <li className="flex items-center gap-2">
-                  <span>🥗</span> Registra sus comidas del día
+                  <span>🥗</span> Logs daily meals or macro updates
                 </li>
               </ul>
             </div>
@@ -163,20 +165,20 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
                 <div className="bg-rose-50 text-rose-700 p-3 rounded-2xl border border-rose-200 text-xs flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <div>
-                    <strong>Permisos denegados:</strong> Has bloqueado las notificaciones en tu navegador. Debes permitir las notificaciones desde los ajustes del navegador.
+                    <strong>Permission Denied:</strong> Notifications are blocked in your browser settings. Please enable notification permissions for this site.
                   </div>
                 </div>
               ) : isSubscribed ? (
                 <div className="space-y-2">
                   <div className="bg-emerald-50 text-emerald-700 p-3 rounded-2xl border border-emerald-200 text-xs flex items-center justify-between">
                     <span className="font-bold flex items-center gap-1.5">
-                      <Check className="w-4 h-4 text-emerald-600" /> Notificaciones Activas
+                      <Check className="w-4 h-4 text-emerald-600" /> Notifications Active
                     </span>
                     <button
                       onClick={handleTestNotification}
                       className="px-2.5 py-1 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-2xs"
                     >
-                      Probar Notificación 🚀
+                      Test Push 🚀
                     </button>
                   </div>
                   <Button
@@ -186,7 +188,7 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
                     onClick={handleUnsubscribe}
                     disabled={loading}
                   >
-                    Desactivar Notificaciones Push
+                    Disable Push Notifications
                   </Button>
                 </div>
               ) : (
@@ -196,7 +198,7 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
                   onClick={handleSubscribe}
                   disabled={loading}
                 >
-                  {loading ? 'Activando...' : 'Activar Notificaciones Push 🔔'}
+                  {loading ? 'Enabling...' : 'Enable Push Notifications 🔔'}
                 </Button>
               )}
             </div>

@@ -26,8 +26,8 @@ self.addEventListener('push', (event) => {
       event_type: data.event_type || 'general',
     },
     actions: [
-      { action: 'open', title: 'Ver en App 📲' },
-      { action: 'dismiss', title: 'Cerrar ✖️' },
+      { action: 'open', title: 'Open App 📲' },
+      { action: 'dismiss', title: 'Close ✖️' },
     ],
     vibrate: [100, 50, 100],
     renotify: true,
