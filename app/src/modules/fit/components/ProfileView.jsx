@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Save, User, Activity, Target, Key } from 'lucide-react';
+import { Save, User, Activity, Target, Key, Sparkles, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { saveProfile } from '../../../lib/supabase';
-import { calculateProfileTargets } from '../../../utils/profile';
+import { calculateProfileTargets, calculateMaintenanceTDEE } from '../../../utils/profile';
 import { getGeminiApiKey, setGeminiApiKey } from '../../../lib/gemini';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
@@ -19,10 +19,14 @@ const defaultForm = {
   activity_level: 'moderate',
   goal: 'lose',
   pace: 'moderate',
+  maintenance_calories: 2450,
   target_calories: 2000,
   target_protein: 150,
   target_carbs: 200,
   target_fats: 60,
+  target_fiber: 30,
+  target_sugar: 50,
+  target_sodium: 2300,
 };
 
 const getNormalizedProfile = (prof) => {
@@ -30,10 +34,38 @@ const getNormalizedProfile = (prof) => {
   return {
     ...defaultForm,
     ...prof,
-    target_calories: prof.target_calories || prof.target_macros?.calories || defaultForm.target_calories,
-    target_protein: prof.target_protein || prof.target_macros?.protein || defaultForm.target_protein,
-    target_carbs: prof.target_carbs || prof.target_macros?.carbs || defaultForm.target_carbs,
-    target_fats: prof.target_fats || prof.target_macros?.fats || defaultForm.target_fats,
+    maintenance_calories:
+      prof.maintenance_calories ||
+      prof.maintenanceCalories ||
+      defaultForm.maintenance_calories,
+    target_calories:
+      prof.target_calories ||
+      prof.target_macros?.calories ||
+      defaultForm.target_calories,
+    target_protein:
+      prof.target_protein ||
+      prof.target_macros?.protein ||
+      defaultForm.target_protein,
+    target_carbs:
+      prof.target_carbs ||
+      prof.target_macros?.carbs ||
+      defaultForm.target_carbs,
+    target_fats:
+      prof.target_fats ||
+      prof.target_macros?.fats ||
+      defaultForm.target_fats,
+    target_fiber:
+      prof.target_fiber ||
+      prof.target_macros?.fiber ||
+      defaultForm.target_fiber,
+    target_sugar:
+      prof.target_sugar ||
+      prof.target_macros?.sugar ||
+      defaultForm.target_sugar,
+    target_sodium:
+      prof.target_sodium ||
+      prof.target_macros?.sodium ||
+      defaultForm.target_sodium,
   };
 };
 
@@ -48,7 +80,6 @@ export default function ProfileView({
   const targetProf = profile || activeProfile;
   const [formData, setFormData] = useState(() => getNormalizedProfile(targetProf));
   const [isSaving, setIsSaving] = useState(false);
-  const [autoCalculate, setAutoCalculate] = useState(true);
   const [geminiKeyInput, setGeminiKeyInput] = useState(() => getGeminiApiKey());
 
   useEffect(() => {
@@ -63,34 +94,53 @@ export default function ProfileView({
       'height',
       'weight',
       'target_weight',
+      'maintenance_calories',
       'target_calories',
       'target_protein',
       'target_carbs',
       'target_fats',
+      'target_fiber',
+      'target_sugar',
+      'target_sodium',
     ];
-    let finalValue = numFields.includes(name) ? Number(value) : value;
+    const finalValue = numFields.includes(name) ? (value === '' ? '' : Number(value)) : value;
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
+  };
 
-    const newForm = { ...formData, [name]: finalValue };
-
-    if (
-      autoCalculate &&
-      ['age', 'height', 'weight', 'gender', 'activity_level', 'goal', 'pace'].includes(name)
-    ) {
-      const targets = calculateProfileTargets(newForm);
-      newForm.target_calories = targets.calories;
-      newForm.target_protein = targets.protein;
-      newForm.target_carbs = targets.carbs;
-      newForm.target_fats = targets.fats;
+  const handleRecalculateFormula = () => {
+    const maint = calculateMaintenanceTDEE(formData);
+    const targets = calculateProfileTargets(formData);
+    setFormData((prev) => ({
+      ...prev,
+      maintenance_calories: maint,
+      target_calories: targets.calories,
+      target_protein: targets.protein,
+      target_carbs: targets.carbs,
+      target_fats: targets.fats,
+    }));
+    if (typeof setToastMessage === 'function') {
+      setToastMessage('✨ Valores recalculados según fórmula Mifflin-St Jeor');
     }
-
-    setFormData(newForm);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
 
-    const saved = await saveProfile(formData);
+    const payload = {
+      ...formData,
+      target_macros: {
+        calories: Number(formData.target_calories) || 2000,
+        protein: Number(formData.target_protein) || 150,
+        carbs: Number(formData.target_carbs) || 200,
+        fats: Number(formData.target_fats) || 60,
+        fiber: Number(formData.target_fiber) || 30,
+        sugar: Number(formData.target_sugar) || 50,
+        sodium: Number(formData.target_sodium) || 2300,
+      },
+    };
+
+    const saved = await saveProfile(payload);
     setIsSaving(false);
 
     if (saved) {
@@ -101,85 +151,92 @@ export default function ProfileView({
   };
 
   return (
-    <Card className="max-w-xl mx-auto p-5 sm:p-6 space-y-5">
-      <CardTitle icon={User} className="text-lg">
-        {t('profile.settings', 'Profile Settings')}
-      </CardTitle>
+    <Card className="max-w-xl mx-auto p-5 sm:p-6 space-y-6">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <CardTitle icon={User} className="text-lg">
+          {t('profile.settings', 'Profile Settings')}
+        </CardTitle>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Basic Info */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Input
-            label={t('profile.name', 'Name')}
-            name="name"
-            value={formData.name || ''}
-            onChange={handleChange}
-            required
-          />
-          <Select
-            label={t('profile.gender', 'Gender')}
-            name="gender"
-            value={formData.gender || 'male'}
-            onChange={handleChange}
-          >
-            <option value="male">{t('profile.male', 'Male')}</option>
-            <option value="female">{t('profile.female', 'Female')}</option>
-          </Select>
-          <Select
-            label={t('profile.language', 'Language')}
-            name="language"
-            value={formData.language || 'es'}
-            onChange={handleChange}
-          >
-            <option value="es">Español</option>
-            <option value="en">English</option>
-          </Select>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* 1. Basic Information */}
+        <div className="space-y-3">
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Información Básica
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <Input
+              label={t('profile.name', 'Name')}
+              name="name"
+              value={formData.name || ''}
+              onChange={handleChange}
+              required
+            />
+            <Select
+              label={t('profile.gender', 'Gender')}
+              name="gender"
+              value={formData.gender || 'male'}
+              onChange={handleChange}
+            >
+              <option value="male">{t('profile.male', 'Male')}</option>
+              <option value="female">{t('profile.female', 'Female')}</option>
+            </Select>
+            <Select
+              label={t('profile.language', 'Language')}
+              name="language"
+              value={formData.language || 'es'}
+              onChange={handleChange}
+            >
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <Input
+              label={t('profile.age', 'Age')}
+              type="number"
+              name="age"
+              value={formData.age ?? ''}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              label={t('profile.height', 'Height (cm)')}
+              type="number"
+              name="height"
+              value={formData.height ?? ''}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              label={t('profile.weight', 'Weight (kg)')}
+              type="number"
+              step="0.1"
+              name="weight"
+              value={formData.weight ?? ''}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              label={t('profile.targetWeight', 'Target (kg)')}
+              type="number"
+              step="0.1"
+              name="target_weight"
+              value={formData.target_weight ?? ''}
+              onChange={handleChange}
+              required
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Input
-            label={t('profile.age', 'Age')}
-            type="number"
-            name="age"
-            value={formData.age || ''}
-            onChange={handleChange}
-            required
-          />
-          <Input
-            label={t('profile.height', 'Height (cm)')}
-            type="number"
-            name="height"
-            value={formData.height || ''}
-            onChange={handleChange}
-            required
-          />
-          <Input
-            label={t('profile.weight', 'Weight (kg)')}
-            type="number"
-            step="0.1"
-            name="weight"
-            value={formData.weight || ''}
-            onChange={handleChange}
-            required
-          />
-          <Input
-            label={t('profile.targetWeight', 'Target (kg)')}
-            type="number"
-            step="0.1"
-            name="target_weight"
-            value={formData.target_weight || ''}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        {/* Activity & Goals */}
-        <div className="pt-3 border-t border-slate-200/80">
-          <CardTitle icon={Activity} className="text-sm mb-3">
+        {/* 2. Activity & Goal Strategy */}
+        <div className="pt-3 border-t border-slate-100 space-y-3">
+          <CardTitle icon={Activity} className="text-sm">
             {t('profile.activityAndGoal', 'Activity & Goal')}
           </CardTitle>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <Select
               label={t('profile.activityLevel', 'Activity Level')}
               name="activity_level"
@@ -196,7 +253,7 @@ export default function ProfileView({
             <Select
               label={t('profile.goal', 'Goal')}
               name="goal"
-              value={formData.goal || 'maintain'}
+              value={formData.goal || 'lose'}
               onChange={handleChange}
             >
               <option value="lose">{t('profile.loseWeight', 'Lose Weight')}</option>
@@ -217,72 +274,115 @@ export default function ProfileView({
           </div>
         </div>
 
-        {/* Macros */}
-        <div className="pt-3 border-t border-slate-200/80 space-y-3">
-          <div className="flex items-center justify-between">
+        {/* 3. Fully Modifiable Nutrition Targets & Calories */}
+        <div className="pt-3 border-t border-slate-100 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <CardTitle icon={Target} className="text-sm">
-              {t('profile.dailyTargets', 'Daily Targets')}
+              Objetivos Nutricionales y Macros (Personalizables)
             </CardTitle>
 
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoCalculate}
-                onChange={(e) => setAutoCalculate(e.target.checked)}
-                className="rounded text-indigo-600 focus:ring-indigo-500"
-              />
-              <span>{t('profile.autoCalculate', 'Auto-calculate')}</span>
-            </label>
+            <button
+              type="button"
+              onClick={handleRecalculateFormula}
+              className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-200 transition-all cursor-pointer"
+              title="Calcular valores sugeridos con Mifflin-St Jeor"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Autocalcular con Fórmula</span>
+            </button>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Input
-              label="Kcal"
-              type="number"
-              name="target_calories"
-              value={formData.target_calories}
-              onChange={handleChange}
-              disabled={autoCalculate}
-              className="font-mono font-bold"
-            />
-            <Input
-              label={`${t('diary.protein', 'Protein')} (g)`}
-              type="number"
-              name="target_protein"
-              value={formData.target_protein}
-              onChange={handleChange}
-              disabled={autoCalculate}
-              className="font-mono font-bold"
-            />
-            <Input
-              label={`${t('diary.carbs', 'Carbs')} (g)`}
-              type="number"
-              name="target_carbs"
-              value={formData.target_carbs}
-              onChange={handleChange}
-              disabled={autoCalculate}
-              className="font-mono font-bold"
-            />
-            <Input
-              label={`${t('diary.fats', 'Fats')} (g)`}
-              type="number"
-              name="target_fats"
-              value={formData.target_fats}
-              onChange={handleChange}
-              disabled={autoCalculate}
-              className="font-mono font-bold"
-            />
+          <p className="text-xs text-slate-500">
+            Todos los valores son 100% editables. Puedes ajustarlos a mano o pulsar el botón superior para calcular la recomendación científica.
+          </p>
+
+          {/* Energy Targets Grid */}
+          <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 space-y-4 shadow-2xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <Input
+                label="TDEE Mantenimiento (kcal/día)"
+                type="number"
+                name="maintenance_calories"
+                value={formData.maintenance_calories ?? ''}
+                onChange={handleChange}
+                className="font-mono font-bold"
+              />
+              <Input
+                label="Calorías Objetivo (kcal/día)"
+                type="number"
+                name="target_calories"
+                value={formData.target_calories ?? ''}
+                onChange={handleChange}
+                className="font-mono font-bold"
+              />
+            </div>
+
+            {/* Primary Macros */}
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-200/60">
+              <Input
+                label="Proteína (g)"
+                type="number"
+                name="target_protein"
+                value={formData.target_protein ?? ''}
+                onChange={handleChange}
+                className="font-mono font-bold"
+              />
+              <Input
+                label="Carbos (g)"
+                type="number"
+                name="target_carbs"
+                value={formData.target_carbs ?? ''}
+                onChange={handleChange}
+                className="font-mono font-bold"
+              />
+              <Input
+                label="Grasas (g)"
+                type="number"
+                name="target_fats"
+                value={formData.target_fats ?? ''}
+                onChange={handleChange}
+                className="font-mono font-bold"
+              />
+            </div>
+
+            {/* Health & Micronutrients */}
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-200/60">
+              <Input
+                label="🌾 Fibra Mín (g)"
+                type="number"
+                name="target_fiber"
+                value={formData.target_fiber ?? 30}
+                onChange={handleChange}
+                className="font-mono font-bold"
+              />
+              <Input
+                label="🍬 Límite Azúcar (g)"
+                type="number"
+                name="target_sugar"
+                value={formData.target_sugar ?? 50}
+                onChange={handleChange}
+                className="font-mono font-bold"
+              />
+              <Input
+                label="🧂 Límite Sodio (mg)"
+                type="number"
+                name="target_sodium"
+                value={formData.target_sodium ?? 2300}
+                onChange={handleChange}
+                className="font-mono font-bold"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Gemini AI API Key Configuration */}
+        {/* 4. Gemini AI API Key */}
         <div className="space-y-2 pt-3 border-t border-slate-100">
           <CardTitle icon={Key} className="text-sm">
             Google Gemini AI API Key
           </CardTitle>
 
           <p className="text-xs text-slate-500">
-            100% of food parsing routes through Gemini AI. If you experience authentication errors on this device, enter your Google AI Studio API key below.
+            La IA analiza el texto de comidas y extrae calorías, macros, fibra, azúcar y sodio automáticamente.
           </p>
 
           <div className="flex items-center gap-2">
@@ -303,24 +403,25 @@ export default function ProfileView({
               onClick={() => {
                 setGeminiApiKey(geminiKeyInput);
                 if (typeof setToastMessage === 'function') {
-                  setToastMessage('✅ Gemini API Key saved to local storage.');
+                  setToastMessage('✅ Gemini API Key guardada en almacenamiento local.');
                 }
               }}
             >
-              Save Key
+              Guardar Key
             </Button>
           </div>
         </div>
 
+        {/* Save Button */}
         <Button
           type="submit"
           disabled={isSaving}
           icon={Save}
           variant="primary"
           size="lg"
-          className="w-full justify-center mt-2"
+          className="w-full justify-center mt-3 cursor-pointer shadow-md"
         >
-          {isSaving ? t('profile.saving', 'Saving...') : t('profile.saveProfile', 'Save Profile')}
+          {isSaving ? t('profile.saving', 'Saving...') : 'Guardar Perfil y Objetivos'}
         </Button>
       </form>
     </Card>
