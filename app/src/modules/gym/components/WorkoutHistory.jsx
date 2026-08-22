@@ -451,6 +451,14 @@ export default function WorkoutHistory({
           exercise={selectedExerciseForHistory}
           workouts={workouts}
           exercises={exercises}
+          onGoToWorkout={(workoutId) => {
+            setSelectedExerciseForHistory(null);
+            setExpandedWorkoutId(workoutId);
+            setTimeout(() => {
+              const el = document.getElementById(`workout-card-${workoutId}`);
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          }}
           onClose={() => setSelectedExerciseForHistory(null)}
         />
       )}

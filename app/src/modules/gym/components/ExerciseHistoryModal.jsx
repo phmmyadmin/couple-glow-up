@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Dumbbell, TrendingUp, Trophy, Calendar } from 'lucide-react';
+import { X, Dumbbell, TrendingUp, Trophy, Calendar, ExternalLink } from 'lucide-react';
 import Card from '../../../shared/ui/Card';
 import { doesSetMatchExercise, formatExerciseName } from '../lib/supabase-gym';
 import { getMuscleGroupLabel } from './ExerciseLibrary';
@@ -9,8 +9,10 @@ export default function ExerciseHistoryModal({
   workouts = [],
   exercises = [],
   onClose,
+  onGoToWorkout,
 }) {
   const [chartMetric, setChartMetric] = useState('max'); // 'max' or 'volume'
+  const [hoveredPointIdx, setHoveredPointIdx] = useState(null);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -45,20 +47,15 @@ export default function ExerciseHistoryModal({
   const targetEx = exercises.find((e) => e.id === exercise.id) || exercise;
   const exType = targetEx.exercise_type || exercise.exercise_type || 'weight_reps';
 
-  const historySessions = [];
-  const chartPoints = [];
-
-  const sortedWorkouts = [...workouts].sort(
-    (a, b) => new Date(b.started_at) - new Date(a.started_at)
-  );
-
   let peak1RM = 0;
   let maxWeight = 0;
   let peakSpeedKmh = 0;
   let maxDistanceKm = 0;
   let maxDurationSec = 0;
 
-  sortedWorkouts.forEach((w) => {
+  const rawSessions = [];
+
+  workouts.forEach((w) => {
     const sets = w.workout_sets || [];
     const exSets = sets.filter((s) => doesSetMatchExercise(s, targetEx, exercises));
 
@@ -98,28 +95,8 @@ export default function ExerciseHistoryModal({
         }
       });
 
-      const dateStr = new Date(w.started_at).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      });
-
-      historySessions.push({
-        id: w.id,
-        workoutName: w.name,
-        date: dateStr,
-        fullDate: new Date(w.started_at).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-        sets: exSets,
-        sessionMaxWeight,
-        sessionMax1RM,
-        sessionVolume,
-        sessionMaxSpeed,
-        sessionDistanceKm: sessionDistanceM / 1000,
-        sessionDurationSec: sessionDurationS,
-      });
+      const startDate = new Date(w.started_at);
+      const timestamp = isNaN(startDate.getTime()) ? Date.now() : startDate.getTime();
 
       let val1RM = sessionMax1RM;
       let valVol = sessionVolume;
@@ -136,15 +113,49 @@ export default function ExerciseHistoryModal({
         valVol = exSets.reduce((sum, s) => sum + (parseInt(s.reps, 10) || 0), 0);
       }
 
-      chartPoints.push({
-        date: dateStr,
+      rawSessions.push({
+        id: w.id,
+        workoutName: w.name || 'Workout',
+        timestamp,
+        dateObj: startDate,
+        sets: exSets,
+        sessionMaxWeight,
+        sessionMax1RM,
+        sessionVolume,
+        sessionMaxSpeed,
+        sessionDistanceKm: sessionDistanceM / 1000,
+        sessionDurationSec: sessionDurationS,
         val1RM,
         valVolume: valVol,
       });
     }
   });
 
-  chartPoints.reverse();
+  // 1. History List: Sorted newest first (descending timestamp)
+  const historySessions = [...rawSessions].sort((a, b) => b.timestamp - a.timestamp);
+
+  // 2. Chart Progression: Strictly sorted oldest first (ascending timestamp, left-to-right chronological)
+  const chartSessions = [...rawSessions].sort((a, b) => a.timestamp - b.timestamp);
+
+  // Detect if workouts span multiple calendar years
+  const years = new Set(chartSessions.map((s) => s.dateObj.getFullYear()));
+  const showYear = years.size > 1;
+
+  const chartPoints = chartSessions.map((s) => {
+    const formattedDate = showYear
+      ? s.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
+      : s.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    return {
+      workoutId: s.id,
+      workoutName: s.workoutName,
+      fullDate: s.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      date: formattedDate,
+      val1RM: s.val1RM,
+      valVolume: s.valVolume,
+      timestamp: s.timestamp,
+    };
+  });
 
   const hasHistory = historySessions.length > 0;
   const activeMetric = chartMetric || 'max';
@@ -153,8 +164,8 @@ export default function ExerciseHistoryModal({
   const minVal = Math.min(...rawValues, 0);
   const range = Math.max(maxVal - minVal, 10);
 
-  const pointSpacing = 55;
-  const svgWidth = Math.max(320, chartPoints.length * pointSpacing);
+  const pointSpacing = 60;
+  const svgWidth = Math.max(340, chartPoints.length * pointSpacing);
 
   const points = chartPoints.map((p, idx) => {
     const rawVal = activeMetric === 'volume' ? p.valVolume : p.val1RM;
@@ -162,7 +173,7 @@ export default function ExerciseHistoryModal({
     const x = chartPoints.length === 1 ? svgWidth / 2 : 35 + idx * pointSpacing;
     const rawY = 125 - ((targetVal - minVal) / range) * 85;
     const y = isFinite(rawY) ? rawY : 125;
-    return { x, y, targetVal, date: p.date };
+    return { x, y, targetVal, date: p.date, fullDate: p.fullDate, workoutId: p.workoutId, workoutName: p.workoutName };
   });
 
   const svgPathStr =
@@ -172,6 +183,14 @@ export default function ExerciseHistoryModal({
 
   const areaPathStr =
     points.length > 1 ? `${svgPathStr} L ${points[points.length - 1].x} 125 L ${points[0].x} 125 Z` : '';
+
+  const handleSelectWorkout = (workoutId) => {
+    if (!workoutId) return;
+    if (typeof onGoToWorkout === 'function') {
+      onGoToWorkout(workoutId);
+      onClose();
+    }
+  };
 
   return (
     <div
@@ -346,35 +365,51 @@ export default function ExerciseHistoryModal({
                 {points.map((pt, idx) => {
                   const formattedVal = formatChartVal(pt.targetVal, activeMetric === 'volume', exType);
                   const isLatest = idx === points.length - 1;
+                  const isHovered = hoveredPointIdx === idx;
 
                   return (
-                    <g key={idx}>
+                    <g
+                      key={idx}
+                      className="cursor-pointer group"
+                      onMouseEnter={() => setHoveredPointIdx(idx)}
+                      onMouseLeave={() => setHoveredPointIdx(null)}
+                      onClick={() => handleSelectWorkout(pt.workoutId)}
+                    >
+                      {/* Clickable hit area */}
+                      <circle cx={pt.x} cy={pt.y} r="18" fill="transparent" />
+
+                      {/* Visual Node */}
                       <circle
                         cx={pt.x}
                         cy={pt.y}
-                        r={isLatest ? '5.5' : '4.5'}
-                        fill={isLatest ? '#4f46e5' : '#6366f1'}
+                        r={isHovered ? '7' : isLatest ? '5.5' : '4.5'}
+                        fill={isHovered ? '#3730a3' : isLatest ? '#4f46e5' : '#6366f1'}
                         stroke="#ffffff"
-                        strokeWidth="2.5"
+                        strokeWidth={isHovered ? '3' : '2.5'}
+                        className="transition-all duration-150"
                       />
+
+                      {/* Value Label */}
                       <text
                         x={pt.x}
-                        y={pt.y - 10}
+                        y={pt.y - 11}
                         textAnchor="middle"
-                        fill="#334155"
+                        fill={isHovered ? '#1e1b4b' : '#334155'}
                         fontSize="10"
-                        fontWeight="700"
+                        fontWeight={isHovered ? '800' : '700'}
                         fontFamily="monospace"
                       >
                         {formattedVal}
                       </text>
+
+                      {/* Date Label */}
                       <text
                         x={pt.x}
                         y="145"
                         textAnchor="middle"
-                        fill="#94a3b8"
+                        fill={isHovered ? '#4338ca' : '#94a3b8'}
                         fontSize="10"
-                        fontWeight="600"
+                        fontWeight={isHovered ? '700' : '600'}
                       >
                         {pt.date}
                       </text>
@@ -383,6 +418,12 @@ export default function ExerciseHistoryModal({
                 })}
               </svg>
             </div>
+
+            {onGoToWorkout && (
+              <p className="text-[11px] text-indigo-600/80 font-medium text-center italic">
+                💡 Clica en cualquier punto o tarjeta para ver el entrenamiento completo
+              </p>
+            )}
           </div>
         )}
 
@@ -401,10 +442,19 @@ export default function ExerciseHistoryModal({
               {historySessions.map((session) => (
                 <div
                   key={session.id}
-                  className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl space-y-2"
+                  onClick={() => handleSelectWorkout(session.id)}
+                  className={`bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl space-y-2 transition-all ${
+                    onGoToWorkout
+                      ? 'hover:border-indigo-300 hover:bg-indigo-50/40 hover:shadow-xs cursor-pointer group'
+                      : ''
+                  }`}
+                  title={onGoToWorkout ? 'Abrir este entrenamiento en el historial' : ''}
                 >
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                    <span>{session.workoutName}</span>
+                    <span className="flex items-center gap-1.5 text-indigo-900 group-hover:text-indigo-600 transition-colors">
+                      <span>{session.workoutName}</span>
+                      {onGoToWorkout && <ExternalLink className="w-3 h-3 text-indigo-400 group-hover:text-indigo-600" />}
+                    </span>
                     <span className="text-slate-400 font-normal">{session.fullDate}</span>
                   </div>
 

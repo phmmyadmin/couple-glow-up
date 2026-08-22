@@ -615,6 +615,7 @@ export default function ExerciseLibrary({
           exercise={selectedExerciseForHistory}
           workouts={workouts}
           exercises={exercises}
+          onGoToWorkout={onGoToWorkout}
           onClose={() => {
             setSelectedExerciseForHistory(null);
             if (onCloseHistoryModal) onCloseHistoryModal();
