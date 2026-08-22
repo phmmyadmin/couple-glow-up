@@ -7,6 +7,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { supabase, saveWeightToSupabase, deleteWeightFromSupabase, fetchDailyLogsFromSupabase } from '../../../lib/supabase';
 import { getCategoryInfo } from '../../../utils/category';
+import { calculateAdaptiveTDEE, calculateMaintenanceTDEE } from '../../../utils/profile';
 
 export default function ReportView({ data, setData, activeProfileId, activeProfile, onUpdateProfile, selectedDate, onSelectDate, onUpdateCategory, setToastMessage }) {
   const { t, i18n } = useTranslation();
@@ -35,11 +36,15 @@ export default function ReportView({ data, setData, activeProfileId, activeProfi
 
   // Profile data
   const { userProfile, dailyLogs = [] } = data || {};
-  const { maintenanceCalories = 2450, targetMacros = { calories: 2000, protein: 150, carbs: 200, fats: 60 }, weightLog } = userProfile || {};
+  const history = userProfile?.weightLog?.history || [];
+  const startWeight = userProfile?.weightLog?.startWeight || 73.0;
+  const targetWeight = userProfile?.weightLog?.targetWeight || 68.0;
+  const { targetMacros = { calories: 2000, protein: 150, carbs: 200, fats: 60 } } = userProfile || {};
 
-  const startWeight = weightLog?.startWeight || 73.0;
-  const targetWeight = weightLog?.targetWeight || 68.0;
-  const history = weightLog?.history || [];
+  const baselineCalculatedMaint = calculateMaintenanceTDEE(userProfile || {});
+  const maintenanceCalories = (userProfile?.maintenanceCalories && userProfile.maintenanceCalories >= 1400)
+    ? userProfile.maintenanceCalories
+    : baselineCalculatedMaint;
 
   // Cumulative Deficit Calculation
   const getCumulativeDeficitUpToDate = (targetDate = null) => {
@@ -62,47 +67,13 @@ export default function ReportView({ data, setData, activeProfileId, activeProfi
   const latestRealWeight = latestRealEntry ? latestRealEntry.weight : startWeight;
 
   // 7-Day Moving Average & Adaptive TDEE Engine (MacroFactor-style)
-  const { movingAverage7d, prevMovingAverage7d, adaptiveTDEE, adaptiveDiff, weeklyLossRateKg } = useMemo(() => {
-    if (!history || history.length === 0) {
-      return { movingAverage7d: startWeight, prevMovingAverage7d: startWeight, adaptiveTDEE: null, adaptiveDiff: 0, weeklyLossRateKg: 0 };
-    }
-
-    const sorted = [...history].sort((a, b) => `${a.date} ${a.time || ''}`.localeCompare(`${b.date} ${b.time || ''}`));
-    const recentWeights = sorted.slice(-7);
-    const sum7 = recentWeights.reduce((acc, curr) => acc + curr.weight, 0);
-    const ma7 = sum7 / recentWeights.length;
-
-    const prevWeights = sorted.length > 7 ? sorted.slice(-14, -7) : [];
-    const prevMa7 = prevWeights.length > 0 ? prevWeights.reduce((acc, curr) => acc + curr.weight, 0) / prevWeights.length : sorted[0].weight;
-
-    const weeklyDeltaKg = ma7 - prevMa7;
-
-    let estAdaptiveTdee = null;
-    let diffTdee = 0;
-    if (dailyLogs && dailyLogs.length >= 3 && sorted.length >= 2) {
-      const recentLogs = dailyLogs.slice(-14);
-      const totalCals = recentLogs.reduce((acc, l) => acc + (l.dailyTotals?.calories || 0), 0);
-      const avgCals = totalCals / recentLogs.length;
-
-      const firstDate = new Date(sorted[0].date);
-      const lastDate = new Date(sorted[sorted.length - 1].date);
-      const daysSpan = Math.max(1, Math.round((lastDate - firstDate) / (1000 * 60 * 60 * 24)));
-      const totalWeightDelta = sorted[sorted.length - 1].weight - sorted[0].weight;
-      const dailyCalDelta = (totalWeightDelta * 7700) / daysSpan;
-
-      estAdaptiveTdee = Math.round(avgCals + dailyCalDelta);
-      estAdaptiveTdee = Math.max(1200, Math.min(4500, estAdaptiveTdee));
-      diffTdee = estAdaptiveTdee - maintenanceCalories;
-    }
-
-    return {
-      movingAverage7d: Math.round(ma7 * 10) / 10,
-      prevMovingAverage7d: Math.round(prevMa7 * 10) / 10,
-      adaptiveTDEE: estAdaptiveTdee,
-      adaptiveDiff: diffTdee,
-      weeklyLossRateKg: Math.round(weeklyDeltaKg * 100) / 100,
-    };
-  }, [history, startWeight, dailyLogs, maintenanceCalories]);
+  const { movingAverage7d, adaptiveTDEE, adaptiveDiff, weeklyLossRateKg, isReliable } = useMemo(() => {
+    return calculateAdaptiveTDEE({
+      userProfile: { ...userProfile, maintenanceCalories },
+      dailyLogs,
+      weightHistory: history,
+    });
+  }, [userProfile, maintenanceCalories, dailyLogs, history]);
 
   const [isApplyingAdaptiveTdee, setIsApplyingAdaptiveTdee] = useState(false);
 
