@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Scale, Plus, Trash2, TrendingDown, TrendingUp, Target, 
   Flame, ChevronLeft, ChevronRight, PieChart, X, Check, 
-  Calendar, Award, Activity
+  Calendar, Award, Activity, Sparkles, Zap
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase, saveWeightToSupabase, deleteWeightFromSupabase, fetchDailyLogsFromSupabase } from '../../../lib/supabase';
@@ -60,6 +60,108 @@ export default function ReportView({ data, setData, activeProfileId, activeProfi
 
   const latestRealEntry = history.length > 0 ? history[history.length - 1] : null;
   const latestRealWeight = latestRealEntry ? latestRealEntry.weight : startWeight;
+
+  // 7-Day Moving Average & Adaptive TDEE Engine (MacroFactor-style)
+  const { movingAverage7d, prevMovingAverage7d, adaptiveTDEE, adaptiveDiff, weeklyLossRateKg } = useMemo(() => {
+    if (!history || history.length === 0) {
+      return { movingAverage7d: startWeight, prevMovingAverage7d: startWeight, adaptiveTDEE: null, adaptiveDiff: 0, weeklyLossRateKg: 0 };
+    }
+
+    const sorted = [...history].sort((a, b) => `${a.date} ${a.time || ''}`.localeCompare(`${b.date} ${b.time || ''}`));
+    const recentWeights = sorted.slice(-7);
+    const sum7 = recentWeights.reduce((acc, curr) => acc + curr.weight, 0);
+    const ma7 = sum7 / recentWeights.length;
+
+    const prevWeights = sorted.length > 7 ? sorted.slice(-14, -7) : [];
+    const prevMa7 = prevWeights.length > 0 ? prevWeights.reduce((acc, curr) => acc + curr.weight, 0) / prevWeights.length : sorted[0].weight;
+
+    const weeklyDeltaKg = ma7 - prevMa7;
+
+    let estAdaptiveTdee = null;
+    let diffTdee = 0;
+    if (dailyLogs && dailyLogs.length >= 3 && sorted.length >= 2) {
+      const recentLogs = dailyLogs.slice(-14);
+      const totalCals = recentLogs.reduce((acc, l) => acc + (l.dailyTotals?.calories || 0), 0);
+      const avgCals = totalCals / recentLogs.length;
+
+      const firstDate = new Date(sorted[0].date);
+      const lastDate = new Date(sorted[sorted.length - 1].date);
+      const daysSpan = Math.max(1, Math.round((lastDate - firstDate) / (1000 * 60 * 60 * 24)));
+      const totalWeightDelta = sorted[sorted.length - 1].weight - sorted[0].weight;
+      const dailyCalDelta = (totalWeightDelta * 7700) / daysSpan;
+
+      estAdaptiveTdee = Math.round(avgCals + dailyCalDelta);
+      estAdaptiveTdee = Math.max(1200, Math.min(4500, estAdaptiveTdee));
+      diffTdee = estAdaptiveTdee - maintenanceCalories;
+    }
+
+    return {
+      movingAverage7d: Math.round(ma7 * 10) / 10,
+      prevMovingAverage7d: Math.round(prevMa7 * 10) / 10,
+      adaptiveTDEE: estAdaptiveTdee,
+      adaptiveDiff: diffTdee,
+      weeklyLossRateKg: Math.round(weeklyDeltaKg * 100) / 100,
+    };
+  }, [history, startWeight, dailyLogs, maintenanceCalories]);
+
+  const [isApplyingAdaptiveTdee, setIsApplyingAdaptiveTdee] = useState(false);
+
+  const handleApplyAdaptiveTdee = async () => {
+    if (!adaptiveTDEE) return;
+    const profId = activeProfileId || activeProfile?.id;
+    setIsApplyingAdaptiveTdee(true);
+
+    try {
+      const currentDeficit = (userProfile?.maintenanceCalories || 2450) - (targetMacros?.calories || 2000);
+      const newDeficit = Math.max(200, currentDeficit);
+      const newTargetCalories = Math.max(1200, adaptiveTDEE - newDeficit);
+      const currentWeight = movingAverage7d || latestRealWeight || 70;
+      const newProtein = Math.round(currentWeight * 2.2);
+      const remainingCals = newTargetCalories - (newProtein * 4);
+      const newCarbs = Math.max(50, Math.round((remainingCals * 0.6) / 4));
+      const newFats = Math.max(30, Math.round((remainingCals * 0.4) / 9));
+
+      const updatedUserProfile = {
+        ...userProfile,
+        maintenanceCalories: adaptiveTDEE,
+        targetMacros: {
+          calories: newTargetCalories,
+          protein: newProtein,
+          carbs: newCarbs,
+          fats: newFats,
+        },
+      };
+
+      if (supabase && profId) {
+        await supabase.from('profiles').update({
+          maintenance_calories: adaptiveTDEE,
+          target_calories: newTargetCalories,
+          target_protein: newProtein,
+          target_carbs: newCarbs,
+          target_fats: newFats,
+        }).eq('id', profId);
+      }
+
+      if (typeof setData === 'function' && data) {
+        setData({
+          ...data,
+          userProfile: updatedUserProfile,
+        });
+      }
+
+      if (typeof onUpdateProfile === 'function') {
+        onUpdateProfile(updatedUserProfile);
+      }
+
+      if (typeof setToastMessage === 'function') {
+        setToastMessage(`✨ Adaptive TDEE applied: ${adaptiveTDEE} kcal maintenance!`);
+      }
+    } catch (err) {
+      console.error('Error applying adaptive TDEE:', err);
+    } finally {
+      setIsApplyingAdaptiveTdee(false);
+    }
+  };
 
   const weightDiffVsEstimated = latestRealWeight - currentEstimatedWeight;
   const remainingToGoal = Math.max(0, latestRealWeight - targetWeight);
@@ -512,20 +614,54 @@ export default function ReportView({ data, setData, activeProfileId, activeProfi
             )}
           </div>
 
+          {/* Adaptive TDEE Intelligence Card (MacroFactor Style) */}
+          {adaptiveTDEE && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border border-indigo-100/90 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-indigo-600" />
+                  <h4 className="font-extrabold text-slate-900 text-sm">Adaptive TDEE Intelligence</h4>
+                </div>
+                <span className="text-xs font-mono font-extrabold text-indigo-700 bg-white/90 px-2.5 py-1 rounded-lg border border-indigo-200 shadow-2xs">
+                  Estimated TDEE: {adaptiveTDEE} kcal/day
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Based on your 7-day weight trend ({weeklyLossRateKg >= 0 ? `+${weeklyLossRateKg}` : weeklyLossRateKg} kg/week) and logged calorie intake, your actual energy expenditure is estimated at <strong>{adaptiveTDEE} kcal</strong> (profile set to {maintenanceCalories} kcal).
+              </p>
+              <div className="flex items-center gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={handleApplyAdaptiveTdee}
+                  disabled={isApplyingAdaptiveTdee}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  {isApplyingAdaptiveTdee ? 'Applying...' : `Apply Adaptive Maintenance (${adaptiveTDEE} kcal)`}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Master 4 KPI Grid (Zero duplication) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             
-            {/* KPI 1: Real Weight */}
+            {/* KPI 1: 7-Day Trend Weight */}
             <div className="health-card" style={{ padding: '1.25rem', textAlign: 'center' }}>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem' }}>
-                {t('progress.latestRealWeight')}
+                Tendencia 7D (Media Móvil)
               </div>
               <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--color-indigo)' }}>
-                {latestRealWeight} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}>kg</span>
+                {movingAverage7d} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}>kg</span>
               </div>
               <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                {latestRealEntry ? `${latestRealEntry.date} (${latestRealEntry.time || '08:00'})` : t('progress.initialWeight')}
+                Última báscula: {latestRealWeight} kg ({latestRealEntry ? latestRealEntry.date : t('progress.initialWeight')})
               </div>
+              {weeklyLossRateKg !== 0 && (
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: weeklyLossRateKg <= 0 ? 'var(--color-carbs)' : '#f59e0b', marginTop: '0.25rem' }}>
+                  {weeklyLossRateKg > 0 ? `+${weeklyLossRateKg}` : weeklyLossRateKg} kg / semana
+                </div>
+              )}
             </div>
 
             {/* KPI 2: Estimated Weight */}

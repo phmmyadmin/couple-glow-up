@@ -375,6 +375,12 @@ export default function WorkoutHistory({
                                 {set.distance_meters ? ` 📍 ${(set.distance_meters / 1000).toFixed(1)} km` : ''}
                               </span>
 
+                              {set.rpe && (
+                                <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-1.5 py-0.5 rounded font-sans">
+                                  @{set.rpe}
+                                </span>
+                              )}
+
                               {set.is_pr && (
                                 <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded font-sans flex items-center gap-0.5">
                                   <Trophy className="w-3 h-3 text-amber-600" /> PR

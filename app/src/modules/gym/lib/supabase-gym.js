@@ -646,7 +646,7 @@ export async function evaluateAndSavePRs(profileId, sets, workoutId) {
     const exId = s.exercise_id;
     if (!exId) continue;
 
-    const est1rm = calculate1RM(s.weight_kg, s.reps);
+    const est1rm = calculate1RM(s.weight_kg, s.reps, s.rpe);
     const existing = bestPerExercise[exId];
 
     if (!existing || est1rm > existing.est1rm) {
@@ -766,12 +766,35 @@ export async function evaluateAndSavePRs(profileId, sets, workoutId) {
   return saved || [];
 }
 
-// ── 1RM EPLEY HELPER ──
-export function calculate1RM(weight, reps) {
-  if (!weight || !reps || weight <= 0 || reps <= 0) return 0;
-  if (reps === 1) return weight;
-  // Epley formula: 1RM = weight * (1 + reps / 30)
-  return Math.round(weight * (1 + reps / 30) * 100) / 100;
+// ── 1RM EPLEY / RPE-ADJUSTED HELPER ──
+export function calculate1RM(weight, reps, rpe = null) {
+  const w = parseFloat(weight) || 0;
+  const r = parseInt(reps, 10) || 0;
+  if (w <= 0 || r <= 0) return 0;
+
+  // If valid RPE is provided (e.g. 5 to 10), adjust reps with RIR (Reps in Reserve = 10 - RPE)
+  const numericRpe = parseFloat(rpe);
+  let effectiveReps = r;
+  if (!isNaN(numericRpe) && numericRpe >= 5 && numericRpe <= 10) {
+    const rir = Math.max(0, 10 - numericRpe);
+    effectiveReps = r + rir;
+  }
+
+  if (effectiveReps === 1) return w;
+  // Epley formula: 1RM = weight * (1 + effectiveReps / 30)
+  return Math.round(w * (1 + effectiveReps / 30) * 100) / 100;
+}
+
+// ── ESTIMATE WORKOUT EXPENDITURE (MET Formula) ──
+export function estimateWorkoutCalories(durationMinutes, weightKg = 70, sets = []) {
+  const mins = Math.max(1, parseInt(durationMinutes, 10) || 30);
+  const w = parseFloat(weightKg) || 70;
+
+  const hasCardio = (sets || []).some((s) => s.distance_meters || (s.duration_seconds && !s.weight_kg));
+  const hasHeavyLifts = (sets || []).some((s) => parseFloat(s.weight_kg) >= 60 || parseFloat(s.rpe) >= 8.5);
+
+  const met = hasCardio ? 7.0 : hasHeavyLifts ? 6.0 : 5.0;
+  return Math.round(met * w * (mins / 60));
 }
 
 // ── REALTIME SUBSCRIPTIONS ──

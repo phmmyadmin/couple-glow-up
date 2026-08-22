@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X, ArrowUp, ArrowDown,
   Timer, Flame, Edit3, Save, Info, MoreVertical, GripVertical, RotateCcw,
-  FileText, ChevronDown, User, ArrowLeft, Minus
+  FileText, ChevronDown, User, ArrowLeft, Minus, TrendingUp, Zap
 } from 'lucide-react';
-import { calculate1RM, doesSetMatchExercise } from '../lib/supabase-gym';
+import { calculate1RM, doesSetMatchExercise, estimateWorkoutCalories } from '../lib/supabase-gym';
 import { updateRestNotificationBar, clearRestNotificationBar, startBackgroundRestTimer } from '../../../lib/rest-timer-notifications';
 import ExerciseLibrary, { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
@@ -688,6 +688,11 @@ export default function LiveWorkoutLogger({
     });
 
     const durationMins = Math.max(1, Math.round(secondsElapsed / 60));
+    const estimatedCals = estimateWorkoutCalories(
+      durationMins,
+      activeProfile?.weight || 70,
+      allSets
+    );
 
     onSaveWorkout(
       {
@@ -697,6 +702,7 @@ export default function LiveWorkoutLogger({
         started_at: new Date(startTimeRef.current).toISOString(),
         finished_at: new Date().toISOString(),
         estimated_volume_kg: totalLiveVolumeKg,
+        estimated_calories: estimatedCals,
       },
       allSets
     );
@@ -911,13 +917,46 @@ export default function LiveWorkoutLogger({
                       </button>
                     </div>
 
+                    {/* Progressive Overload Smart Suggestion */}
+                    {(() => {
+                      const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
+                      const lastSet = lastPerf?.sets?.find((s) => s.is_checked || s.weight_kg) || lastPerf?.sets?.[0];
+                      if (!lastSet || (!lastSet.weight_kg && !lastSet.reps)) return null;
+
+                      const lastW = parseFloat(lastSet.weight_kg) || 0;
+                      const lastR = parseInt(lastSet.reps, 10) || 0;
+                      const lastRpe = lastSet.rpe ? parseFloat(lastSet.rpe) : null;
+
+                      let hint = '';
+                      if (lastW > 0 && lastR > 0) {
+                        const incW = lastW + (lastW >= 80 ? 2.5 : 1.25);
+                        if (lastRpe && lastRpe <= 8) {
+                          hint = `Last set @${lastRpe} (RIR ${10 - lastRpe}) → Target ${incW}kg × ${lastR} today! 🔥`;
+                        } else if (lastRpe && lastRpe >= 9.5) {
+                          hint = `Last set @${lastRpe} (near failure) → Consolidate ${lastW}kg × ${lastR} 🎯`;
+                        } else {
+                          hint = `Overload target: ${incW}kg × ${lastR} or ${lastW}kg × ${lastR + 1} ⚡`;
+                        }
+                      }
+
+                      if (!hint) return null;
+
+                      return (
+                        <div className="mt-2 mb-1 px-2.5 py-1.5 bg-indigo-50/80 border border-indigo-100/90 rounded-xl flex items-center gap-1.5 text-[11px] font-bold text-indigo-700 shadow-2xs">
+                          <Zap className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                          <span className="truncate">{hint}</span>
+                        </div>
+                      );
+                    })()}
+
                     {/* Hevy Sets Table */}
                     <div className="space-y-2 pt-2 border-t border-slate-100">
                       <div className="grid grid-cols-12 gap-1 sm:gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
                         <span className="col-span-2 text-center">SET</span>
-                        <span className="col-span-3 text-center">PREVIOUS</span>
+                        <span className="col-span-2 text-center">PREV</span>
                         <span className="col-span-3 text-center">{isDistanceDuration ? 'KM' : isDurationOnly ? 'TIME' : 'KG'}</span>
                         <span className="col-span-2 text-center">{isDistanceDuration ? 'TIME' : isDurationOnly ? '-' : 'REPS'}</span>
+                        <span className="col-span-1 text-center" title="RPE / Intensity (6-10)">RPE</span>
                         <span className="col-span-1 text-center">✓</span>
                         <span className="col-span-1 text-center"></span>
                       </div>
@@ -927,8 +966,8 @@ export default function LiveWorkoutLogger({
                         const prevSet = lastPerf?.sets?.[setIdx] || lastPerf?.sets?.[0];
                         let prevText = '-';
                         if (prevSet) {
-                          if (prevSet.weight_kg && prevSet.reps) prevText = `${prevSet.weight_kg}kg × ${prevSet.reps}`;
-                          else if (prevSet.reps) prevText = `× ${prevSet.reps}`;
+                          if (prevSet.weight_kg && prevSet.reps) prevText = `${prevSet.weight_kg}k×${prevSet.reps}`;
+                          else if (prevSet.reps) prevText = `×${prevSet.reps}`;
                           else if (prevSet.duration_seconds) prevText = `${prevSet.duration_seconds}s`;
                         }
 
@@ -971,8 +1010,8 @@ export default function LiveWorkoutLogger({
                               </select>
                             </div>
 
-                            {/* Previous Performance (3 cols) */}
-                            <div className="col-span-3 text-center text-[10px] sm:text-xs text-slate-400 font-mono font-medium truncate">
+                            {/* Previous Performance (2 cols) */}
+                            <div className="col-span-2 text-center text-[10px] sm:text-xs text-slate-400 font-mono font-medium truncate">
                               {prevText}
                             </div>
 
@@ -997,6 +1036,22 @@ export default function LiveWorkoutLogger({
                                 value={set.reps ?? ''}
                                 onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'reps', e.target.value)}
+                                className="w-full text-center py-1 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono placeholder:text-slate-300"
+                              />
+                            </div>
+
+                            {/* RPE Input (1 col) */}
+                            <div className="col-span-1">
+                              <input
+                                type="number"
+                                step="0.5"
+                                min="5"
+                                max="10"
+                                placeholder="@"
+                                title="RPE / Intensity (e.g. 8 = 2 reps left)"
+                                value={set.rpe ?? ''}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'rpe', e.target.value)}
                                 className="w-full text-center py-1 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono placeholder:text-slate-300"
                               />
                             </div>

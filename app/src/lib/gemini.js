@@ -111,6 +111,8 @@ GOLDEN RULES OF PARSING AND UNDERSTANDING:
    - "beverages" (drinks, juices, coffee)
    - "other" (sauces, ice pops, sweets, others)
 
+8. "fiber": Estimated dietary fiber in grams (e.g. 2.5 for an apple, 3.0 for oatmeal, 0.0 for meat/oils).
+
 EXAMPLES:
 
    Input: "100g arroz cocido"
@@ -124,7 +126,8 @@ EXAMPLES:
        "calories": 130,
        "protein": 2.7,
        "carbs": 28.0,
-       "fats": 0.3
+       "fats": 0.3,
+       "fiber": 0.4
      }
    ]
 
@@ -139,7 +142,8 @@ EXAMPLES:
        "calories": 25,
        "protein": 0.0,
        "carbs": 6.0,
-       "fats": 0.0
+       "fats": 0.0,
+       "fiber": 0.0
      }
    ]
 

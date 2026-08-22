@@ -431,6 +431,11 @@ export default function ExerciseHistoryModal({
                             {s.duration_seconds ? ` ⏱${s.duration_seconds}s` : ''}
                             {s.distance_meters ? ` 📍${(s.distance_meters / 1000).toFixed(1)}km` : ''}
                           </span>
+                          {s.rpe && (
+                            <span className="text-[9px] bg-slate-100 text-slate-700 font-bold px-1 py-0.2 rounded font-sans">
+                              @{s.rpe}
+                            </span>
+                          )}
                           {s.is_pr && (
                             <span className="text-[9px] bg-amber-100 text-amber-800 px-1 py-0.2 rounded font-sans flex items-center gap-0.5">
                               <Trophy className="w-2.5 h-2.5 text-amber-600" /> PR
