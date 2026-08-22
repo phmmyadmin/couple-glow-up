@@ -129,27 +129,50 @@ export default function ReportView({ data, setData, activeProfileId, activeProfi
   };
   const currentConfig = macrosConfig[activeMacro] || macrosConfig.calories;
 
-  // Weekly Data Grouping (7 days sliding window)
-  const getVisibleDays = () => {
-    if (dailyLogs.length === 0) return [];
-    
-    // Sort all logs by date
-    const sortedLogs = [...dailyLogs].sort((a, b) => a.date.localeCompare(b.date));
-    const targetDate = selectedDate || sortedLogs[sortedLogs.length - 1].date;
-    
-    // Find index of target date
-    const targetIdx = sortedLogs.findIndex(l => l.date === targetDate);
-    const endIdx = targetIdx !== -1 ? targetIdx : sortedLogs.length - 1;
-    
-    // Calculate window bounds with offset
-    const adjustedEndIdx = Math.max(6, endIdx + (weekOffset * 7));
-    const startIdx = Math.max(0, adjustedEndIdx - 6);
-    
-    return sortedLogs.slice(startIdx, Math.min(sortedLogs.length, adjustedEndIdx + 1));
+  // Helper to add days to ISO date string (YYYY-MM-DD)
+  const addDaysToIso = (dateStr, days) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    d.setDate(d.getDate() + days);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   };
 
-  const visibleDays = getVisibleDays();
-  const maxWeekOffset = Math.max(0, Math.ceil((dailyLogs?.length || 0) / 7) - 1);
+  // Weekly Data Grouping (7 calendar days sliding window per weekOffset)
+  const visibleDays = useMemo(() => {
+    const baseDate = selectedDate || new Date().toISOString().slice(0, 10);
+    const weekEndDateStr = addDaysToIso(baseDate, -1 * weekOffset * 7);
+
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const dateStr = addDaysToIso(weekEndDateStr, -i);
+      const existingLog = dailyLogs.find((l) => l.date === dateStr);
+      if (existingLog) {
+        days.push(existingLog);
+      } else {
+        days.push({
+          date: dateStr,
+          dailyTotals: { calories: 0, protein: 0, carbs: 0, fats: 0 },
+          intakes: [],
+        });
+      }
+    }
+    return days;
+  }, [selectedDate, weekOffset, dailyLogs]);
+
+  const maxWeekOffset = useMemo(() => {
+    if (!dailyLogs || dailyLogs.length === 0) return 12;
+    const sorted = [...dailyLogs].sort((a, b) => a.date.localeCompare(b.date));
+    const earliestDate = sorted[0].date;
+    const baseDate = selectedDate || new Date().toISOString().slice(0, 10);
+    const diffMs = new Date(baseDate).getTime() - new Date(earliestDate).getTime();
+    const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+    return Math.max(12, Math.ceil(diffDays / 7) + 2);
+  }, [dailyLogs, selectedDate]);
 
   const formatShortDate = (dateStr) => {
     if (!dateStr) return '';
