@@ -5,6 +5,7 @@ import {
   FileText, ChevronDown, User, ArrowLeft, Minus
 } from 'lucide-react';
 import { calculate1RM, doesSetMatchExercise } from '../lib/supabase-gym';
+import { updateRestNotificationBar, clearRestNotificationBar } from '../../../lib/rest-timer-notifications';
 import ExerciseLibrary, { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 import Card, { CardTitle } from '../../../shared/ui/Card';
@@ -130,6 +131,11 @@ export default function LiveWorkoutLogger({
       if (isRestTimerActive && restEndTimeRef.current) {
         const remaining = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
         setRestTimerSeconds(remaining);
+
+        // Find active exercise name for notification context
+        const currentExName = workoutExercises[0]?.exercise?.name || workoutExercises[0]?.exercise?.name_es || '';
+        updateRestNotificationBar(remaining, remaining <= 0, currentExName);
+
         if (remaining <= 0) {
           setIsRestTimerActive(false);
           restEndTimeRef.current = null;
@@ -152,7 +158,7 @@ export default function LiveWorkoutLogger({
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       window.removeEventListener('focus', handleVisibilityOrFocus);
     };
-  }, [isRestTimerActive]);
+  }, [isRestTimerActive, workoutExercises]);
 
   // Auto-persist active workout state to localStorage
   useEffect(() => {
@@ -176,11 +182,14 @@ export default function LiveWorkoutLogger({
       setIsRestTimerActive(false);
       restEndTimeRef.current = null;
       setRestTimerSeconds(0);
+      clearRestNotificationBar();
       return;
     }
     restEndTimeRef.current = Date.now() + seconds * 1000;
     setRestTimerSeconds(seconds);
     setIsRestTimerActive(true);
+    const currentExName = workoutExercises[0]?.exercise?.name || workoutExercises[0]?.exercise?.name_es || '';
+    updateRestNotificationBar(seconds, false, currentExName);
   };
 
   const handleAdd30sRest = () => {
@@ -631,6 +640,7 @@ export default function LiveWorkoutLogger({
 
   const handleCancelWorkout = () => {
     if (window.confirm('Are you sure you want to cancel this workout? Progress will be lost.')) {
+      clearRestNotificationBar();
       localStorage.removeItem('couple_glow_up_active_workout');
       window.dispatchEvent(new Event('active_workout_updated'));
       onCancel();
@@ -649,6 +659,7 @@ export default function LiveWorkoutLogger({
   };
 
   const handleFinish = () => {
+    clearRestNotificationBar();
     localStorage.removeItem('couple_glow_up_active_workout');
     window.dispatchEvent(new Event('active_workout_updated'));
 
