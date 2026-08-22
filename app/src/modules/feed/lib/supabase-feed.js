@@ -64,7 +64,37 @@ export function subscribeToFeedEvents(onChange) {
         table: 'feed_events',
       },
       (payload) => {
-        onChange(payload);
+        // Trigger push notification if new event is from partner
+        if (payload.eventType === 'INSERT' && payload.new) {
+          const newEv = payload.new;
+          const activeProfileId = localStorage.getItem('fit_active_profile_id');
+
+          if (activeProfileId && newEv.profile_id && newEv.profile_id !== activeProfileId) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+              const title = newEv.title || 'Couple Glow Up ✨';
+              const body = newEv.description || 'Nuevo evento en el feed';
+
+              if (navigator.serviceWorker) {
+                navigator.serviceWorker.ready.then((reg) => {
+                  reg.showNotification(title, {
+                    body,
+                    icon: '/favicon.svg',
+                    badge: '/favicon.svg',
+                    tag: `feed-${newEv.id}`,
+                    vibrate: [100, 50, 100],
+                    data: { url: './' },
+                  });
+                }).catch(() => {
+                  new Notification(title, { body, icon: '/favicon.svg' });
+                });
+              } else {
+                new Notification(title, { body, icon: '/favicon.svg' });
+              }
+            }
+          }
+        }
+
+        if (onChange) onChange(payload);
       }
     )
     .subscribe();

@@ -9,6 +9,7 @@ import FeedApp from './modules/feed/FeedApp';
 
 import BottomNav from './shared/BottomNav';
 import Toast from './shared/Toast';
+import NotificationPrompt from './shared/NotificationPrompt';
 import Avatar from './shared/Avatar';
 import NewProfileModal from './modules/fit/components/NewProfileModal';
 
@@ -233,9 +234,12 @@ export default function App() {
           </span>
         </div>
 
-        {/* Right: Profile Selector */}
-        {profiles.length > 0 && (
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-2xl px-2.5 py-1 shadow-2xs shrink-0">
+        {/* Right: Notification Badge & Profile Selector */}
+        <div className="flex items-center gap-2 shrink-0">
+          <NotificationPrompt activeProfile={activeProfile} setToastMessage={setToastMessage} />
+
+          {profiles.length > 0 && (
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-2xl px-2.5 py-1 shadow-2xs shrink-0">
             <Avatar profile={activeProfile} size="xs" />
             <select
               aria-label="Select Active Profile"
@@ -260,6 +264,7 @@ export default function App() {
             </button>
           </div>
         )}
+        </div>
       </header>
 
       {/* Main Content Area */}
