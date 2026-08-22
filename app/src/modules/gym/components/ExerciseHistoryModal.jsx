@@ -134,8 +134,8 @@ export default function ExerciseHistoryModal({
   // 1. History List: Sorted newest first (descending timestamp)
   const historySessions = [...rawSessions].sort((a, b) => b.timestamp - a.timestamp);
 
-  // 2. Chart Progression: Strictly sorted oldest first (ascending timestamp, left-to-right chronological)
-  const chartSessions = [...rawSessions].sort((a, b) => a.timestamp - b.timestamp);
+  // 2. Chart Progression: Sorted newest first (left) to oldest (right) as requested
+  const chartSessions = [...rawSessions].sort((a, b) => b.timestamp - a.timestamp);
 
   // Detect if workouts span multiple calendar years
   const years = new Set(chartSessions.map((s) => s.dateObj.getFullYear()));
@@ -364,7 +364,7 @@ export default function ExerciseHistoryModal({
                 {/* SVG Data Nodes */}
                 {points.map((pt, idx) => {
                   const formattedVal = formatChartVal(pt.targetVal, activeMetric === 'volume', exType);
-                  const isLatest = idx === points.length - 1;
+                  const isLatest = idx === 0;
                   const isHovered = hoveredPointIdx === idx;
 
                   return (
