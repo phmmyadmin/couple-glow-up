@@ -138,8 +138,11 @@ export const SPANISH_TO_ENGLISH_EXERCISE_MAP = {
   'tríceps en polea': 'triceps rope pushdown',
   'triceps en polea': 'triceps rope pushdown',
   'extensión de cuadriceps': 'leg extensions',
+  'extension de cuadriceps': 'leg extensions',
   'extensión de piernas': 'leg extensions',
+  'extension de piernas': 'leg extensions',
   'prensa de piernas': 'leg press',
+  'prensa': 'leg press',
   'curl femoral': 'seated leg curl',
   'hip thrust': 'barbell hip thrust',
   'gemelos de pie': 'standing calf raise',
@@ -147,6 +150,10 @@ export const SPANISH_TO_ENGLISH_EXERCISE_MAP = {
   'fondos en paralelas': 'chest dip',
   'flexiones': 'push-ups',
   'aperturas con mancuernas': 'dumbbell chest flyes',
+  'aperturas (mancuerna)': 'dumbbell chest flyes',
+  'aperturas mancuerna': 'dumbbell chest flyes',
+  'aperturas con mancuerna': 'dumbbell chest flyes',
+  'aperturas en máquina': 'rear delt flyes (reverse pec deck)',
   'aperturas (máquina)': 'rear delt flyes (reverse pec deck)',
   'aperturas máquina': 'rear delt flyes (reverse pec deck)',
   'aperturas maquina': 'rear delt flyes (reverse pec deck)',
@@ -164,21 +171,51 @@ export const SPANISH_TO_ENGLISH_EXERCISE_MAP = {
   'adductor': 'hip adduction (machine)',
   'hip abduction': 'hip abduction (machine)',
   'hip adduction': 'hip adduction (machine)',
-  'squat en smith': 'smith machine squat',
-  'sentadilla en smith': 'smith machine squat',
-  'sentadilla smith': 'smith machine squat',
-  'sentadilla en multipower': 'smith machine squat',
-  'sentadilla multipower': 'smith machine squat',
-  'multipower squat': 'smith machine squat',
-  'smith squat': 'smith machine squat',
-  'smith machine squat': 'smith machine squat',
-  'squat (smith machine)': 'smith machine squat',
-  'sentadilla (máquina smith)': 'smith machine squat',
-  'sentadilla (maquina smith)': 'smith machine squat',
-  'prensa': 'leg press',
-  'prensa de piernas': 'leg press',
-  'extensiones de cuadriceps': 'leg extensions',
-  'extension de cuadriceps': 'leg extensions',
+  'squat en smith': 'squat (smith machine)',
+  'sentadilla en smith': 'squat (smith machine)',
+  'sentadilla smith': 'squat (smith machine)',
+  'sentadilla en multipower': 'squat (smith machine)',
+  'sentadilla multipower': 'squat (smith machine)',
+  'multipower squat': 'squat (smith machine)',
+  'smith squat': 'squat (smith machine)',
+  'smith machine squat': 'squat (smith machine)',
+  'squat (smith machine)': 'squat (smith machine)',
+  'sentadilla (máquina smith)': 'squat (smith machine)',
+  'sentadilla (maquina smith)': 'squat (smith machine)',
+  'press inclinado (smith)': 'incline bench press (smith machine)',
+  'press inclinado smith': 'incline bench press (smith machine)',
+  'press inclinado en smith': 'incline bench press (smith machine)',
+  'press inclinado multipower': 'incline bench press (smith machine)',
+  'press inclinado en multipower': 'incline bench press (smith machine)',
+  'press banca inclinado (smith)': 'incline bench press (smith machine)',
+  'press banca inclinado smith': 'incline bench press (smith machine)',
+  'press banca inclinado en smith': 'incline bench press (smith machine)',
+  'press banca inclinado multipower': 'incline bench press (smith machine)',
+  'press banca inclinado en multipower': 'incline bench press (smith machine)',
+  'incline bench press (smith machine)': 'incline bench press (smith machine)',
+  'incline bench press (smith)': 'incline bench press (smith machine)',
+  'incline smith press': 'incline bench press (smith machine)',
+  'incline smith bench press': 'incline bench press (smith machine)',
+  'press inclinado con barra': 'incline bench press (barbell)',
+  'press inclinado barra': 'incline bench press (barbell)',
+  'press banca inclinado barra': 'incline bench press (barbell)',
+  'press banca inclinado con barra': 'incline bench press (barbell)',
+  'press banca inclinado': 'incline bench press (barbell)',
+  'press inclinado': 'incline bench press (barbell)',
+  'incline bench press (barbell)': 'incline bench press (barbell)',
+  'incline barbell bench press': 'incline bench press (barbell)',
+  'incline bench press (dumbbell)': 'incline bench press (dumbbell)',
+  'incline dumbbell press': 'incline bench press (dumbbell)',
+  'press inclinado mancuernas': 'incline bench press (dumbbell)',
+  'press inclinado con mancuernas': 'incline bench press (dumbbell)',
+  'press militar (smith)': 'overhead press (smith machine)',
+  'press militar smith': 'overhead press (smith machine)',
+  'press militar en smith': 'overhead press (smith machine)',
+  'press militar multipower': 'overhead press (smith machine)',
+  'press militar en multipower': 'overhead press (smith machine)',
+  'overhead press (smith machine)': 'overhead press (smith machine)',
+  'press militar banda elastica': 'press militar (banda)',
+  'press militar (banda)': 'press militar (banda)',
   'plancha': 'plank',
 };
 
@@ -187,9 +224,40 @@ export function stripExerciseName(name) {
   return name
     .toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/\(.*?\)/g, '')
-    .replace(/[^\w\s]/g, '')
+    .replace(/[^\w\s()]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
+}
+
+function getEquipmentMod(name, equipment) {
+  const n = (name || '').toLowerCase();
+  const eq = (equipment || '').toLowerCase();
+
+  if (n.includes('smith') || n.includes('multipower') || eq.includes('smith')) return 'smith';
+  if (n.includes('dumbbell') || n.includes('mancuerna') || eq.includes('dumbbell')) return 'dumbbell';
+  if (n.includes('barbell') || n.includes('barra') || eq.includes('barbell')) return 'barbell';
+  if (n.includes('cable') || n.includes('polea') || eq.includes('cable')) return 'cable';
+  if (n.includes('machine') || n.includes('maquina') || eq.includes('machine')) return 'machine';
+  if (n.includes('band') || n.includes('elastica') || eq.includes('band')) return 'band';
+  if (n.includes('bodyweight') || eq.includes('bodyweight')) return 'bodyweight';
+
+  return 'unknown';
+}
+
+function normalizeNameForCompare(name) {
+  if (!name || typeof name !== 'string') return '';
+  const lower = name
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (SPANISH_TO_ENGLISH_EXERCISE_MAP[lower]) {
+    return SPANISH_TO_ENGLISH_EXERCISE_MAP[lower];
+  }
+
+  return lower;
 }
 
 export function doesSetMatchExercise(set, targetExercise, catalogExercises = []) {
@@ -198,23 +266,50 @@ export function doesSetMatchExercise(set, targetExercise, catalogExercises = [])
   const sId = set.exercise_id || set.exercise?.id || set.exercises?.id;
   const tId = targetExercise.id || targetExercise.exercise_id;
 
-  // 1. Direct ID equality
-  if (sId && tId && sId === tId) return true;
+  // 1. Exact catalog ID match / separation
+  if (sId && tId) {
+    if (sId === tId) return true;
 
-  // 2. Resolve catalog objects if available
-  let setCatalogEx = set.exercise || set.exercises;
-  if (!setCatalogEx && sId && Array.isArray(catalogExercises) && catalogExercises.length > 0) {
-    setCatalogEx = catalogExercises.find((e) => e.id === sId);
+    // If both IDs are present in the catalog and they differ, they are strictly distinct exercises
+    if (Array.isArray(catalogExercises) && catalogExercises.length > 0) {
+      const sInCat = catalogExercises.some((e) => e.id === sId);
+      const tInCat = catalogExercises.some((e) => e.id === tId);
+      if (sInCat && tInCat && sId !== tId) {
+        return false;
+      }
+    }
   }
 
-  let targetCatalogEx = targetExercise;
-  if (tId && Array.isArray(catalogExercises) && catalogExercises.length > 0) {
-    const found = catalogExercises.find((e) => e.id === tId);
-    if (found) targetCatalogEx = found;
+  // 2. Equipment Conflict Check (e.g. Smith Machine vs Barbell vs Dumbbell)
+  const sEx = set.exercise || set.exercises || {};
+  const tEx = targetExercise.exercise || targetExercise.exercises || targetExercise;
+
+  const sEquip = getEquipmentMod(
+    `${set.name || ''} ${set.exercise_title || ''} ${sEx.name || ''} ${sEx.name_es || ''}`,
+    sEx.equipment_category || set.equipment_category
+  );
+  const tEquip = getEquipmentMod(
+    `${targetExercise.name || ''} ${targetExercise.name_es || ''} ${tEx.name || ''}`,
+    tEx.equipment_category || targetExercise.equipment_category
+  );
+
+  if (sEquip !== 'unknown' && tEquip !== 'unknown' && sEquip !== tEquip) {
+    return false;
   }
 
-  // 3. Compare resolved catalog IDs
-  if (setCatalogEx?.id && targetCatalogEx?.id && setCatalogEx.id === targetCatalogEx.id) return true;
+  // 3. Movement Modifier Conflict Check (Incline vs Decline vs Flat)
+  const isAngleConflicted = (str1, str2) => {
+    const s1 = (str1 || '').toLowerCase();
+    const s2 = (str2 || '').toLowerCase();
+    const s1Incline = /inclin/.test(s1);
+    const s2Incline = /inclin/.test(s2);
+    const s1Decline = /declin/.test(s1);
+    const s2Decline = /declin/.test(s2);
+
+    if (s1Incline !== s2Incline) return true;
+    if (s1Decline !== s2Decline) return true;
+    return false;
+  };
 
   // 4. Extract all name variants for set and target
   const extractNames = (obj) => {
@@ -244,44 +339,21 @@ export function doesSetMatchExercise(set, targetExercise, catalogExercises = [])
     return list;
   };
 
-  const setNames = extractNames(set).concat(extractNames(setCatalogEx));
-  const targetNames = extractNames(targetExercise).concat(extractNames(targetCatalogEx));
+  const setNames = extractNames(set).concat(extractNames(sEx));
+  const targetNames = extractNames(targetExercise).concat(extractNames(tEx));
 
   if (setNames.length === 0 || targetNames.length === 0) return false;
 
   for (const sRaw of setNames) {
-    const sLow = sRaw.toLowerCase().trim();
-    const sMap = SPANISH_TO_ENGLISH_EXERCISE_MAP[sLow] || sLow;
-    const sStrip = stripExerciseName(sMap);
-
+    const sNorm = normalizeNameForCompare(sRaw);
     for (const tRaw of targetNames) {
-      const tLow = tRaw.toLowerCase().trim();
-      const tMap = SPANISH_TO_ENGLISH_EXERCISE_MAP[tLow] || tLow;
-      const tStrip = stripExerciseName(tMap);
+      const tNorm = normalizeNameForCompare(tRaw);
 
-      // Direct match
-      if (sLow === tLow || sMap === tMap || (sStrip && tStrip && sStrip === tStrip)) {
+      if (isAngleConflicted(sRaw, tRaw)) return false;
+
+      // Exact normalized match
+      if (sNorm && tNorm && sNorm === tNorm) {
         return true;
-      }
-
-      // Substring fuzzy match
-      if (sStrip && tStrip && sStrip.length >= 4 && tStrip.length >= 4) {
-        if (sStrip.includes(tStrip) || tStrip.includes(sStrip)) {
-          return true;
-        }
-      }
-
-      // Smith machine / multipower fuzzy match
-      const sIsSmith = /smith|multipower/.test(sLow);
-      const tIsSmith = /smith|multipower/.test(tLow);
-      if (sIsSmith && tIsSmith) {
-        const sIsSquat = /squat|sentadilla/.test(sLow);
-        const tIsSquat = /squat|sentadilla/.test(tLow);
-        if (sIsSquat && tIsSquat) return true;
-
-        const sIsPress = /press/.test(sLow);
-        const tIsPress = /press/.test(tLow);
-        if (sIsPress && tIsPress) return true;
       }
     }
   }
