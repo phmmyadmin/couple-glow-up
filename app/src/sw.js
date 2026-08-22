@@ -4,6 +4,50 @@ import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST || []);
 
+// ── SW REST TIMER BACKGROUND MANAGER ──
+let swRestTimeout = null;
+
+self.addEventListener('message', (event) => {
+  if (!event.data || !event.data.type) return;
+
+  if (event.data.type === 'START_REST_TIMER') {
+    const { restEndTime, exerciseName } = event.data;
+    if (swRestTimeout) clearTimeout(swRestTimeout);
+
+    const delay = Math.max(0, restEndTime - Date.now());
+
+    swRestTimeout = setTimeout(() => {
+      self.registration.getNotifications({ tag: 'rest-timer-active' }).then((active) => {
+        active.forEach((n) => n.close());
+      });
+
+      self.registration.showNotification('00:00 - Rest Time Over! 🔔', {
+        body: exerciseName ? `Time for your next set of ${exerciseName}! 🏋️` : 'Time for your next set! 🏋️',
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        tag: 'rest-timer-finished',
+        renotify: true,
+        vibrate: [200, 100, 200, 100, 200, 100, 300],
+        data: { url: './' },
+        actions: [
+          { action: 'open', title: 'Open App 📲' },
+          { action: 'dismiss', title: 'Dismiss ✖️' },
+        ],
+      });
+    }, delay);
+  }
+
+  if (event.data.type === 'CANCEL_REST_TIMER') {
+    if (swRestTimeout) {
+      clearTimeout(swRestTimeout);
+      swRestTimeout = null;
+    }
+    self.registration.getNotifications({ tag: 'rest-timer-active' }).then((active) => {
+      active.forEach((n) => n.close());
+    });
+  }
+});
+
 // ── PUSH NOTIFICATION EVENT HANDLER ──
 self.addEventListener('push', (event) => {
   if (!event.data) return;

@@ -1,4 +1,26 @@
-let activeCountdownTimer = null;
+export async function startBackgroundRestTimer(restEndTime, exerciseName = '') {
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+
+    // Send background timer message to Service Worker so completion push fires even when app is minimized or screen locked!
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'START_REST_TIMER',
+        restEndTime,
+        exerciseName,
+      });
+    }
+
+    // Initial notification bar update with time FIRST
+    const remainingSeconds = Math.max(0, Math.ceil((restEndTime - Date.now()) / 1000));
+    updateRestNotificationBar(remainingSeconds, false, exerciseName);
+  } catch (err) {
+    console.error('Error starting background rest timer:', err);
+  }
+}
 
 export async function updateRestNotificationBar(remainingSeconds, isFinished = false, exerciseName = '') {
   if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
@@ -12,8 +34,8 @@ export async function updateRestNotificationBar(remainingSeconds, isFinished = f
       const activeNotifications = await reg.getNotifications({ tag: 'rest-timer-active' });
       activeNotifications.forEach((n) => n.close());
 
-      // Show Rest Completed notification with vibration pattern
-      reg.showNotification('🔔 Rest Time Over!', {
+      // Show Rest Completed notification with time FIRST (00:00)
+      reg.showNotification('00:00 - Rest Time Over! 🔔', {
         body: exerciseName ? `Time for your next set of ${exerciseName}! 🏋️` : 'Time to start your next set! 🏋️',
         icon: '/favicon.svg',
         badge: '/favicon.svg',
@@ -29,12 +51,12 @@ export async function updateRestNotificationBar(remainingSeconds, isFinished = f
       return;
     }
 
-    // Ongoing countdown notification bar update
+    // Ongoing countdown notification bar update with time FIRST (e.g., "01:30 - Rest Timer ⏱️")
     const mins = Math.floor(remainingSeconds / 60);
     const secs = remainingSeconds % 60;
     const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
-    reg.showNotification(`⏱️ Rest Timer: ${formatted}`, {
+    reg.showNotification(`${formatted} - Rest Timer ⏱️`, {
       body: exerciseName ? `Next set: ${exerciseName}` : 'Resting between sets...',
       icon: '/favicon.svg',
       badge: '/favicon.svg',
@@ -51,6 +73,13 @@ export async function updateRestNotificationBar(remainingSeconds, isFinished = f
 export async function clearRestNotificationBar() {
   if (!('serviceWorker' in navigator)) return;
   try {
+    // Cancel background timer in Service Worker
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'CANCEL_REST_TIMER',
+      });
+    }
+
     const reg = await navigator.serviceWorker.ready;
     const activeNotifications = await reg.getNotifications({ tag: 'rest-timer-active' });
     activeNotifications.forEach((n) => n.close());

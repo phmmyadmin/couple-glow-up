@@ -5,7 +5,7 @@ import {
   FileText, ChevronDown, User, ArrowLeft, Minus
 } from 'lucide-react';
 import { calculate1RM, doesSetMatchExercise } from '../lib/supabase-gym';
-import { updateRestNotificationBar, clearRestNotificationBar } from '../../../lib/rest-timer-notifications';
+import { updateRestNotificationBar, clearRestNotificationBar, startBackgroundRestTimer } from '../../../lib/rest-timer-notifications';
 import ExerciseLibrary, { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 import Card, { CardTitle } from '../../../shared/ui/Card';
@@ -185,11 +185,12 @@ export default function LiveWorkoutLogger({
       clearRestNotificationBar();
       return;
     }
-    restEndTimeRef.current = Date.now() + seconds * 1000;
+    const endTime = Date.now() + seconds * 1000;
+    restEndTimeRef.current = endTime;
     setRestTimerSeconds(seconds);
     setIsRestTimerActive(true);
     const currentExName = workoutExercises[0]?.exercise?.name || workoutExercises[0]?.exercise?.name_es || '';
-    updateRestNotificationBar(seconds, false, currentExName);
+    startBackgroundRestTimer(endTime, currentExName);
   };
 
   const handleAdd30sRest = () => {
@@ -201,6 +202,8 @@ export default function LiveWorkoutLogger({
     const remaining = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
     setRestTimerSeconds(remaining);
     setIsRestTimerActive(true);
+    const currentExName = workoutExercises[0]?.exercise?.name || workoutExercises[0]?.exercise?.name_es || '';
+    startBackgroundRestTimer(restEndTimeRef.current, currentExName);
   };
 
   const formatTimer = (totalSec) => {
