@@ -979,10 +979,10 @@ export default function LiveWorkoutLogger({
                                   handleUpdateSetField(exIdx, 0, 'reps', rec.targetSet1.reps);
                                 }}
                                 className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-200/80 shadow-2xs transition-all active:scale-95 cursor-pointer"
-                                title="Copiar meta de sobrecarga al Set 1"
+                                title="Apply progressive overload target to Set 1"
                               >
                                 <Zap className="w-3 h-3 text-indigo-600 fill-indigo-600" />
-                                <span>Aplicar Meta</span>
+                                <span>Apply Target</span>
                               </button>
                             )}
                           </div>
@@ -997,10 +997,10 @@ export default function LiveWorkoutLogger({
                     <div className="space-y-2 pt-2 border-t border-slate-100">
                       <div className="grid grid-cols-12 gap-1 sm:gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
                         <span className="col-span-2 text-center">SET</span>
-                        <span className="col-span-2 text-center" title="Récord / Marca anterior (Toca para rellenar)">PREV</span>
+                        <span className="col-span-2 text-center" title="Previous Performance (Tap to fill)">PREV</span>
                         <span className="col-span-3 text-center">{isDistanceDuration ? 'KM' : isDurationOnly ? 'TIME' : 'KG'}</span>
                         <span className="col-span-2 text-center">{isDistanceDuration ? 'TIME' : isDurationOnly ? '-' : 'REPS'}</span>
-                        <span className="col-span-1 text-center" title="RPE / Intensidad (6-10)">RPE</span>
+                        <span className="col-span-1 text-center" title="RPE / Intensity (6-10)">RPE</span>
                         <span className="col-span-1 text-center">✓</span>
                         <span className="col-span-1 text-center"></span>
                       </div>
@@ -1058,7 +1058,7 @@ export default function LiveWorkoutLogger({
                                     }
                                   }}
                                   className="w-full py-0.5 px-1 text-[10px] sm:text-xs text-slate-600 hover:text-indigo-700 bg-slate-100 hover:bg-indigo-50 rounded-md font-mono font-bold transition-all border border-slate-200/60 truncate cursor-pointer"
-                                  title="Toca para rellenar con esta carga y reps"
+                                  title="Tap to fill with previous load and reps"
                                 >
                                   {prevText}
                                 </button>

@@ -196,15 +196,15 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
 
     if (showToast && setToastMessage) {
       if (syncedCount > 0) {
-        setToastMessage(`✅ ${syncedCount} entrenamiento(s) sincronizado(s) con la nube!`);
+        setToastMessage(`✅ ${syncedCount} offline workout(s) synced to cloud!`);
       } else if (remaining.length > 0) {
-        setToastMessage(`⚠️ No se pudo sincronizar. Comprueba tu conexión a Supabase.`);
+        setToastMessage(`⚠️ Could not sync. Check connection to Supabase.`);
       }
     }
   };
 
   const handleDiscardOfflineWorkouts = () => {
-    if (window.confirm('¿Descartar los entrenamientos guardados en local?')) {
+    if (window.confirm('Discard locally stored offline workouts?')) {
       localStorage.removeItem('couple_glow_up_pending_workouts');
       setPendingOfflineWorkouts([]);
       if (activeProfile?.id) {
@@ -213,7 +213,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
         });
       }
       if (setToastMessage) {
-        setToastMessage('Borrador local descartado');
+        setToastMessage('Local drafts discarded');
       }
     }
   };
@@ -437,7 +437,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-base shrink-0">📶</span>
             <span className="truncate">
-              Tienes <strong>{pendingOfflineWorkouts.length}</strong> entrenamiento(s) pendiente(s) de sincronizar.
+              You have <strong>{pendingOfflineWorkouts.length}</strong> workout(s) pending to sync.
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -447,7 +447,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
               onClick={handleDiscardOfflineWorkouts}
               className="text-amber-800 hover:text-rose-700 hover:bg-amber-100 text-xs px-2.5 py-1"
             >
-              Descartar
+              Discard
             </Button>
             <Button
               variant="secondary"
@@ -455,7 +455,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
               onClick={() => handleSyncOfflineWorkouts(true)}
               className="bg-amber-500 hover:bg-amber-600 text-white font-bold border-amber-600 text-xs px-3.5 py-1"
             >
-              Sincronizar ahora
+              Sync to Cloud Now
             </Button>
           </div>
         </div>

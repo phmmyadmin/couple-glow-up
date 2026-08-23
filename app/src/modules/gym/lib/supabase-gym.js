@@ -412,7 +412,7 @@ export function getLastPerformanceForExercise(targetExercise, workouts = [], cat
       return {
         workoutId: w.id,
         workoutName: w.name || 'Workout',
-        dateStr: new Date(w.started_at).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: '2-digit' }),
+        dateStr: new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }),
         started_at: w.started_at,
         sets: validSets,
         topSet,
@@ -432,10 +432,10 @@ export function getSmartOverloadRecommendation(exercise, lastPerf) {
   if (!lastPerf || !lastPerf.sets || lastPerf.sets.length === 0) {
     return {
       mode: 'first_time',
-      badge: '🆕 Primera Sesión',
+      badge: '🆕 First Session',
       badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-      title: 'Establecer Carga Base',
-      detail: 'Empieza con un peso cómodo en RPE 7-8 (2-3 reps en reserva) para calibrar tu punto de partida con técnica perfecta.',
+      title: 'Establish Base Load',
+      detail: 'Start with a comfortable weight at RPE 7-8 (2-3 reps in reserve) to calibrate your starting baseline with pristine form.',
       targetSet1: null,
       lastSessionText: null,
     };
@@ -465,9 +465,9 @@ export function getSmartOverloadRecommendation(exercise, lastPerf) {
   let weightIncrement = 2.5;
 
   if (category.includes('dumbbell') || exName.includes('dumbbell') || exName.includes('mancuerna')) {
-    weightIncrement = 2; // Siguiente par de mancuernas (+2kg / mano)
+    weightIncrement = 2; // Next dumbbell pair (+2kg / hand)
   } else if (category.includes('smith') || exName.includes('smith') || category.includes('barbell') || exName.includes('barbell')) {
-    weightIncrement = topW >= 60 ? 2.5 : 1.25; // Micro-discos o salto de 2.5kg
+    weightIncrement = topW >= 60 ? 2.5 : 1.25; // Micro-plates or 2.5kg jump
   } else if (category.includes('cable') || category.includes('machine') || category.includes('polea')) {
     weightIncrement = topW >= 50 ? 5 : 2.5;
   }
@@ -505,26 +505,26 @@ export function getSmartOverloadRecommendation(exercise, lastPerf) {
   const firstSetHitCeiling = topR >= maxReps;
 
   let mode = 'reps';
-  let badge = '⚡ +1 Repetición';
+  let badge = '⚡ +1 Repetition';
   let badgeClass = 'bg-amber-100 text-amber-800 border-amber-200';
-  let title = `Buscar ${topW} kg × ${topR + 1} reps`;
-  let detail = `En tu última sesión hiciste ${topW} kg × ${topR}. Hoy busca +1 repetición en tu primer set antes de subir carga.`;
+  let title = `Target ${topW} kg × ${topR + 1} reps`;
+  let detail = `In your last session you completed ${topW} kg × ${topR}. Aim for +1 rep in your first set today before increasing weight.`;
   let targetSet1 = { weight_kg: topW, reps: topR + 1 };
 
   if (allSetsHitCeiling || (firstSetHitCeiling && (topRpe === null || topRpe <= 8.5))) {
     const nextW = topW + weightIncrement;
     mode = 'weight';
-    badge = '🚀 Subir Carga';
+    badge = '🚀 Increase Load';
     badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-    title = `Subir a ${nextW} kg × ${minReps}–${minReps + 2} reps`;
-    detail = `¡Completaste el techo (${topR} reps con ${topW} kg)! Toca subir a ${nextW} kg buscando ${minReps} reps controladas.`;
+    title = `Increase to ${nextW} kg × ${minReps}–${minReps + 2} reps`;
+    detail = `You completed the rep ceiling (${topR} reps @ ${topW} kg)! Step up to ${nextW} kg targeting ${minReps} clean reps.`;
     targetSet1 = { weight_kg: nextW, reps: minReps };
   } else if (topRpe && topRpe >= 9.5) {
     mode = 'consolidate';
-    badge = '🎯 Consolidar Técnica';
+    badge = '🎯 Consolidate Form';
     badgeClass = 'bg-indigo-100 text-indigo-800 border-indigo-200';
-    title = `Consolidar ${topW} kg × ${topR} reps`;
-    detail = `La última sesión estuvo cerca del fallo absoluto (RPE ${topRpe}). Mantén los ${topW} kg con 3s de bajada excéntrica.`;
+    title = `Consolidate ${topW} kg × ${topR} reps`;
+    detail = `Last session was near absolute muscular failure (RPE ${topRpe}). Maintain ${topW} kg with controlled 3s eccentric descent.`;
     targetSet1 = { weight_kg: topW, reps: topR };
   }
 
