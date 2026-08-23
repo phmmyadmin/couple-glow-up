@@ -163,7 +163,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   }, [activeProfile]);
 
   // Sync offline workouts handler
-  const handleSyncOfflineWorkouts = async () => {
+  const handleSyncOfflineWorkouts = async (showToast = true) => {
     const pending = JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
     if (pending.length === 0) return;
 
@@ -171,8 +171,12 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     const remaining = [];
 
     for (const item of pending) {
-      const { id, is_offline_pending, workout_sets, ...meta } = item;
-      const saved = await saveWorkoutSessionToSupabase(meta, workout_sets || []);
+      const { id, is_offline_pending, workout_sets, sets: altSets, ...meta } = item;
+      const targetSets = (Array.isArray(workout_sets) && workout_sets.length > 0)
+        ? workout_sets
+        : (Array.isArray(altSets) && altSets.length > 0 ? altSets : []);
+
+      const saved = await saveWorkoutSessionToSupabase(meta, targetSets);
       if (saved) {
         syncedCount++;
       } else {
@@ -185,13 +189,49 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
 
     if (activeProfile?.id) {
       const fresh = await fetchWorkoutsFromSupabase(activeProfile.id);
-      if (fresh) setWorkouts(fresh);
+      if (fresh) {
+        setWorkouts([...remaining, ...fresh]);
+      }
     }
 
-    if (setToastMessage) {
-      setToastMessage(`✅ ${syncedCount} offline workout(s) synced to cloud!`);
+    if (showToast && setToastMessage) {
+      if (syncedCount > 0) {
+        setToastMessage(`✅ ${syncedCount} entrenamiento(s) sincronizado(s) con la nube!`);
+      } else if (remaining.length > 0) {
+        setToastMessage(`⚠️ No se pudo sincronizar. Comprueba tu conexión a Supabase.`);
+      }
     }
   };
+
+  const handleDiscardOfflineWorkouts = () => {
+    if (window.confirm('¿Descartar los entrenamientos guardados en local?')) {
+      localStorage.removeItem('couple_glow_up_pending_workouts');
+      setPendingOfflineWorkouts([]);
+      if (activeProfile?.id) {
+        fetchWorkoutsFromSupabase(activeProfile.id).then((fresh) => {
+          if (fresh) setWorkouts(fresh);
+        });
+      }
+      if (setToastMessage) {
+        setToastMessage('Borrador local descartado');
+      }
+    }
+  };
+
+  // Auto-sync offline workouts when browser connects to internet
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('🌐 [GYM APP] Online event detected! Triggering auto-sync...');
+      handleSyncOfflineWorkouts(true);
+    };
+
+    window.addEventListener('online', handleOnline);
+    // Auto-sync on initial mount if online and has pending workouts
+    if (navigator.onLine && pendingOfflineWorkouts.length > 0) {
+      handleSyncOfflineWorkouts(false);
+    }
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
 
   // ── EXERCISE HANDLERS ──
   const handleAddCustomExercise = async (newEx) => {
@@ -393,21 +433,31 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     <div className="space-y-6 sm:space-y-7">
       {/* Offline Pending Workouts Alert Banner */}
       {pendingOfflineWorkouts.length > 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm font-semibold text-amber-900 shadow-2xs">
+        <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm font-semibold text-amber-900 shadow-2xs flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-base shrink-0">📶</span>
             <span className="truncate">
-              You have <strong>{pendingOfflineWorkouts.length}</strong> workout(s) saved locally offline.
+              Tienes <strong>{pendingOfflineWorkouts.length}</strong> entrenamiento(s) pendiente(s) de sincronizar.
             </span>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleSyncOfflineWorkouts}
-            className="bg-amber-500 hover:bg-amber-600 text-white font-bold border-amber-600 shrink-0"
-          >
-            Sync to Cloud Now
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDiscardOfflineWorkouts}
+              className="text-amber-800 hover:text-rose-700 hover:bg-amber-100 text-xs px-2.5 py-1"
+            >
+              Descartar
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleSyncOfflineWorkouts(true)}
+              className="bg-amber-500 hover:bg-amber-600 text-white font-bold border-amber-600 text-xs px-3.5 py-1"
+            >
+              Sincronizar ahora
+            </Button>
+          </div>
         </div>
       )}
 

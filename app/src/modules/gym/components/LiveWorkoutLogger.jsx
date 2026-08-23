@@ -2,9 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
   Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X, ArrowUp, ArrowDown,
   Timer, Flame, Edit3, Save, Info, MoreVertical, GripVertical, RotateCcw,
-  FileText, ChevronDown, User, ArrowLeft, Minus, TrendingUp, Zap
+  FileText, ChevronDown, User, ArrowLeft, Minus, TrendingUp, Zap, Calendar, Target
 } from 'lucide-react';
-import { calculate1RM, doesSetMatchExercise, estimateWorkoutCalories } from '../lib/supabase-gym';
+import {
+  calculate1RM,
+  doesSetMatchExercise,
+  estimateWorkoutCalories,
+  getLastPerformanceForExercise,
+  getSmartOverloadRecommendation
+} from '../lib/supabase-gym';
 import { updateRestNotificationBar, clearRestNotificationBar, startBackgroundRestTimer } from '../../../lib/rest-timer-notifications';
 import ExerciseLibrary, { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
@@ -44,27 +50,6 @@ function getExerciseInitials(name) {
   if (words.length === 0) return 'EX';
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();
-}
-
-export function getLastPerformanceForExercise(targetExercise, workouts = [], catalogExercises = []) {
-  if (!targetExercise || !workouts || workouts.length === 0) return null;
-
-  for (const w of workouts) {
-    const sets = w.workout_sets || w.sets || [];
-    const exSets = sets.filter((s) => doesSetMatchExercise(s, targetExercise, catalogExercises));
-
-    if (exSets.length > 0) {
-      console.log('🎯 [LAST PERF FOUND]', { target: targetExercise.name, workoutName: w.name, setsCount: exSets.length, sampleSet: exSets[0] });
-      return {
-        workoutName: w.name,
-        dateStr: new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        sets: exSets,
-      };
-    }
-  }
-
-  console.log('⚠️ [LAST PERF NOT FOUND]', { target: targetExercise.name, workoutsChecked: workouts.length });
-  return null;
 }
 
 export default function LiveWorkoutLogger({
@@ -447,11 +432,38 @@ export default function LiveWorkoutLogger({
         prev.map((item, idx) => {
           if (idx === replaceExerciseIndex) {
             const lastPerf = getLastPerformanceForExercise(exercise, workouts, exercises);
+            let replacedSets = [];
+            if (lastPerf && lastPerf.sets && lastPerf.sets.length > 0) {
+              replacedSets = lastPerf.sets.map((prevSet, sIdx) => ({
+                id: `${Date.now()}-${sIdx}`,
+                indicator: prevSet.indicator || 'normal',
+                weight_kg: prevSet.weight_kg ?? '',
+                reps: prevSet.reps ?? '',
+                duration_seconds: prevSet.duration_seconds || null,
+                distance_meters: prevSet.distance_meters || null,
+                distance_km: prevSet.distance_km || null,
+                is_checked: false,
+              }));
+            } else {
+              replacedSets = [
+                {
+                  id: Date.now().toString(),
+                  indicator: 'normal',
+                  weight_kg: '',
+                  reps: '',
+                  duration_seconds: null,
+                  distance_meters: null,
+                  distance_km: null,
+                  is_checked: false,
+                },
+              ];
+            }
             return {
               ...item,
               exercise_id: exercise.id,
               exercise: exercise,
               lastPerformance: lastPerf,
+              sets: replacedSets,
             };
           }
           return item;
@@ -599,10 +611,8 @@ export default function LiveWorkoutLogger({
     setWorkoutExercises((prev) => {
       return prev.map((item, idx) => {
         if (idx === exIndex) {
-          return {
-            ...item,
-            sets: item.sets.filter((_, sIdx) => sIdx !== setIndex),
-          };
+          const updatedSets = item.sets.filter((_, sIdx) => sIdx !== setIndex);
+          return { ...item, sets: updatedSets };
         }
         return item;
       });
@@ -615,17 +625,42 @@ export default function LiveWorkoutLogger({
         if (idx === exIndex) {
           const updatedSets = item.sets.map((s, sIdx) => {
             if (sIdx === setIndex) {
-              const updated = { ...s, [field]: value };
-              // Auto launch rest timer and auto-fill previous kg/reps if checking set while empty
-              if (field === 'is_checked' && value === true) {
-                const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
-                const prevSet = lastPerf?.sets?.[sIdx] || lastPerf?.sets?.[0];
+              return { ...s, [field]: value };
+            }
+            return s;
+          });
+          return { ...item, sets: updatedSets };
+        }
+        return item;
+      });
+    });
+  };
 
-                if ((updated.weight_kg === undefined || updated.weight_kg === null || updated.weight_kg === '') && prevSet?.weight_kg) {
-                  updated.weight_kg = prevSet.weight_kg;
+  const handleToggleCheckSet = (exIndex, setIndex) => {
+    const item = workoutExercises[exIndex];
+    const isDistanceDuration = item.exercise.exercise_type === 'distance_duration';
+    const isDurationOnly = item.exercise.exercise_type === 'duration_only';
+
+    setWorkoutExercises((prev) => {
+      return prev.map((item, idx) => {
+        if (idx === exIndex) {
+          const updatedSets = item.sets.map((s, sIdx) => {
+            if (sIdx === setIndex) {
+              const newChecked = !s.is_checked;
+              const updated = { ...s, is_checked: newChecked };
+
+              // Trigger rest timer only when checking the set as completed
+              if (newChecked && !isDistanceDuration && !isDurationOnly) {
+                // If set was checked without typing values, auto-fill from previous performance or 0
+                if (s.weight_kg === undefined || s.weight_kg === null || s.weight_kg === '') {
+                  const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
+                  const prevSet = lastPerf?.sets?.[setIndex] || lastPerf?.sets?.[0];
+                  if (prevSet?.weight_kg) updated.weight_kg = prevSet.weight_kg;
                 }
-                if ((updated.reps === undefined || updated.reps === null || updated.reps === '') && prevSet?.reps) {
-                  updated.reps = prevSet.reps;
+                if (s.reps === undefined || s.reps === null || s.reps === '') {
+                  const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
+                  const prevSet = lastPerf?.sets?.[setIndex] || lastPerf?.sets?.[0];
+                  if (prevSet?.reps) updated.reps = prevSet.reps;
                 }
 
                 startRestTimer(item.rest_seconds || defaultRestSeconds || 90);
@@ -671,28 +706,28 @@ export default function LiveWorkoutLogger({
       item.sets.forEach((s) => {
         const hasValue =
           s.is_checked ||
-          (s.weight_kg !== undefined && parseFloat(s.weight_kg) > 0) ||
-          (s.reps !== undefined && parseInt(s.reps, 10) > 0) ||
+          (s.weight_kg !== undefined && s.weight_kg !== '' && parseFloat(s.weight_kg) > 0) ||
+          (s.reps !== undefined && s.reps !== '' && parseInt(s.reps, 10) > 0) ||
           Boolean(s.duration_seconds) ||
           Boolean(s.distance_meters);
 
         if (hasValue) {
           allSets.push({
-            ...s,
             exercise_id: item.exercise.id,
-            exercise: item.exercise,
-            exercises: item.exercise,
+            indicator: s.indicator,
+            weight_kg: parseFloat(s.weight_kg) || 0,
+            reps: parseInt(s.reps, 10) || 0,
+            duration_seconds: s.duration_seconds ? parseInt(s.duration_seconds, 10) : null,
+            distance_meters: s.distance_meters ? parseFloat(s.distance_meters) : null,
+            distance_km: s.distance_km ? parseFloat(s.distance_km) : null,
+            is_checked: s.is_checked,
+            rpe: s.rpe ? parseFloat(s.rpe) : null
           });
         }
       });
     });
 
     const durationMins = Math.max(1, Math.round(secondsElapsed / 60));
-    const estimatedCals = estimateWorkoutCalories(
-      durationMins,
-      activeProfile?.weight || 70,
-      allSets
-    );
 
     onSaveWorkout(
       {
@@ -702,7 +737,6 @@ export default function LiveWorkoutLogger({
         started_at: new Date(startTimeRef.current).toISOString(),
         finished_at: new Date().toISOString(),
         estimated_volume_kg: totalLiveVolumeKg,
-        estimated_calories: estimatedCals,
       },
       allSets
     );
@@ -730,6 +764,7 @@ export default function LiveWorkoutLogger({
             exercises={exercises}
             onSelectExercise={handleAddOrReplaceExercise}
             onAddCustomExercise={onAddCustomExercise}
+            isSelectionMode={true}
           />
         </div>
       ) : (
@@ -764,39 +799,27 @@ export default function LiveWorkoutLogger({
             </div>
           )}
 
-          {/* Hevy-Style Live Session Header Card */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xs">
-            {/* Header Row */}
+          {/* Main Workout Content Container */}
+          <div className="space-y-6">
+            {/* Main Workout Header Card */}
+            <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-5 space-y-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <ChevronDown className="w-5 h-5 text-slate-400 shrink-0" />
+              <div className="flex-1 min-w-0">
                 <input
                   type="text"
                   value={workoutName}
-                  aria-label="Workout name"
                   onChange={(e) => setWorkoutName(e.target.value)}
-                  className="text-lg sm:text-xl font-extrabold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-600 focus:outline-none w-full font-heading truncate"
+                  className="text-xl sm:text-2xl font-black text-slate-900 bg-transparent border-none p-0 focus:outline-none focus:ring-0 w-full truncate"
+                  placeholder="Workout Name..."
                 />
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsRestTimerActive(true)}
-                  className="p-2 text-slate-500 hover:text-indigo-600 rounded-xl hover:bg-slate-100 transition-colors relative"
-                  title="Rest Timer"
-                >
-                  <Timer className="w-5 h-5" />
-                  {isRestTimerActive && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-600 rounded-full animate-ping" />
-                  )}
-                </button>
-
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCancelWorkout}
-                  className="text-slate-500 hover:text-slate-900"
+                  className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl px-3"
                 >
                   Cancel
                 </Button>
@@ -868,6 +891,7 @@ export default function LiveWorkoutLogger({
                 const isDistanceDuration = exType === 'distance_duration';
                 const isDurationOnly = exType === 'duration_only';
                 const restSecs = item.rest_seconds !== undefined ? item.rest_seconds : 90;
+                const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
 
                 return (
                   <Card key={item.id} className="p-4 sm:p-5 space-y-4 shadow-xs border-slate-200/90">
@@ -892,17 +916,27 @@ export default function LiveWorkoutLogger({
                             {exName}
                           </h4>
 
-                          {/* Configurable Rest Target Line */}
-                          <button
-                            type="button"
-                            onClick={() => setEditingRestForExerciseIndex(exIdx)}
-                            className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors pt-0.5"
-                          >
-                            <Timer className="w-3.5 h-3.5" />
-                            <span>
-                              Rest: {restSecs === 0 ? 'OFF' : `${restSecs}s`}
-                            </span>
-                          </button>
+                          <div className="flex items-center gap-3 flex-wrap text-xs">
+                            {/* Configurable Rest Target Line */}
+                            <button
+                              type="button"
+                              onClick={() => setEditingRestForExerciseIndex(exIdx)}
+                              className="flex items-center gap-1 font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                            >
+                              <Timer className="w-3.5 h-3.5" />
+                              <span>Rest: {restSecs === 0 ? 'OFF' : `${restSecs}s`}</span>
+                            </button>
+
+                            {/* Previous Session Quick Reference */}
+                            {lastPerf && (
+                              <div className="flex items-center gap-1 text-slate-500 font-medium truncate">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="truncate">
+                                  {lastPerf.dateStr}: <strong className="font-mono text-slate-700">{lastPerf.summaryText}</strong>
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -917,34 +951,38 @@ export default function LiveWorkoutLogger({
                       </button>
                     </div>
 
-                    {/* Progressive Overload Smart Suggestion */}
+                    {/* Progressive Overload Smart Suggestion Card */}
                     {(() => {
-                      const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
-                      const lastSet = lastPerf?.sets?.find((s) => s.is_checked || s.weight_kg) || lastPerf?.sets?.[0];
-                      if (!lastSet || (!lastSet.weight_kg && !lastSet.reps)) return null;
-
-                      const lastW = parseFloat(lastSet.weight_kg) || 0;
-                      const lastR = parseInt(lastSet.reps, 10) || 0;
-                      const lastRpe = lastSet.rpe ? parseFloat(lastSet.rpe) : null;
-
-                      let hint = '';
-                      if (lastW > 0 && lastR > 0) {
-                        const incW = lastW + (lastW >= 80 ? 2.5 : 1.25);
-                        if (lastRpe && lastRpe <= 8) {
-                          hint = `Last set @${lastRpe} (RIR ${10 - lastRpe}) → Target ${incW}kg × ${lastR} today! 🔥`;
-                        } else if (lastRpe && lastRpe >= 9.5) {
-                          hint = `Last set @${lastRpe} (near failure) → Consolidate ${lastW}kg × ${lastR} 🎯`;
-                        } else {
-                          hint = `Overload target: ${incW}kg × ${lastR} or ${lastW}kg × ${lastR + 1} ⚡`;
-                        }
-                      }
-
-                      if (!hint) return null;
+                      const rec = getSmartOverloadRecommendation(item.exercise, lastPerf);
+                      if (!rec) return null;
 
                       return (
-                        <div className="mt-2 mb-1 px-2.5 py-1.5 bg-indigo-50/80 border border-indigo-100/90 rounded-xl flex items-center gap-1.5 text-[11px] font-bold text-indigo-700 shadow-2xs">
-                          <Zap className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="truncate">{hint}</span>
+                        <div className="mt-2 mb-1 p-3 bg-gradient-to-r from-indigo-50/90 via-purple-50/40 to-slate-50/70 border border-indigo-100/90 rounded-2xl space-y-1.5 shadow-2xs">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border uppercase tracking-wider ${rec.badgeClass || 'bg-indigo-100 text-indigo-800 border-indigo-200'}`}>
+                                {rec.badge}
+                              </span>
+                              <span className="text-xs font-extrabold text-slate-900">{rec.title}</span>
+                            </div>
+                            {rec.targetSet1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleUpdateSetField(exIdx, 0, 'weight_kg', rec.targetSet1.weight_kg);
+                                  handleUpdateSetField(exIdx, 0, 'reps', rec.targetSet1.reps);
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-200/80 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                                title="Copiar meta de sobrecarga al Set 1"
+                              >
+                                <Zap className="w-3 h-3 text-indigo-600 fill-indigo-600" />
+                                <span>Aplicar Meta</span>
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-snug">
+                            {rec.detail}
+                          </p>
                         </div>
                       );
                     })()}
@@ -953,30 +991,22 @@ export default function LiveWorkoutLogger({
                     <div className="space-y-2 pt-2 border-t border-slate-100">
                       <div className="grid grid-cols-12 gap-1 sm:gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
                         <span className="col-span-2 text-center">SET</span>
-                        <span className="col-span-2 text-center">PREV</span>
+                        <span className="col-span-2 text-center" title="Récord / Marca anterior (Toca para rellenar)">PREV</span>
                         <span className="col-span-3 text-center">{isDistanceDuration ? 'KM' : isDurationOnly ? 'TIME' : 'KG'}</span>
                         <span className="col-span-2 text-center">{isDistanceDuration ? 'TIME' : isDurationOnly ? '-' : 'REPS'}</span>
-                        <span className="col-span-1 text-center" title="RPE / Intensity (6-10)">RPE</span>
+                        <span className="col-span-1 text-center" title="RPE / Intensidad (6-10)">RPE</span>
                         <span className="col-span-1 text-center">✓</span>
                         <span className="col-span-1 text-center"></span>
                       </div>
 
                       {item.sets.map((set, setIdx) => {
-                        const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
-                        const prevSet = lastPerf?.sets?.[setIdx] || lastPerf?.sets?.[0];
+                        const prevSet = lastPerf?.sets?.[setIdx] || lastPerf?.sets?.[lastPerf.sets.length - 1];
                         let prevText = '-';
                         if (prevSet) {
                           if (prevSet.weight_kg && prevSet.reps) prevText = `${prevSet.weight_kg}k×${prevSet.reps}`;
                           else if (prevSet.reps) prevText = `×${prevSet.reps}`;
                           else if (prevSet.duration_seconds) prevText = `${prevSet.duration_seconds}s`;
                         }
-
-                        const placeholderWeight = prevSet?.weight_kg !== undefined && prevSet?.weight_kg !== null && prevSet?.weight_kg !== ''
-                          ? String(prevSet.weight_kg)
-                          : '0';
-                        const placeholderReps = prevSet?.reps !== undefined && prevSet?.reps !== null && prevSet?.reps !== ''
-                          ? String(prevSet.reps)
-                          : '0';
 
                         return (
                           <div
@@ -987,7 +1017,6 @@ export default function LiveWorkoutLogger({
                                 : 'bg-white border-slate-200/80'
                             }`}
                           >
-                            {/* Explicit Set Type Dropdown & Number (2 cols) */}
                             <div className="col-span-2 flex items-center justify-center">
                               <select
                                 value={set.indicator || 'normal'}
@@ -1001,7 +1030,6 @@ export default function LiveWorkoutLogger({
                                     ? 'bg-rose-100 border-rose-300 text-rose-900 font-extrabold'
                                     : 'bg-slate-100 border-slate-200 text-slate-700 hover:border-slate-300'
                                 }`}
-                                title="Set Type: Normal (1, 2, 3), Warmup (W), Drop Set (D), Failure (F)"
                               >
                                 <option value="normal">{setIdx + 1}</option>
                                 <option value="warmup">W</option>
@@ -1010,9 +1038,27 @@ export default function LiveWorkoutLogger({
                               </select>
                             </div>
 
-                            {/* Previous Performance (2 cols) */}
-                            <div className="col-span-2 text-center text-[10px] sm:text-xs text-slate-400 font-mono font-medium truncate">
-                              {prevText}
+                            {/* Previous Performance Badge (2 cols) with 1-Tap Quick Fill */}
+                            <div className="col-span-2 text-center">
+                              {prevText !== '-' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (prevSet?.weight_kg !== undefined && prevSet?.weight_kg !== '') {
+                                      handleUpdateSetField(exIdx, setIdx, 'weight_kg', prevSet.weight_kg);
+                                    }
+                                    if (prevSet?.reps !== undefined && prevSet?.reps !== '') {
+                                      handleUpdateSetField(exIdx, setIdx, 'reps', prevSet.reps);
+                                    }
+                                  }}
+                                  className="w-full py-0.5 px-1 text-[10px] sm:text-xs text-slate-600 hover:text-indigo-700 bg-slate-100 hover:bg-indigo-50 rounded-md font-mono font-bold transition-all border border-slate-200/60 truncate cursor-pointer"
+                                  title="Toca para rellenar con esta carga y reps"
+                                >
+                                  {prevText}
+                                </button>
+                              ) : (
+                                <span className="text-[10px] sm:text-xs text-slate-400 font-mono">-</span>
+                              )}
                             </div>
 
                             {/* KG / Value Input (3 cols) */}
@@ -1020,11 +1066,10 @@ export default function LiveWorkoutLogger({
                               <input
                                 type="number"
                                 step="any"
-                                placeholder={placeholderWeight}
                                 value={set.weight_kg ?? set.distance_km ?? set.duration_seconds ?? ''}
                                 onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'weight_kg', e.target.value)}
-                                className="w-full text-center py-1 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono placeholder:text-slate-300"
+                                className="w-full text-center py-1 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono"
                               />
                             </div>
 
@@ -1032,11 +1077,10 @@ export default function LiveWorkoutLogger({
                             <div className="col-span-2">
                               <input
                                 type="number"
-                                placeholder={placeholderReps}
                                 value={set.reps ?? ''}
                                 onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'reps', e.target.value)}
-                                className="w-full text-center py-1 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono placeholder:text-slate-300"
+                                className="w-full text-center py-1 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono"
                               />
                             </div>
 
@@ -1047,8 +1091,6 @@ export default function LiveWorkoutLogger({
                                 step="0.5"
                                 min="5"
                                 max="10"
-                                placeholder="@"
-                                title="RPE / Intensity (e.g. 8 = 2 reps left)"
                                 value={set.rpe ?? ''}
                                 onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleUpdateSetField(exIdx, setIdx, 'rpe', e.target.value)}
@@ -1111,6 +1153,7 @@ export default function LiveWorkoutLogger({
               </Button>
             </div>
           )}
+          </div>
         </>
       )}
 

@@ -375,6 +375,172 @@ export function formatExerciseName(rawName) {
   return trimmed;
 }
 
+/**
+ * Robust previous performance finder for an exercise across workout history.
+ * Strictly ignores empty sessions, sorts descending by started_at, and extracts top set & summary.
+ */
+export function getLastPerformanceForExercise(targetExercise, workouts = [], catalogExercises = []) {
+  if (!targetExercise || !workouts || workouts.length === 0) return null;
+
+  // Sort workouts newest first strictly
+  const sortedWorkouts = [...workouts].sort((a, b) => new Date(b.started_at || 0) - new Date(a.started_at || 0));
+
+  for (const w of sortedWorkouts) {
+    const sets = w.workout_sets || w.sets || [];
+    const exSets = sets.filter((s) => doesSetMatchExercise(s, targetExercise, catalogExercises));
+
+    // Filter sets to only those with valid logged weight/reps or duration
+    const validSets = exSets.filter(
+      (s) => (parseFloat(s.weight_kg) > 0 || parseInt(s.reps, 10) > 0 || parseFloat(s.distance_meters) > 0 || parseInt(s.duration_seconds, 10) > 0)
+    );
+
+    if (validSets.length > 0) {
+      const topSet = [...validSets].sort((a, b) => {
+        const wA = parseFloat(a.weight_kg) || 0;
+        const wB = parseFloat(b.weight_kg) || 0;
+        if (wB !== wA) return wB - wA;
+        return (parseInt(b.reps, 10) || 0) - (parseInt(a.reps, 10) || 0);
+      })[0];
+
+      const summaryText = validSets.map((s) => {
+        if (s.weight_kg && s.reps) return `${s.weight_kg}kg×${s.reps}`;
+        if (s.reps) return `${s.reps} reps`;
+        if (s.duration_seconds) return `${s.duration_seconds}s`;
+        return '-';
+      }).join(', ');
+
+      return {
+        workoutId: w.id,
+        workoutName: w.name || 'Workout',
+        dateStr: new Date(w.started_at).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: '2-digit' }),
+        started_at: w.started_at,
+        sets: validSets,
+        topSet,
+        summaryText,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Science-Based Smart Progressive Overload Engine (Double Progression Model).
+ * Evaluates exercise biomechanics, target rep brackets, previous sets & RPE/RIR.
+ */
+export function getSmartOverloadRecommendation(exercise, lastPerf) {
+  if (!lastPerf || !lastPerf.sets || lastPerf.sets.length === 0) {
+    return {
+      mode: 'first_time',
+      badge: '🆕 Primera Sesión',
+      badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      title: 'Establecer Carga Base',
+      detail: 'Empieza con un peso cómodo en RPE 7-8 (2-3 reps en reserva) para calibrar tu punto de partida con técnica perfecta.',
+      targetSet1: null,
+      lastSessionText: null,
+    };
+  }
+
+  const validSets = lastPerf.sets.filter((s) => (parseFloat(s.weight_kg) > 0 || parseInt(s.reps, 10) > 0));
+  if (validSets.length === 0) return null;
+
+  const topSet = lastPerf.topSet || [...validSets].sort((a, b) => {
+    const wA = parseFloat(a.weight_kg) || 0;
+    const wB = parseFloat(b.weight_kg) || 0;
+    if (wB !== wA) return wB - wA;
+    return (parseInt(b.reps, 10) || 0) - (parseInt(a.reps, 10) || 0);
+  })[0];
+
+  const topW = parseFloat(topSet.weight_kg) || 0;
+  const topR = parseInt(topSet.reps, 10) || 0;
+  const topRpe = topSet.rpe ? parseFloat(topSet.rpe) : null;
+
+  const exName = (exercise?.name || exercise?.name_es || '').toLowerCase();
+  const muscle = (exercise?.muscle_group || '').toLowerCase();
+  const category = (exercise?.equipment_category || '').toLowerCase();
+
+  // 1. Determine Target Rep Bracket & Weight Increment step
+  let minReps = 8;
+  let maxReps = 12;
+  let weightIncrement = 2.5;
+
+  if (category.includes('dumbbell') || exName.includes('dumbbell') || exName.includes('mancuerna')) {
+    weightIncrement = 2; // Siguiente par de mancuernas (+2kg / mano)
+  } else if (category.includes('smith') || exName.includes('smith') || category.includes('barbell') || exName.includes('barbell')) {
+    weightIncrement = topW >= 60 ? 2.5 : 1.25; // Micro-discos o salto de 2.5kg
+  } else if (category.includes('cable') || category.includes('machine') || category.includes('polea')) {
+    weightIncrement = topW >= 50 ? 5 : 2.5;
+  }
+
+  if (
+    exName.includes('press') ||
+    exName.includes('squat') ||
+    exName.includes('sentadilla') ||
+    exName.includes('deadlift') ||
+    exName.includes('row') ||
+    exName.includes('remo') ||
+    exName.includes('prensa') ||
+    exName.includes('leg press') ||
+    muscle === 'chest' ||
+    muscle === 'back' ||
+    muscle === 'quads'
+  ) {
+    if (category.includes('barbell') || category.includes('smith') || exName.includes('iso-lateral') || exName.includes('prensa') || exName.includes('leg press')) {
+      minReps = 6;
+      maxReps = 8;
+    } else {
+      minReps = 8;
+      maxReps = 10;
+    }
+  } else if (muscle === 'biceps' || muscle === 'triceps' || muscle === 'shoulders') {
+    minReps = 8;
+    maxReps = 12;
+  } else if (muscle === 'calves' || muscle === 'abs') {
+    minReps = 12;
+    maxReps = 15;
+  }
+
+  // 2. Double Progression Evaluation
+  const allSetsHitCeiling = validSets.length >= 2 && validSets.every((s) => (parseInt(s.reps, 10) || 0) >= maxReps);
+  const firstSetHitCeiling = topR >= maxReps;
+
+  let mode = 'reps';
+  let badge = '⚡ +1 Repetición';
+  let badgeClass = 'bg-amber-100 text-amber-800 border-amber-200';
+  let title = `Buscar ${topW} kg × ${topR + 1} reps`;
+  let detail = `En tu última sesión hiciste ${topW} kg × ${topR}. Hoy busca +1 repetición en tu primer set antes de subir carga.`;
+  let targetSet1 = { weight_kg: topW, reps: topR + 1 };
+
+  if (allSetsHitCeiling || (firstSetHitCeiling && (topRpe === null || topRpe <= 8.5))) {
+    const nextW = topW + weightIncrement;
+    mode = 'weight';
+    badge = '🚀 Subir Carga';
+    badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+    title = `Subir a ${nextW} kg × ${minReps}–${minReps + 2} reps`;
+    detail = `¡Completaste el techo (${topR} reps con ${topW} kg)! Toca subir a ${nextW} kg buscando ${minReps} reps controladas.`;
+    targetSet1 = { weight_kg: nextW, reps: minReps };
+  } else if (topRpe && topRpe >= 9.5) {
+    mode = 'consolidate';
+    badge = '🎯 Consolidar Técnica';
+    badgeClass = 'bg-indigo-100 text-indigo-800 border-indigo-200';
+    title = `Consolidar ${topW} kg × ${topR} reps`;
+    detail = `La última sesión estuvo cerca del fallo absoluto (RPE ${topRpe}). Mantén los ${topW} kg con 3s de bajada excéntrica.`;
+    targetSet1 = { weight_kg: topW, reps: topR };
+  }
+
+  return {
+    mode,
+    badge,
+    badgeClass,
+    title,
+    detail,
+    targetSet1,
+    lastSessionDate: lastPerf.dateStr,
+    lastWorkoutName: lastPerf.workoutName,
+    summarySets: lastPerf.summaryText,
+  };
+}
+
 export async function fetchExercisesFromSupabase() {
   if (!supabase) return DEFAULT_EXERCISES;
   try {
@@ -589,19 +755,37 @@ function enrichWorkoutList(data) {
   });
 }
 
-export async function saveWorkoutSessionToSupabase(workoutObj, sets) {
+export async function saveWorkoutSessionToSupabase(workoutObj, sets = []) {
   if (!supabase) return null;
   try {
-    // 1. Save workout session record
+    // 1. Sanitize workout payload to include ONLY valid Supabase columns
+    const cleanWorkoutPayload = {
+      profile_id: workoutObj.profile_id || null,
+      routine_id: workoutObj.routine_id || null,
+      name: workoutObj.name || 'Workout',
+      description: workoutObj.description || null,
+      started_at: workoutObj.started_at || new Date().toISOString(),
+      finished_at: workoutObj.finished_at || new Date().toISOString(),
+      duration_minutes: workoutObj.duration_minutes || Math.max(1, Math.round((workoutObj.duration_seconds || 0) / 60)),
+      estimated_volume_kg: workoutObj.estimated_volume_kg !== undefined ? parseFloat(workoutObj.estimated_volume_kg) : (workoutObj.total_volume_kg ? parseFloat(workoutObj.total_volume_kg) : 0),
+      include_warmup_sets: workoutObj.include_warmup_sets !== undefined ? workoutObj.include_warmup_sets : true,
+      nth_workout: workoutObj.nth_workout || null,
+    };
+
+    console.log('💾 [SUPABASE GYM] Saving workout to Supabase with clean payload:', cleanWorkoutPayload);
+
     const { data: workoutData, error: workoutErr } = await supabase
       .from('workouts')
-      .insert(workoutObj)
+      .insert(cleanWorkoutPayload)
       .select()
       .single();
 
-    if (workoutErr) throw workoutErr;
+    if (workoutErr) {
+      console.error('❌ [SUPABASE GYM] Error inserting workout record:', workoutErr);
+      throw workoutErr;
+    }
 
-    // 2. Prepare sets with valid exercise_id (UUID check)
+    // 2. Prepare sets with valid exercise_id (UUID check) and clean columns
     const formattedSets = sets.map((s, idx) => {
       const exObj = s.exercise || s.exercises;
       const rawId = s.exercise_id || exObj?.id;
@@ -612,40 +796,47 @@ export async function saveWorkoutSessionToSupabase(workoutObj, sets) {
         exercise_id: isUUID ? rawId : null,
         set_index: idx,
         indicator: s.indicator || 'normal',
-        weight_kg: s.weight_kg !== undefined && s.weight_kg !== '' ? parseFloat(s.weight_kg) : null,
-        reps: s.reps !== undefined && s.reps !== '' ? parseInt(s.reps, 10) : null,
-        duration_seconds: s.duration_seconds !== undefined && s.duration_seconds !== '' ? parseInt(s.duration_seconds, 10) : null,
-        distance_meters: s.distance_meters !== undefined && s.distance_meters !== '' ? parseFloat(s.distance_meters) : null,
-        rpe: s.rpe ? parseFloat(s.rpe) : null,
+        weight_kg: (s.weight_kg !== undefined && s.weight_kg !== '' && s.weight_kg !== null) ? parseFloat(s.weight_kg) : null,
+        reps: (s.reps !== undefined && s.reps !== '' && s.reps !== null) ? parseInt(s.reps, 10) : null,
+        duration_seconds: (s.duration_seconds !== undefined && s.duration_seconds !== '' && s.duration_seconds !== null) ? parseInt(s.duration_seconds, 10) : null,
+        distance_meters: (s.distance_meters !== undefined && s.distance_meters !== '' && s.distance_meters !== null) ? parseFloat(s.distance_meters) : null,
+        rpe: (s.rpe !== undefined && s.rpe !== '' && s.rpe !== null) ? parseFloat(s.rpe) : null,
         superset_id: s.superset_id || null,
-        prs: s.prs || [],
+        prs: Array.isArray(s.prs) ? s.prs : [],
       };
     });
 
-    // 3. Insert sets and join exercises relation
-    const { data: setData, error: setErr } = await supabase
-      .from('workout_sets')
-      .insert(formattedSets)
-      .select('*, exercises(*)');
+    let enrichedSets = [];
+    if (formattedSets.length > 0) {
+      // 3. Insert sets and join exercises relation
+      const { data: setData, error: setErr } = await supabase
+        .from('workout_sets')
+        .insert(formattedSets)
+        .select('*, exercises(*)');
 
-    if (setErr) throw setErr;
+      if (setErr) {
+        console.error('❌ [SUPABASE GYM] Error inserting workout_sets:', setErr);
+        throw setErr;
+      }
 
-    const enrichedSets = (setData || []).map((s, idx) => {
-      const originalSet = sets[idx];
-      const exObj = s.exercises || originalSet?.exercise || originalSet?.exercises || {
-        name: originalSet?.exercise_name || originalSet?.name || 'Exercise',
-      };
-      return {
-        ...s,
-        exercise: exObj,
-        exercises: exObj,
-        exercise_name: exObj?.name || exObj?.name_es || originalSet?.exercise_name || 'Exercise',
-      };
-    });
+      enrichedSets = (setData || []).map((s, idx) => {
+        const originalSet = sets[idx];
+        const exObj = s.exercises || originalSet?.exercise || originalSet?.exercises || {
+          name: originalSet?.exercise_name || originalSet?.name || 'Exercise',
+        };
+        return {
+          ...s,
+          exercise: exObj,
+          exercises: exObj,
+          exercise_name: exObj?.name || exObj?.name_es || originalSet?.exercise_name || 'Exercise',
+        };
+      });
+    }
 
+    console.log(`✅ [SUPABASE GYM] Successfully saved workout "${workoutData.name}" (${workoutData.id}) with ${enrichedSets.length} sets`);
     return { ...workoutData, workout_sets: enrichedSets };
   } catch (err) {
-    console.error('Error saving workout session:', err);
+    console.error('💥 [SUPABASE GYM] Exception in saveWorkoutSessionToSupabase:', err);
     return null;
   }
 }
