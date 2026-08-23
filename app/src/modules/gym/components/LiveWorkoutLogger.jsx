@@ -294,42 +294,48 @@ export default function LiveWorkoutLogger({
         const lastPerf = getLastPerformanceForExercise(finalExercise, workouts, exercises);
 
         let initialSets = [];
-        if (Array.isArray(item.sets) && item.sets.length > 0) {
-          initialSets = item.sets.map((s, setIdx) => {
-            const prevSet = lastPerf?.sets?.[setIdx] || lastPerf?.sets?.[lastPerf.sets.length - 1];
-            const weightVal = (s.weight_kg !== undefined && s.weight_kg !== '' && s.weight_kg !== 0)
-              ? s.weight_kg
-              : (prevSet?.weight_kg ?? '');
-            const repsVal = (s.reps !== undefined && s.reps !== '' && s.reps !== 0)
-              ? s.reps
-              : (prevSet?.reps ?? '');
+        if (lastPerf && Array.isArray(lastPerf.sets) && lastPerf.sets.length > 0) {
+          // DIRECTLY PRE-FILL WITH PREVIOUS PERFORMANCE SETS (HEVY/STRONG BEHAVIOR)
+          const setsCount = Math.max(lastPerf.sets.length, parseInt(item.target_sets, 10) || (item.sets?.length || 0));
+          initialSets = Array.from({ length: setsCount }).map((_, setIdx) => {
+            const prevSet = lastPerf.sets[setIdx] || lastPerf.sets[lastPerf.sets.length - 1];
+            const fallbackRoutineSet = item.sets?.[setIdx];
 
             return {
               id: `${Date.now()}-${idx}-${setIdx}`,
-              indicator: s.indicator || s.set_type || 'normal',
-              weight_kg: weightVal,
-              reps: repsVal,
-              duration_seconds: s.duration_seconds || prevSet?.duration_seconds || null,
-              distance_meters: s.distance_meters || prevSet?.distance_meters || null,
-              distance_km: s.distance_km || prevSet?.distance_km || null,
+              indicator: prevSet?.indicator || fallbackRoutineSet?.indicator || 'normal',
+              weight_kg: prevSet?.weight_kg ?? fallbackRoutineSet?.weight_kg ?? '',
+              reps: prevSet?.reps ?? fallbackRoutineSet?.reps ?? '',
+              duration_seconds: prevSet?.duration_seconds || fallbackRoutineSet?.duration_seconds || null,
+              distance_meters: prevSet?.distance_meters || fallbackRoutineSet?.distance_meters || null,
+              distance_km: prevSet?.distance_km || fallbackRoutineSet?.distance_km || null,
+              rpe: prevSet?.rpe || null,
               is_checked: false,
             };
           });
+        } else if (Array.isArray(item.sets) && item.sets.length > 0) {
+          initialSets = item.sets.map((s, setIdx) => ({
+            id: `${Date.now()}-${idx}-${setIdx}`,
+            indicator: s.indicator || s.set_type || 'normal',
+            weight_kg: s.weight_kg ?? '',
+            reps: s.reps ?? '',
+            duration_seconds: s.duration_seconds || null,
+            distance_meters: s.distance_meters || null,
+            distance_km: s.distance_km || null,
+            is_checked: false,
+          }));
         } else {
-          const targetSetsCount = parseInt(item.target_sets, 10) || (lastPerf?.sets.length || 3);
-          initialSets = Array.from({ length: targetSetsCount }).map((_, setIdx) => {
-            const prevSet = lastPerf?.sets?.[setIdx] || lastPerf?.sets?.[lastPerf.sets.length - 1];
-            return {
-              id: `${Date.now()}-${idx}-${setIdx}`,
-              indicator: 'normal',
-              weight_kg: prevSet?.weight_kg ?? '',
-              reps: prevSet?.reps ?? '',
-              duration_seconds: prevSet?.duration_seconds || null,
-              distance_meters: prevSet?.distance_meters || null,
-              distance_km: prevSet?.distance_km || null,
-              is_checked: false,
-            };
-          });
+          const targetSetsCount = parseInt(item.target_sets, 10) || 3;
+          initialSets = Array.from({ length: targetSetsCount }).map((_, setIdx) => ({
+            id: `${Date.now()}-${idx}-${setIdx}`,
+            indicator: 'normal',
+            weight_kg: '',
+            reps: '',
+            duration_seconds: null,
+            distance_meters: null,
+            distance_km: null,
+            is_checked: false,
+          }));
         }
 
         return {
@@ -343,7 +349,7 @@ export default function LiveWorkoutLogger({
         };
       });
 
-      console.log('⚡ [LIVE LOGGER] Formatted initialRoutine exercises:', formattedEx);
+      console.log('⚡ [LIVE LOGGER] Formatted initialRoutine exercises with PREV pre-filled:', formattedEx);
       setWorkoutExercises(formattedEx);
     }
   }, [initialRoutine, exercises, workouts]);
