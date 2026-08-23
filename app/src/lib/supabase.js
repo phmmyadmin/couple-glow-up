@@ -215,7 +215,10 @@ export async function saveIntakesToSupabase({ date, items, profileId }) {
         calories: i.calories ?? i.macros?.calories ?? 0,
         protein: i.protein ?? i.macros?.protein ?? 0,
         carbs: i.carbs ?? i.macros?.carbs ?? 0,
-        fats: i.fats ?? i.macros?.fats ?? 0
+        fats: i.fats ?? i.macros?.fats ?? 0,
+        fiber: i.fiber ?? i.macros?.fiber ?? 0,
+        sugar: i.sugar ?? i.macros?.sugar ?? 0,
+        sodium: i.sodium ?? i.macros?.sodium ?? 0,
       };
     });
 
@@ -357,7 +360,10 @@ export async function updateIntakeInSupabase({ date, index, item, quantity, macr
       calories: macros.calories,
       protein: macros.protein,
       carbs: macros.carbs,
-      fats: macros.fats
+      fats: macros.fats,
+      fiber: macros.fiber !== undefined ? macros.fiber : 0,
+      sugar: macros.sugar !== undefined ? macros.sugar : 0,
+      sodium: macros.sodium !== undefined ? macros.sodium : 0,
     };
 
     if (category) updatePayload.category = category;

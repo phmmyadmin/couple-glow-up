@@ -51,11 +51,24 @@ export default function EditDrawer({
   const newProt = Math.round((item.macros?.protein || item.protein || 0) * ratio * 10) / 10;
   const newCarbs = Math.round((item.macros?.carbs || item.carbs || 0) * ratio * 10) / 10;
   const newFats = Math.round((item.macros?.fats || item.fats || 0) * ratio * 10) / 10;
+  const newFiber = Math.round((item.macros?.fiber || item.fiber || 0) * ratio * 10) / 10;
+  const newSugar = Math.round((item.macros?.sugar || item.sugar || 0) * ratio * 10) / 10;
+  const newSodium = Math.round((item.macros?.sodium || item.sodium || 0) * ratio);
 
   const handleSave = async () => {
     const idx = index ?? itemIndex;
+    const scaledMacros = {
+      calories: newCals,
+      protein: newProt,
+      carbs: newCarbs,
+      fats: newFats,
+      fiber: newFiber,
+      sugar: newSugar,
+      sodium: newSodium,
+    };
+
     if (typeof onUpdate === 'function') {
-      onUpdate(idx, quantity, { calories: newCals, protein: newProt, carbs: newCarbs, fats: newFats }, time, category);
+      onUpdate(idx, quantity, scaledMacros, time, category);
       if (onClose) onClose();
       return;
     }
@@ -66,7 +79,7 @@ export default function EditDrawer({
         index: idx,
         item,
         quantity,
-        macros: { calories: newCals, protein: newProt, carbs: newCarbs, fats: newFats },
+        macros: scaledMacros,
         category,
         time,
         profileId: activeProfileId,
@@ -87,7 +100,10 @@ export default function EditDrawer({
             quantity,
             time,
             category,
-            macros: { calories: newCals, protein: newProt, carbs: newCarbs, fats: newFats },
+            fiber: newFiber,
+            sugar: newSugar,
+            sodium: newSodium,
+            macros: scaledMacros,
           };
           updatedLogs[dayIdx].intakes = updatedIntakes;
           setData({ ...data, dailyLogs: updatedLogs });
@@ -95,7 +111,7 @@ export default function EditDrawer({
       }
     }
 
-    if (typeof setToastMessage === 'function') setToastMessage('Ingesta actualizada');
+    if (typeof setToastMessage === 'function') setToastMessage('Intake updated');
     if (onClose) onClose();
   };
 

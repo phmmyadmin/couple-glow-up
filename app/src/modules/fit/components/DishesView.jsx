@@ -191,8 +191,11 @@ export default function DishesView({
     const baseProt = ing.baseProt !== undefined ? ing.baseProt : (Number(ing.protein) || 0) / qty;
     const baseCarbs = ing.baseCarbs !== undefined ? ing.baseCarbs : (Number(ing.carbs) || 0) / qty;
     const baseFats = ing.baseFats !== undefined ? ing.baseFats : (Number(ing.fats) || 0) / qty;
+    const baseFiber = ing.baseFiber !== undefined ? ing.baseFiber : (Number(ing.fiber) || 0) / qty;
+    const baseSugar = ing.baseSugar !== undefined ? ing.baseSugar : (Number(ing.sugar) || 0) / qty;
+    const baseSodium = ing.baseSodium !== undefined ? ing.baseSodium : (Number(ing.sodium) || 0) / qty;
 
-    return { baseCals, baseProt, baseCarbs, baseFats };
+    return { baseCals, baseProt, baseCarbs, baseFats, baseFiber, baseSugar, baseSodium };
   };
 
   // Process AI ingredients input for editingDish
@@ -227,6 +230,9 @@ export default function DishesView({
           const prot = Math.round(((item.protein ?? item.macros?.protein ?? 0)) * 10) / 10;
           const carbs = Math.round(((item.carbs ?? item.macros?.carbs ?? 0)) * 10) / 10;
           const fats = Math.round(((item.fats ?? item.macros?.fats ?? 0)) * 10) / 10;
+          const fiber = Math.round(((item.fiber ?? item.macros?.fiber ?? 0)) * 10) / 10;
+          const sugar = Math.round(((item.sugar ?? item.macros?.sugar ?? 0)) * 10) / 10;
+          const sodium = Math.round(item.sodium ?? item.macros?.sodium ?? 0);
 
           return {
             id: `ing_${Date.now()}_${idx}`,
@@ -238,10 +244,16 @@ export default function DishesView({
             protein: prot,
             carbs: carbs,
             fats: fats,
+            fiber: fiber,
+            sugar: sugar,
+            sodium: sodium,
             baseCals: qty > 0 ? cals / qty : 0,
             baseProt: qty > 0 ? prot / qty : 0,
             baseCarbs: qty > 0 ? carbs / qty : 0,
             baseFats: qty > 0 ? fats / qty : 0,
+            baseFiber: qty > 0 ? fiber / qty : 0,
+            baseSugar: qty > 0 ? sugar / qty : 0,
+            baseSodium: qty > 0 ? sodium / qty : 0,
           };
         });
 
@@ -300,7 +312,7 @@ export default function DishesView({
       const updatedIngs = (prev?.ingredients || []).map((ing) => {
         if (ing.id !== ingId) return ing;
 
-        const { baseCals, baseProt, baseCarbs, baseFats } = getBasePerUnit(ing);
+        const { baseCals, baseProt, baseCarbs, baseFats, baseFiber, baseSugar, baseSodium } = getBasePerUnit(ing);
 
         if (field === 'quantity') {
           if (value === '' || value === null) {
@@ -319,14 +331,20 @@ export default function DishesView({
             baseProt,
             baseCarbs,
             baseFats,
+            baseFiber,
+            baseSugar,
+            baseSodium,
             calories: Math.round(baseCals * newQty),
             protein: Math.round(baseProt * newQty * 10) / 10,
             carbs: Math.round(baseCarbs * newQty * 10) / 10,
             fats: Math.round(baseFats * newQty * 10) / 10,
+            fiber: Math.round(baseFiber * newQty * 10) / 10,
+            sugar: Math.round(baseSugar * newQty * 10) / 10,
+            sodium: Math.round(baseSodium * newQty),
           };
         }
 
-        if (field === 'calories' || field === 'protein' || field === 'carbs' || field === 'fats') {
+        if (field === 'calories' || field === 'protein' || field === 'carbs' || field === 'fats' || field === 'fiber' || field === 'sugar' || field === 'sodium') {
           if (value === '' || value === null) {
             return { ...ing, [field]: '' };
           }
@@ -343,6 +361,9 @@ export default function DishesView({
           if (field === 'protein') updatedIng.baseProt = numVal / currentQty;
           if (field === 'carbs') updatedIng.baseCarbs = numVal / currentQty;
           if (field === 'fats') updatedIng.baseFats = numVal / currentQty;
+          if (field === 'fiber') updatedIng.baseFiber = numVal / currentQty;
+          if (field === 'sugar') updatedIng.baseSugar = numVal / currentQty;
+          if (field === 'sodium') updatedIng.baseSodium = numVal / currentQty;
 
           return updatedIng;
         }
@@ -450,6 +471,9 @@ export default function DishesView({
       const scaledProt = Math.round((Number(ing.protein) || 0) * ratio * 10) / 10;
       const scaledCarbs = Math.round((Number(ing.carbs) || 0) * ratio * 10) / 10;
       const scaledFats = Math.round((Number(ing.fats) || 0) * ratio * 10) / 10;
+      const scaledFiber = Math.round((Number(ing.fiber) || 0) * ratio * 10) / 10;
+      const scaledSugar = Math.round((Number(ing.sugar) || 0) * ratio * 10) / 10;
+      const scaledSodium = Math.round((Number(ing.sodium) || 0) * ratio);
 
       return {
         name: ing.name,
@@ -461,11 +485,17 @@ export default function DishesView({
         protein: scaledProt,
         carbs: scaledCarbs,
         fats: scaledFats,
+        fiber: scaledFiber,
+        sugar: scaledSugar,
+        sodium: scaledSodium,
         macros: {
           calories: scaledCals,
           protein: scaledProt,
           carbs: scaledCarbs,
           fats: scaledFats,
+          fiber: scaledFiber,
+          sugar: scaledSugar,
+          sodium: scaledSodium,
         },
       };
     });
