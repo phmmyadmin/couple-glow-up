@@ -161,6 +161,9 @@ export default function DailyTimeline({
           protein: item.macros?.protein || 0,
           carbs: item.macros?.carbs || 0,
           fats: item.macros?.fats || 0,
+          fiber: item.macros?.fiber || item.fiber || 0,
+          sugar: item.macros?.sugar || item.sugar || 0,
+          sodium: item.macros?.sodium || item.sodium || 0,
         },
       ];
 
@@ -201,6 +204,9 @@ export default function DailyTimeline({
         protein: i.macros?.protein || 0,
         carbs: i.carbs || 0,
         fats: i.fats || 0,
+        fiber: i.macros?.fiber || i.fiber || 0,
+        sugar: i.macros?.sugar || i.sugar || 0,
+        sodium: i.macros?.sodium || i.sodium || 0,
       }));
 
       const timeStr = mealItems[0]?.time || new Date().toTimeString().slice(0, 5);
@@ -242,6 +248,9 @@ export default function DailyTimeline({
         protein: i.macros?.protein || 0,
         carbs: i.carbs || 0,
         fats: i.fats || 0,
+        fiber: i.macros?.fiber || i.fiber || 0,
+        sugar: i.macros?.sugar || i.sugar || 0,
+        sodium: i.macros?.sodium || i.sodium || 0,
       }));
 
       if (supabase) {

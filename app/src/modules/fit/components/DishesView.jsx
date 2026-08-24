@@ -29,6 +29,7 @@ import {
   saveIntakesToSupabase,
   fetchDailyLogsFromSupabase,
   saveToCatalog,
+  getNutritionalFallbackForFood,
 } from '../../../lib/supabase';
 
 const LOCAL_DISHES_KEY = 'glowup_custom_dishes';
@@ -86,7 +87,25 @@ export default function DishesView({
         if (!error && dbDishes && dbDishes.length > 0) {
           loadedDishes = dbDishes.map((d) => ({
             ...d,
-            ingredients: Array.isArray(d.ingredients) ? d.ingredients : [],
+            ingredients: Array.isArray(d.ingredients)
+              ? d.ingredients.map((ing) => {
+                  const qty = Number(ing.quantity) || 100;
+                  const fallbackNut = getNutritionalFallbackForFood(ing.name, qty);
+                  const fiber = (ing.fiber !== undefined && ing.fiber !== null && Number(ing.fiber) > 0) ? Number(ing.fiber) : fallbackNut.fiber;
+                  const sugar = (ing.sugar !== undefined && ing.sugar !== null && Number(ing.sugar) > 0) ? Number(ing.sugar) : fallbackNut.sugar;
+                  const sodium = (ing.sodium !== undefined && ing.sodium !== null && Number(ing.sodium) > 0) ? Number(ing.sodium) : fallbackNut.sodium;
+
+                  return {
+                    ...ing,
+                    fiber,
+                    sugar,
+                    sodium,
+                    baseFiber: qty > 0 ? fiber / qty : 0,
+                    baseSugar: qty > 0 ? sugar / qty : 0,
+                    baseSodium: qty > 0 ? sodium / qty : 0,
+                  };
+                })
+              : [],
           }));
         }
       } catch (e) {
@@ -471,9 +490,17 @@ export default function DishesView({
       const scaledProt = Math.round((Number(ing.protein) || 0) * ratio * 10) / 10;
       const scaledCarbs = Math.round((Number(ing.carbs) || 0) * ratio * 10) / 10;
       const scaledFats = Math.round((Number(ing.fats) || 0) * ratio * 10) / 10;
-      const scaledFiber = Math.round((Number(ing.fiber) || 0) * ratio * 10) / 10;
-      const scaledSugar = Math.round((Number(ing.sugar) || 0) * ratio * 10) / 10;
-      const scaledSodium = Math.round((Number(ing.sodium) || 0) * ratio);
+
+      const fallbackNut = getNutritionalFallbackForFood(ing.name, scaledQty);
+      const scaledFiber = (ing.fiber !== undefined && Number(ing.fiber) > 0)
+        ? Math.round((Number(ing.fiber) || 0) * ratio * 10) / 10
+        : fallbackNut.fiber;
+      const scaledSugar = (ing.sugar !== undefined && Number(ing.sugar) > 0)
+        ? Math.round((Number(ing.sugar) || 0) * ratio * 10) / 10
+        : fallbackNut.sugar;
+      const scaledSodium = (ing.sodium !== undefined && Number(ing.sodium) > 0)
+        ? Math.round((Number(ing.sodium) || 0) * ratio)
+        : fallbackNut.sodium;
 
       return {
         name: ing.name,

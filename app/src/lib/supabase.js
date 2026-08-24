@@ -38,6 +38,62 @@ export async function saveProfile(profile) {
   }
 }
 
+// Standard nutritional density per 100g fallback dictionary
+export const NUTRITION_PER_100G_FALLBACK = {
+  'oatmeal': { fiber: 10.0, sugar: 1.0, sodium: 2 },
+  'oat': { fiber: 10.0, sugar: 1.0, sodium: 2 },
+  'avena': { fiber: 10.0, sugar: 1.0, sodium: 2 },
+  'chickpea': { fiber: 7.6, sugar: 4.8, sodium: 24 },
+  'chickpeas': { fiber: 7.6, sugar: 4.8, sodium: 24 },
+  'garbanzo': { fiber: 7.6, sugar: 4.8, sodium: 24 },
+  'garbanzos': { fiber: 7.6, sugar: 4.8, sodium: 24 },
+  'tofu': { fiber: 1.5, sugar: 0.8, sodium: 10 },
+  'carrot': { fiber: 2.8, sugar: 4.7, sodium: 69 },
+  'zanahoria': { fiber: 2.8, sugar: 4.7, sodium: 69 },
+  'peanut butter': { fiber: 6.0, sugar: 9.0, sodium: 400 },
+  'crema de cacahuete': { fiber: 6.0, sugar: 9.0, sodium: 400 },
+  'chocolate powder': { fiber: 15.0, sugar: 55.0, sodium: 120 },
+  'cacao': { fiber: 15.0, sugar: 55.0, sodium: 120 },
+  'condensed milk': { fiber: 14.0, sugar: 50.0, sodium: 100 },
+  'potato': { fiber: 2.2, sugar: 0.8, sodium: 6 },
+  'cooked potato': { fiber: 2.2, sugar: 0.8, sodium: 6 },
+  'patata': { fiber: 2.2, sugar: 0.8, sodium: 6 },
+  'sweet potato': { fiber: 3.0, sugar: 4.2, sodium: 55 },
+  'boniato': { fiber: 3.0, sugar: 4.2, sodium: 55 },
+  'rice': { fiber: 0.4, sugar: 0.1, sodium: 1 },
+  'cooked rice': { fiber: 0.4, sugar: 0.1, sodium: 1 },
+  'arroz': { fiber: 0.4, sugar: 0.1, sodium: 1 },
+  'chia': { fiber: 34.4, sugar: 0.8, sodium: 16 },
+  'chia seed': { fiber: 34.4, sugar: 0.8, sodium: 16 },
+  'chia seeds': { fiber: 34.4, sugar: 0.8, sodium: 16 },
+  'yogurt': { fiber: 0, sugar: 4.7, sodium: 46 },
+  'natural yogurt': { fiber: 0, sugar: 4.7, sodium: 46 },
+  'chicken breast': { fiber: 0, sugar: 0, sodium: 65 },
+  'cooked chicken breast': { fiber: 0, sugar: 0, sodium: 70 },
+  'pork stew': { fiber: 1.0, sugar: 1.5, sodium: 350 },
+  'burger': { fiber: 0.5, sugar: 1.0, sodium: 450 },
+  'ice pop': { fiber: 0, sugar: 12.0, sodium: 10 },
+  'protein brownie': { fiber: 2.5, sugar: 8.0, sodium: 180 },
+  'buko shake': { fiber: 2.0, sugar: 25.0, sodium: 60 }
+};
+
+export function getNutritionalFallbackForFood(foodName, quantityGrams = 100) {
+  const cleanName = (foodName || '').toLowerCase().trim();
+  const qty = Number(quantityGrams) > 0 ? Number(quantityGrams) : 100;
+
+  for (const [key, val] of Object.entries(NUTRITION_PER_100G_FALLBACK)) {
+    if (cleanName.includes(key)) {
+      return {
+        fiber: Math.round((val.fiber * (qty / 100)) * 10) / 10,
+        sugar: Math.round((val.sugar * (qty / 100)) * 10) / 10,
+        sodium: Math.round(val.sodium * (qty / 100)),
+      };
+    }
+  }
+
+  return { fiber: 0, sugar: 0, sodium: 0 };
+}
+
 export async function fetchDailyLogsFromSupabase(profileId) {
   if (!supabase || !profileId) return null;
 
@@ -67,9 +123,15 @@ export async function fetchDailyLogsFromSupabase(profileId) {
         (b.created_at || b.time || '').localeCompare(a.created_at || a.time || '')
       );
 
-      return {
-        date: l.date,
-        intakes: rawIntakes.map(i => ({
+      const parsedIntakes = rawIntakes.map(i => {
+        const qty = Number(i.quantity) || 100;
+        const fallbackNut = getNutritionalFallbackForFood(i.name, qty);
+
+        const fiber = (i.fiber !== undefined && i.fiber !== null && Number(i.fiber) > 0) ? Number(i.fiber) : fallbackNut.fiber;
+        const sugar = (i.sugar !== undefined && i.sugar !== null && Number(i.sugar) > 0) ? Number(i.sugar) : fallbackNut.sugar;
+        const sodium = (i.sodium !== undefined && i.sodium !== null && Number(i.sodium) > 0) ? Number(i.sodium) : fallbackNut.sodium;
+
+        return {
           id: i.id,
           time: i.time || '12:00',
           name: i.name,
@@ -81,27 +143,32 @@ export async function fetchDailyLogsFromSupabase(profileId) {
           protein: i.protein,
           carbs: i.carbs,
           fats: i.fats,
-          fiber: i.fiber || 0,
-          sugar: i.sugar || 0,
-          sodium: i.sodium || 0,
+          fiber,
+          sugar,
+          sodium,
           macros: {
             calories: i.calories,
             protein: i.protein,
             carbs: i.carbs,
             fats: i.fats,
-            fiber: i.fiber || 0,
-            sugar: i.sugar || 0,
-            sodium: i.sodium || 0,
+            fiber,
+            sugar,
+            sodium,
           }
-        })),
+        };
+      });
+
+      return {
+        date: l.date,
+        intakes: parsedIntakes,
         dailyTotals: {
           calories: l.calories,
           protein: l.protein,
           carbs: l.carbs,
           fats: l.fats,
-          fiber: (l.intakes || []).reduce((sum, item) => sum + (item.fiber || 0), 0),
-          sugar: (l.intakes || []).reduce((sum, item) => sum + (item.sugar || 0), 0),
-          sodium: (l.intakes || []).reduce((sum, item) => sum + (item.sodium || 0), 0),
+          fiber: parsedIntakes.reduce((sum, item) => sum + (item.fiber || 0), 0),
+          sugar: parsedIntakes.reduce((sum, item) => sum + (item.sugar || 0), 0),
+          sodium: parsedIntakes.reduce((sum, item) => sum + (item.sodium || 0), 0),
         }
       };
     });
@@ -118,21 +185,18 @@ export async function fetchDailyLogsFromSupabase(profileId) {
 
     return {
       userProfile: {
+        name: profile?.name || 'User',
         targetMacros,
-        target_macros: targetMacros,
-        weightLog: {
-          startWeight: profile?.weight || 70.0,
-          history: (weights || []).map((w) => ({ date: w.date, time: w.time || '08:00', weight: w.weight })),
-        },
       },
-      user_profile: {
-        target_macros: targetMacros,
-      },
-      days: formattedLogs,
       dailyLogs: formattedLogs,
+      weightLogs: (weights || []).map(w => ({
+        date: w.date,
+        time: w.time,
+        weight: w.weight
+      }))
     };
   } catch (err) {
-    console.error('Supabase fetch error:', err);
+    console.error('Error fetching daily logs from Supabase:', err);
     return null;
   }
 }
@@ -149,21 +213,36 @@ export async function fetchPartnerIntakesForDate(partnerProfileId, dateStr) {
 
     if (error || !log || !log.intakes) return [];
 
-    return (log.intakes || []).map((i) => ({
-      id: i.id,
-      time: i.time || '12:00',
-      name: i.name,
-      dishName: i.dish_name,
-      quantity: i.quantity,
-      unit: i.unit,
-      category: i.category || 'other',
-      macros: {
-        calories: i.calories,
-        protein: i.protein,
-        carbs: i.carbs,
-        fats: i.fats,
-      },
-    }));
+    return (log.intakes || []).map((i) => {
+      const qty = Number(i.quantity) || 100;
+      const fallbackNut = getNutritionalFallbackForFood(i.name, qty);
+
+      const fiber = (i.fiber !== undefined && i.fiber !== null && Number(i.fiber) > 0) ? Number(i.fiber) : fallbackNut.fiber;
+      const sugar = (i.sugar !== undefined && i.sugar !== null && Number(i.sugar) > 0) ? Number(i.sugar) : fallbackNut.sugar;
+      const sodium = (i.sodium !== undefined && i.sodium !== null && Number(i.sodium) > 0) ? Number(i.sodium) : fallbackNut.sodium;
+
+      return {
+        id: i.id,
+        time: i.time || '12:00',
+        name: i.name,
+        dishName: i.dish_name,
+        quantity: i.quantity,
+        unit: i.unit,
+        category: i.category || 'other',
+        fiber,
+        sugar,
+        sodium,
+        macros: {
+          calories: i.calories,
+          protein: i.protein,
+          carbs: i.carbs,
+          fats: i.fats,
+          fiber,
+          sugar,
+          sodium,
+        },
+      };
+    });
   } catch (err) {
     console.error('Error fetching partner intakes for date:', err);
     return [];
@@ -201,6 +280,20 @@ export async function saveIntakesToSupabase({ date, items, profileId }) {
         : (((i.quantity || i.portion_qty) > 5) || isGramCategory ? 'g' : 'ud');
       
       const itemName = i.name || i.parsed_name || i.raw_text || 'Food Item';
+      const qty = Number(i.portion_qty || i.quantity) || (resolvedUnit === 'g' ? 100 : 1);
+      const fallbackNut = getNutritionalFallbackForFood(itemName, qty);
+
+      const resolvedFiber = (i.fiber !== undefined && i.fiber !== null && Number(i.fiber) > 0)
+        ? Number(i.fiber)
+        : (i.macros?.fiber !== undefined && Number(i.macros.fiber) > 0 ? Number(i.macros.fiber) : fallbackNut.fiber);
+
+      const resolvedSugar = (i.sugar !== undefined && i.sugar !== null && Number(i.sugar) > 0)
+        ? Number(i.sugar)
+        : (i.macros?.sugar !== undefined && Number(i.macros.sugar) > 0 ? Number(i.macros.sugar) : fallbackNut.sugar);
+
+      const resolvedSodium = (i.sodium !== undefined && i.sodium !== null && Number(i.sodium) > 0)
+        ? Number(i.sodium)
+        : (i.macros?.sodium !== undefined && Number(i.macros.sodium) > 0 ? Number(i.macros.sodium) : fallbackNut.sodium);
 
       return {
         daily_log_id: dayLog.id,
@@ -209,16 +302,16 @@ export async function saveIntakesToSupabase({ date, items, profileId }) {
         time: timeStr,
         name: itemName,
         dish_name: i.dish_name || i.dishName || null,
-        quantity: i.portion_qty || i.quantity || (resolvedUnit === 'g' ? 100 : 1),
+        quantity: qty,
         unit: resolvedUnit,
         category: i.category || 'other',
         calories: i.calories ?? i.macros?.calories ?? 0,
         protein: i.protein ?? i.macros?.protein ?? 0,
         carbs: i.carbs ?? i.macros?.carbs ?? 0,
         fats: i.fats ?? i.macros?.fats ?? 0,
-        fiber: i.fiber ?? i.macros?.fiber ?? 0,
-        sugar: i.sugar ?? i.macros?.sugar ?? 0,
-        sodium: i.sodium ?? i.macros?.sodium ?? 0,
+        fiber: resolvedFiber,
+        sugar: resolvedSugar,
+        sodium: resolvedSodium,
       };
     });
 
