@@ -21,11 +21,72 @@
 
 [**🌐 Explore Live App**](https://phmmyadmin.github.io/couple-glow-up/) · [**📱 Install PWA**](#-progressive-web-app--offline-first) · [**🧪 Test Suite**](#-test-driven-development-tdd--quality-assurance) · [**🚀 Quickstart**](#-quickstart--local-development)
 
----
+<br />
+
+<!-- Hero Preview -->
+<a href="https://phmmyadmin.github.io/couple-glow-up/">
+  <img src="docs/screenshots/01-fit-dashboard.png" alt="Couple Glow Up Dashboard" width="95%" style="border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.15);" />
+</a>
 
 </div>
 
 <br />
+
+---
+
+## 📸 Visual Showcase & Screenshots
+
+<div align="center">
+
+### 🥗 Fit & Nutrition — AI Food Diary & Batch Meal Prep
+
+| Daily Timeline & Macro Rings | Custom Dishes & Batch Recipe Scaler |
+| :---: | :---: |
+| <img src="docs/screenshots/01-fit-dashboard.png" alt="Nutrition Dashboard" width="460" style="border-radius: 12px; border: 1px solid #e2e8f0;" /> | <img src="docs/screenshots/02-fit-dishes.png" alt="Dishes & Meal Prep" width="460" style="border-radius: 12px; border: 1px solid #e2e8f0;" /> |
+| *Real-time calories, macros, micronutrients & AI log* | *Automatic gram scaling for batch prep recipes* |
+
+<br />
+
+### 🏋️‍♂️ Gym & Workouts — Exercise Catalog & Muscle Heatmap
+
+| 87+ Exercise Catalog & Animated GIFs | Muscle Heatmap & Workout Calendar |
+| :---: | :---: |
+| <img src="docs/screenshots/03-gym-exercises.png" alt="Exercise Library" width="460" style="border-radius: 12px; border: 1px solid #e2e8f0;" /> | <img src="docs/screenshots/04-gym-history-heatmap.png" alt="Muscle Heatmap" width="460" style="border-radius: 12px; border: 1px solid #e2e8f0;" /> |
+| *Filtered by equipment, muscle group & animated GIFs* | *Weekly muscle fatigue distribution & session history* |
+
+<br />
+
+### 🛒 Shopping & Price Comparator · 💖 Couple Feed
+
+| Real-Time Shopping List | Multi-Market Price Comparator | Couple Milestones Feed |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/05-shopping-list.png" alt="Shopping List" width="310" style="border-radius: 10px; border: 1px solid #e2e8f0;" /> | <img src="docs/screenshots/06-shopping-comparator.png" alt="Price Comparator" width="310" style="border-radius: 10px; border: 1px solid #e2e8f0;" /> | <img src="docs/screenshots/07-couple-feed.png" alt="Couple Feed" width="310" style="border-radius: 10px; border: 1px solid #e2e8f0;" /> |
+| *Synchronized item checklist* | *Cheapest store finder* | *Shared notes & emoji reactions* |
+
+<br />
+
+### 📱 Responsive Mobile PWA Interface
+
+<img src="docs/screenshots/08-mobile-preview.png" alt="Mobile PWA Interface" width="280" style="border-radius: 20px; box-shadow: 0 12px 28px rgba(0,0,0,0.12); border: 4px solid #1e293b;" />
+
+</div>
+
+---
+
+## 🎬 Animated Technique GIFs
+
+Every exercise in the catalog includes instant technique instructions, targeted muscle groups, equipment tags, and smooth **60 FPS animated demonstrations**:
+
+<div align="center">
+
+| Barbell Bench Press | Barbell Back Squat | Cable Lat Pulldown | Standing Biceps Curl |
+| :---: | :---: | :---: | :---: |
+| <img src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/videos/0025-EIeI8Vf.gif" width="170" height="170" alt="Bench Press" style="border-radius: 12px;" /> | <img src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/videos/0043-sN0J3tX.gif" width="170" height="170" alt="Squat" style="border-radius: 12px;" /> | <img src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/videos/2330-LEprlgG.gif" width="170" height="170" alt="Lat Pulldown" style="border-radius: 12px;" /> | <img src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/videos/0031-25GPyDY.gif" width="170" height="170" alt="Bicep Curl" style="border-radius: 12px;" /> |
+| `Chest · Triceps · Shoulders` | `Quads · Glutes · Hamstrings` | `Lats · Biceps · Upper Back` | `Biceps · Forearms` |
+
+</div>
+
+---
 
 ## 🌟 Highlights & Core Modules
 
@@ -70,21 +131,6 @@
     </td>
   </tr>
 </table>
-
----
-
-## 🎬 Exercise Catalog & Animated Technique GIFs
-
-Every exercise in the catalog includes instant technique instructions, targeted muscle groups, equipment tags, and smooth **60 FPS animated demonstrations**:
-
-<div align="center">
-
-| Barbell Bench Press | Barbell Back Squat | Cable Lat Pulldown | Standing Biceps Curl |
-| :---: | :---: | :---: | :---: |
-| <img src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/videos/0025-EIeI8Vf.gif" width="180" height="180" alt="Bench Press" style="border-radius: 12px;" /> | <img src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/videos/0043-sN0J3tX.gif" width="180" height="180" alt="Squat" style="border-radius: 12px;" /> | <img src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/videos/2330-LEprlgG.gif" width="180" height="180" alt="Lat Pulldown" style="border-radius: 12px;" /> | <img src="https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/videos/0031-25GPyDY.gif" width="180" height="180" alt="Bicep Curl" style="border-radius: 12px;" /> |
-| `Chest · Triceps · Shoulders` | `Quads · Glutes · Hamstrings` | `Lats · Biceps · Upper Back` | `Biceps · Forearms` |
-
-</div>
 
 ---
 
