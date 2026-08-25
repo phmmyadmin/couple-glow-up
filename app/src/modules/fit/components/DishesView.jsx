@@ -39,6 +39,8 @@ export default function DishesView({
   data,
   setData,
   activeProfileId,
+  activeProfile,
+  profiles = [],
   setToastMessage,
 }) {
   const [dishes, setDishes] = useState([]);
@@ -69,19 +71,30 @@ export default function DishesView({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [loggingDish, isEditorOpen]);
 
-  // Load custom dishes from Supabase / localStorage
+  // Load custom dishes from Supabase / localStorage (shared across couple)
   useEffect(() => {
     loadDishes();
+
+    if (!supabase) return;
+    const channel = supabase
+      .channel('custom_dishes_shared_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_dishes' }, () => {
+        loadDishes();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [activeProfileId]);
 
   const loadDishes = async () => {
     let loadedDishes = [];
-    if (supabase && activeProfileId) {
+    if (supabase) {
       try {
         const { data: dbDishes, error } = await supabase
           .from('custom_dishes')
           .select('*')
-          .eq('profile_id', activeProfileId)
           .order('created_at', { ascending: false });
 
         if (!error && dbDishes && dbDishes.length > 0) {
@@ -115,7 +128,7 @@ export default function DishesView({
 
     if (loadedDishes.length === 0) {
       try {
-        const localStr = localStorage.getItem(`${LOCAL_DISHES_KEY}_${activeProfileId || 'default'}`);
+        const localStr = localStorage.getItem(LOCAL_DISHES_KEY) || localStorage.getItem(`${LOCAL_DISHES_KEY}_${activeProfileId || 'default'}`);
         if (localStr) {
           loadedDishes = JSON.parse(localStr);
         }
@@ -129,22 +142,23 @@ export default function DishesView({
     setDishes(updatedDishes);
 
     try {
+      localStorage.setItem(LOCAL_DISHES_KEY, JSON.stringify(updatedDishes));
       localStorage.setItem(
         `${LOCAL_DISHES_KEY}_${activeProfileId || 'default'}`,
         JSON.stringify(updatedDishes)
       );
     } catch (e) {}
 
-    if (supabase && activeProfileId) {
+    if (supabase) {
       for (const dish of updatedDishes) {
         try {
           const { error } = await supabase.from('custom_dishes').upsert(
             {
               id: dish.id,
-              profile_id: activeProfileId,
+              profile_id: dish.profile_id || activeProfileId,
               name: dish.name,
-              servings: 1,
-              total_weight_grams: dish.totalWeightGrams || 0,
+              servings: dish.servings || 1,
+              total_weight_grams: dish.totalWeightGrams || dish.total_weight_grams || 0,
               ingredients: dish.ingredients || [],
               updated_at: new Date().toISOString(),
             },
@@ -659,10 +673,21 @@ export default function DishesView({
                 <div className="space-y-3">
                   {/* Dish Title & Actions */}
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                        {dish.name}
-                      </h3>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                          {dish.name}
+                        </h3>
+                        {(() => {
+                          const creator = profiles.find((p) => p.id === dish.profile_id);
+                          if (!creator) return null;
+                          return (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100/70">
+                              <span>👤 {creator.name}</span>
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <p className="text-xs text-slate-500 font-medium flex items-center gap-2 pt-0.5">
                         <Scale className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                         <span className="font-extrabold text-slate-800 font-mono">{totals.totalGrams}g Total Batch</span>

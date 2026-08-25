@@ -177,16 +177,26 @@ export async function fetchDailyLogsFromSupabase(profileId) {
     formattedLogs.sort((a, b) => a.date.localeCompare(b.date));
 
     const targetMacros = {
-      calories: profile?.target_calories || 2000,
-      protein: profile?.target_protein || 150,
-      carbs: profile?.target_carbs || 200,
-      fats: profile?.target_fats || 60,
+      calories: Number(profile?.target_calories) || Number(profile?.target_macros?.calories) || 2000,
+      protein: Number(profile?.target_protein) || Number(profile?.target_macros?.protein) || 150,
+      carbs: Number(profile?.target_carbs) || Number(profile?.target_macros?.carbs) || 200,
+      fats: Number(profile?.target_fats) || Number(profile?.target_macros?.fats) || 60,
+      fiber: Number(profile?.target_fiber) || Number(profile?.target_macros?.fiber) || 30,
+      sugar: Number(profile?.target_sugar) || Number(profile?.target_macros?.sugar) || 50,
+      sodium: Number(profile?.target_sodium) || Number(profile?.target_macros?.sodium) || 2300,
     };
 
     return {
       userProfile: {
         name: profile?.name || 'User',
+        gender: profile?.gender || 'male',
+        age: profile?.age || 25,
+        height: profile?.height || 170,
+        weight: profile?.weight || 70,
+        targetWeight: profile?.target_weight || 65,
+        maintenanceCalories: profile?.maintenance_calories || 2450,
         targetMacros,
+        target_macros: targetMacros,
       },
       dailyLogs: formattedLogs,
       weightLogs: (weights || []).map(w => ({

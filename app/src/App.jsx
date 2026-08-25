@@ -69,9 +69,8 @@ export default function App() {
     let currentProfileId = forceProfileId || activeProfileId;
 
     if (supabase) {
-      let currentProfiles = profiles;
-      if (currentProfiles.length === 0) {
-        currentProfiles = await fetchProfiles();
+      const currentProfiles = await fetchProfiles();
+      if (currentProfiles && currentProfiles.length > 0) {
         setProfiles(currentProfiles);
       }
 

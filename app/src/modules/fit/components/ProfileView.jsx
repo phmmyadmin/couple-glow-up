@@ -129,6 +129,13 @@ export default function ProfileView({
 
     const payload = {
       ...formData,
+      target_calories: Number(formData.target_calories) || 2000,
+      target_protein: Number(formData.target_protein) || 150,
+      target_carbs: Number(formData.target_carbs) || 200,
+      target_fats: Number(formData.target_fats) || 60,
+      target_fiber: Number(formData.target_fiber) || 30,
+      target_sugar: Number(formData.target_sugar) || 50,
+      target_sodium: Number(formData.target_sodium) || 2300,
       target_macros: {
         calories: Number(formData.target_calories) || 2000,
         protein: Number(formData.target_protein) || 150,

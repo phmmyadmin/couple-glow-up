@@ -94,15 +94,15 @@ export default function FitApp({
       0
     ) || activeDateData?.dailyTotals?.sodium || 0;
 
-  const targetMacros =
-    activeProfile?.target_macros ||
-    data?.userProfile?.targetMacros ||
-    data?.user_profile?.target_macros || {
-      calories: 1950,
-      protein: 145,
-      carbs: 195,
-      fats: 65,
-    };
+  const targetMacros = {
+    calories: Number(activeProfile?.target_calories) || Number(activeProfile?.target_macros?.calories) || Number(data?.userProfile?.targetMacros?.calories) || 2000,
+    protein: Number(activeProfile?.target_protein) || Number(activeProfile?.target_macros?.protein) || Number(data?.userProfile?.targetMacros?.protein) || 150,
+    carbs: Number(activeProfile?.target_carbs) || Number(activeProfile?.target_macros?.carbs) || Number(data?.userProfile?.targetMacros?.carbs) || 200,
+    fats: Number(activeProfile?.target_fats) || Number(activeProfile?.target_macros?.fats) || Number(data?.userProfile?.targetMacros?.fats) || 60,
+    fiber: Number(activeProfile?.target_fiber) || Number(activeProfile?.target_macros?.fiber) || Number(data?.userProfile?.targetMacros?.fiber) || 30,
+    sugar: Number(activeProfile?.target_sugar) || Number(activeProfile?.target_macros?.sugar) || Number(data?.userProfile?.targetMacros?.sugar) || 50,
+    sodium: Number(activeProfile?.target_sodium) || Number(activeProfile?.target_macros?.sodium) || Number(data?.userProfile?.targetMacros?.sodium) || 2300,
+  };
 
   const handleDateChange = (days) => {
     setSelectedDate(addDays(selectedDate, days));
@@ -232,6 +232,8 @@ export default function FitApp({
           data={data}
           setData={setData}
           activeProfileId={activeProfile?.id}
+          activeProfile={activeProfile}
+          profiles={profiles}
           setToastMessage={setToastMessage}
         />
       )}

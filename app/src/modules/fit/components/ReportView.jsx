@@ -36,13 +36,20 @@ export default function ReportView({ data, setData, activeProfileId, activeProfi
 
   // Profile data
   const { userProfile, dailyLogs = [] } = data || {};
-  const history = userProfile?.weightLog?.history || [];
-  const startWeight = userProfile?.weightLog?.startWeight || 73.0;
-  const targetWeight = userProfile?.weightLog?.targetWeight || 68.0;
-  const { targetMacros = { calories: 2000, protein: 150, carbs: 200, fats: 60 } } = userProfile || {};
+  const history = data?.weightLogs || userProfile?.weightLog?.history || [];
+  const startWeight = Number(activeProfile?.weight) || Number(userProfile?.weight) || Number(userProfile?.weightLog?.startWeight) || 70.0;
+  const targetWeight = Number(activeProfile?.target_weight) || Number(userProfile?.targetWeight) || Number(userProfile?.weightLog?.targetWeight) || 65.0;
+  const targetMacros = {
+    calories: Number(activeProfile?.target_calories) || Number(activeProfile?.target_macros?.calories) || Number(userProfile?.targetMacros?.calories) || 2000,
+    protein: Number(activeProfile?.target_protein) || Number(activeProfile?.target_macros?.protein) || Number(userProfile?.targetMacros?.protein) || 150,
+    carbs: Number(activeProfile?.target_carbs) || Number(activeProfile?.target_macros?.carbs) || Number(userProfile?.targetMacros?.carbs) || 200,
+    fats: Number(activeProfile?.target_fats) || Number(activeProfile?.target_macros?.fats) || Number(userProfile?.targetMacros?.fats) || 60,
+  };
 
-  const baselineCalculatedMaint = calculateMaintenanceTDEE(userProfile || {});
-  const maintenanceCalories = (userProfile?.maintenanceCalories && userProfile.maintenanceCalories >= 1400)
+  const baselineCalculatedMaint = calculateMaintenanceTDEE(activeProfile || userProfile || {});
+  const maintenanceCalories = (activeProfile?.maintenance_calories && Number(activeProfile.maintenance_calories) >= 1200)
+    ? Number(activeProfile.maintenance_calories)
+    : (userProfile?.maintenanceCalories && userProfile.maintenanceCalories >= 1200)
     ? userProfile.maintenanceCalories
     : baselineCalculatedMaint;
 
