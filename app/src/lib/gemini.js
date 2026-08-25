@@ -50,6 +50,13 @@ export async function parseFoodWithGemini(userText) {
       }
     },
     {
+      model: 'gemini-flash-lite-latest',
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1
+      }
+    },
+    {
       model: 'gemini-flash-latest',
       generationConfig: {
         responseMimeType: 'application/json',
