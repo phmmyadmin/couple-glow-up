@@ -98,17 +98,14 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
 
   useEffect(() => {
     async function loadGymData() {
-      console.log('🚀 [GYM APP] Starting loadGymData...', { activeProfileName: activeProfile?.name, activeProfileId: activeProfile?.id });
       const dbEx = await fetchExercisesFromSupabase();
       if (dbEx && dbEx.length > 0) {
-        console.log(`💪 [GYM APP] Loaded ${dbEx.length} exercises from DB`);
         setExercises(dbEx);
       }
 
       const profileId = activeProfile?.id || null;
       const dbRoutines = await fetchRoutinesFromSupabase(profileId);
       if (dbRoutines) {
-        console.log(`📋 [GYM APP] Loaded ${dbRoutines.length} routines from DB`);
         setRoutines(dbRoutines);
       }
 
@@ -116,13 +113,11 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
       if (dbWorkouts) {
         const pending = JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
         const total = [...pending, ...dbWorkouts];
-        console.log(`🏋️‍♂️ [GYM APP] Loaded ${total.length} workouts (${pending.length} offline pending, ${dbWorkouts.length} DB workouts)`);
         setWorkouts(total);
       }
 
       if (profileId) {
         const dbPRs = await fetchPersonalRecordsFromSupabase(profileId);
-        console.log(`🏆 [GYM APP] Loaded ${dbPRs.length} PRs from DB`);
         setPersonalRecords(dbPRs);
       }
     }
@@ -221,7 +216,6 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   // Auto-sync offline workouts when browser connects to internet
   useEffect(() => {
     const handleOnline = () => {
-      console.log('🌐 [GYM APP] Online event detected! Triggering auto-sync...');
       handleSyncOfflineWorkouts(true);
     };
 

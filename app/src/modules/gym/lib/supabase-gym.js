@@ -699,9 +699,7 @@ export async function deleteRoutineFromSupabase(routineId) {
 
 // ── WORKOUTS & SETS ──
 export async function fetchWorkoutsFromSupabase(profileId) {
-  console.log('🏋️ [SUPABASE GYM] fetchWorkoutsFromSupabase called with profileId:', profileId);
   if (!supabase) {
-    console.warn('⚠️ [SUPABASE GYM] Supabase client is NOT initialized!');
     return [];
   }
   try {
@@ -716,24 +714,17 @@ export async function fetchWorkoutsFromSupabase(profileId) {
 
     const { data, error } = await query;
     if (error) {
-      console.error('❌ [SUPABASE GYM] Error fetching workouts with profile filter:', error);
       const { data: fallbackData, error: fbErr } = await supabase
         .from('workouts')
         .select('*, workout_sets(*, exercises(*))')
         .order('started_at', { ascending: false });
-      if (fbErr) console.error('❌ [SUPABASE GYM] Fallback fetch also failed:', fbErr);
-      const result = enrichWorkoutList(fallbackData || []);
-      console.log(`✅ [SUPABASE GYM] Fallback fetched ${result.length} workouts`);
-      return result;
+      if (fbErr) console.error('Error fetching workouts fallback:', fbErr);
+      return enrichWorkoutList(fallbackData || []);
     }
 
-    const result = enrichWorkoutList(data || []);
-    console.log(`✅ [SUPABASE GYM] Successfully fetched ${result.length} workouts from Supabase`, {
-      sampleWorkout: result[0] ? { name: result[0].name, setsCount: result[0].workout_sets?.length } : 'None'
-    });
-    return result;
+    return enrichWorkoutList(data || []);
   } catch (err) {
-    console.error('💥 [SUPABASE GYM] Exception in fetchWorkoutsFromSupabase:', err);
+    console.error('Error in fetchWorkoutsFromSupabase:', err);
     return [];
   }
 }
@@ -772,8 +763,6 @@ export async function saveWorkoutSessionToSupabase(workoutObj, sets = []) {
       nth_workout: workoutObj.nth_workout || null,
     };
 
-    console.log('💾 [SUPABASE GYM] Saving workout to Supabase with clean payload:', cleanWorkoutPayload);
-
     const { data: workoutData, error: workoutErr } = await supabase
       .from('workouts')
       .insert(cleanWorkoutPayload)
@@ -781,7 +770,7 @@ export async function saveWorkoutSessionToSupabase(workoutObj, sets = []) {
       .single();
 
     if (workoutErr) {
-      console.error('❌ [SUPABASE GYM] Error inserting workout record:', workoutErr);
+      console.error('Error inserting workout record:', workoutErr);
       throw workoutErr;
     }
 
@@ -815,7 +804,7 @@ export async function saveWorkoutSessionToSupabase(workoutObj, sets = []) {
         .select('*, exercises(*)');
 
       if (setErr) {
-        console.error('❌ [SUPABASE GYM] Error inserting workout_sets:', setErr);
+        console.error('Error inserting workout_sets:', setErr);
         throw setErr;
       }
 
@@ -833,10 +822,9 @@ export async function saveWorkoutSessionToSupabase(workoutObj, sets = []) {
       });
     }
 
-    console.log(`✅ [SUPABASE GYM] Successfully saved workout "${workoutData.name}" (${workoutData.id}) with ${enrichedSets.length} sets`);
     return { ...workoutData, workout_sets: enrichedSets };
   } catch (err) {
-    console.error('💥 [SUPABASE GYM] Exception in saveWorkoutSessionToSupabase:', err);
+    console.error('Exception in saveWorkoutSessionToSupabase:', err);
     return null;
   }
 }

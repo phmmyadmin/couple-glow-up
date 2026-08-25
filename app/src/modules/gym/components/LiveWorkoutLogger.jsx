@@ -368,7 +368,6 @@ export default function LiveWorkoutLogger({
         };
       });
 
-      console.log('⚡ [LIVE LOGGER] Formatted initialRoutine exercises with PREV pre-filled:', formattedEx);
       setWorkoutExercises(formattedEx);
     }
   }, [initialRoutine, exercises, workouts]);
@@ -379,8 +378,6 @@ export default function LiveWorkoutLogger({
 
     setWorkoutExercises((prev) => {
       if (prev.length === 0) return prev;
-
-      console.log('🔄 [LIVE LOGGER] Evaluating re-hydration for active exercises...', { activeCount: prev.length, workoutsCount: workouts.length });
 
       let hasChanges = false;
       const updated = prev.map((item) => {
@@ -406,8 +403,6 @@ export default function LiveWorkoutLogger({
             distance_km: prevSet.distance_km || null,
             is_checked: false,
           }));
-
-          console.log('✨ [LIVE LOGGER] Complete re-hydration of sets for exercise:', item.exercise.name, freshPerf);
 
           return {
             ...item,
@@ -435,7 +430,6 @@ export default function LiveWorkoutLogger({
 
         if (setsNeedUpdating) {
           hasChanges = true;
-          console.log('✨ [LIVE LOGGER] Partial pre-fill for exercise:', item.exercise.name, freshPerf);
           return {
             ...item,
             lastPerformance: freshPerf,
@@ -505,7 +499,6 @@ export default function LiveWorkoutLogger({
   const handleAddExercise = (exercise) => {
     const isDist = exercise.exercise_type === 'distance_duration';
     const lastPerf = getLastPerformanceForExercise(exercise, workouts, exercises);
-    console.log('➕ [LIVE LOGGER] handleAddExercise called:', { name: exercise.name, lastPerfFound: Boolean(lastPerf) });
 
     let initialSets = [];
     if (lastPerf && lastPerf.sets && lastPerf.sets.length > 0) {

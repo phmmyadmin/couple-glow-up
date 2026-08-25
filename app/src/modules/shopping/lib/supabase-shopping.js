@@ -79,7 +79,6 @@ export async function deleteMarketFromSupabase(id) {
       throw error;
     }
 
-    console.log('Market deleted from Supabase:', data);
     return true;
   } catch (err) {
     console.error('Error deleting market from Supabase:', err);
