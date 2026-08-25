@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Dumbbell, Filter, Info, Trophy, TrendingUp, Calendar, Flame, ChevronRight, X, ExternalLink, Edit3 } from 'lucide-react';
+import { Search, Plus, Dumbbell, Filter, Info, Trophy, TrendingUp, Calendar, Flame, ChevronRight, X, ExternalLink, Edit3, Play } from 'lucide-react';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
@@ -428,19 +428,34 @@ export default function ExerciseLibrary({
                   className="p-4 sm:p-5 space-y-3 hover:border-indigo-200 transition-all cursor-pointer group shadow-2xs"
                   onClick={() => onSelectExercise && onSelectExercise(exercise)}
                 >
-                  {/* Top Row: Exercise Thumbnail/Icon + Full Width Name + Action Buttons */}
+                  {/* Top Row: Animated Exercise GIF Thumbnail + Full Width Name + Action Buttons */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <div className="w-11 h-11 rounded-xl bg-indigo-50/80 border border-indigo-100/90 flex items-center justify-center overflow-hidden shrink-0 mt-0.5 shadow-2xs group-hover:border-indigo-300 transition-all">
-                        {media?.imgUrl ? (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedExerciseForHistory(exercise);
+                        }}
+                        className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-slate-100/90 border border-slate-200/90 flex items-center justify-center overflow-hidden shrink-0 mt-0.5 shadow-2xs group-hover:border-indigo-300 transition-all cursor-pointer relative"
+                        title="Click to view technique GIF & analytics"
+                      >
+                        {media?.gifUrl ? (
+                          <img
+                            src={media.gifUrl}
+                            alt={exercise.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              if (media.imgUrl) e.target.src = media.imgUrl;
+                              else e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : media?.imgUrl ? (
                           <img
                             src={media.imgUrl}
                             alt={exercise.name}
                             className="w-full h-full object-cover"
                             loading="lazy"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                            }}
                           />
                         ) : (
                           <Dumbbell className="w-5 h-5 text-indigo-600" />
@@ -455,6 +470,21 @@ export default function ExerciseLibrary({
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-1 shrink-0">
+                      {media?.gifUrl && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedExerciseForHistory(exercise);
+                          }}
+                          className="px-2 py-1.5 text-indigo-600 hover:text-indigo-800 bg-indigo-50/70 hover:bg-indigo-100 rounded-xl transition-colors flex items-center gap-1 text-xs font-bold border border-indigo-100"
+                          title="View technique demonstration GIF"
+                        >
+                          <Play className="w-3 h-3 fill-indigo-600" />
+                          <span>GIF</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={(e) => {

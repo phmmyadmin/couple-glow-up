@@ -4,6 +4,7 @@ import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
 import { formatExerciseName, doesSetMatchExercise } from '../lib/supabase-gym';
+import { getExerciseMedia } from '../lib/exercise-media';
 import { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 import WorkoutCalendar from './WorkoutCalendar';
@@ -319,25 +320,51 @@ export default function WorkoutHistory({
 
                 {/* 3. Hevy Exercise Breakdown Feed */}
                 <div className="space-y-3 pt-2">
-                  {Object.values(groupedSets).map((exGroup, groupIdx) => (
-                    <div
-                      key={groupIdx}
-                      className="space-y-2 border-b border-slate-100 last:border-0 pb-3.5 last:pb-0"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <h5
-                          onClick={() => setSelectedExerciseForHistory(exGroup.exerciseObj || { id: exGroup.id, name: exGroup.name, muscle_group: exGroup.muscle_group })}
-                          className="text-sm font-extrabold text-indigo-600 hover:text-indigo-800 leading-snug break-words cursor-pointer hover:underline"
-                          title="Click to view Exercise Performance History"
-                        >
-                          {exGroup.sets.length}x {exGroup.name}
-                        </h5>
-                        {exGroup.muscle_group && (
-                          <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-md uppercase shrink-0">
-                            {getMuscleGroupLabel(exGroup.muscle_group)}
-                          </span>
-                        )}
-                      </div>
+                  {Object.values(groupedSets).map((exGroup, groupIdx) => {
+                    const media = getExerciseMedia(exGroup.name);
+                    return (
+                      <div
+                        key={groupIdx}
+                        className="space-y-2 border-b border-slate-100 last:border-0 pb-3.5 last:pb-0"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div
+                              onClick={() => setSelectedExerciseForHistory(exGroup.exerciseObj || { id: exGroup.id, name: exGroup.name, muscle_group: exGroup.muscle_group })}
+                              className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/80 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs cursor-pointer hover:border-indigo-300 transition-all"
+                              title="Click to view technique GIF & history"
+                            >
+                              {media?.gifUrl ? (
+                                <img
+                                  src={media.gifUrl}
+                                  alt={exGroup.name}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    if (media.imgUrl) e.target.src = media.imgUrl;
+                                    else e.target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <Dumbbell className="w-4 h-4 text-slate-500" />
+                              )}
+                            </div>
+
+                            <h5
+                              onClick={() => setSelectedExerciseForHistory(exGroup.exerciseObj || { id: exGroup.id, name: exGroup.name, muscle_group: exGroup.muscle_group })}
+                              className="text-sm font-extrabold text-indigo-600 hover:text-indigo-800 leading-snug break-words cursor-pointer hover:underline"
+                              title="Click to view Exercise Performance History"
+                            >
+                              {exGroup.sets.length}x {exGroup.name}
+                            </h5>
+                          </div>
+
+                          {exGroup.muscle_group && (
+                            <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-md uppercase shrink-0">
+                              {getMuscleGroupLabel(exGroup.muscle_group)}
+                            </span>
+                          )}
+                        </div>
 
                       {/* Set Details List */}
                       <div className="space-y-1.5 pl-1">
@@ -391,8 +418,9 @@ export default function WorkoutHistory({
                         })}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
+              </div>
               </Card>
             );
           })}

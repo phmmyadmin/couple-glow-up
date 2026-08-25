@@ -907,21 +907,29 @@ export default function LiveWorkoutLogger({
                     {/* Hevy Exercise Header Row */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {/* Circular Media / Initials Avatar Badge */}
+                        {/* Animated Media / Initials Avatar Badge */}
                         <div
                           onClick={() => setSelectedExerciseForHistory(item.exercise)}
-                          className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200/80 text-slate-700 font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-2xs font-mono cursor-pointer hover:border-indigo-300 overflow-hidden transition-all group"
+                          className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200/80 text-slate-700 font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-2xs font-mono cursor-pointer hover:border-indigo-300 overflow-hidden transition-all group"
                           title="Click to view technique GIF & history"
                         >
-                          {media?.imgUrl ? (
+                          {media?.gifUrl ? (
+                            <img
+                              src={media.gifUrl}
+                              alt={exName}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                if (media.imgUrl) e.target.src = media.imgUrl;
+                                else e.target.style.display = 'none';
+                              }}
+                            />
+                          ) : media?.imgUrl ? (
                             <img
                               src={media.imgUrl}
                               alt={exName}
                               className="w-full h-full object-cover"
                               loading="lazy"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                              }}
                             />
                           ) : (
                             <span>{initials}</span>
