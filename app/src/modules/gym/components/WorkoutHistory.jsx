@@ -9,6 +9,8 @@ import { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 import WorkoutCalendar from './WorkoutCalendar';
 import MuscleAnalyticsContainer from './MuscleAnalyticsContainer';
+import useInfiniteScroll from '../../../shared/hooks/useInfiniteScroll';
+import InfiniteScrollSentinel from '../../../shared/ui/InfiniteScrollSentinel';
 
 export default function WorkoutHistory({
   workouts,
@@ -129,6 +131,19 @@ export default function WorkoutHistory({
     w.name.toLowerCase().includes(searchFilter.toLowerCase())
   );
 
+  const {
+    displayedItems: paginatedWorkouts,
+    hasMore,
+    totalCount,
+    visibleCount,
+    loadMore,
+    sentinelRef,
+  } = useInfiniteScroll({
+    items: filteredWorkouts,
+    pageSize: 15,
+    resetDependencies: [searchFilter, selectedCalendarDay],
+  });
+
   return (
     <div className="space-y-6 sm:space-y-7">
       {/* 2-Column Grid: Compact Calendar + Muscle Body Heatmap */}
@@ -206,7 +221,7 @@ export default function WorkoutHistory({
         </Card>
       ) : (
         <div className="space-y-5 sm:space-y-6">
-          {filteredWorkouts.map((workout) => {
+          {paginatedWorkouts.map((workout) => {
             const dateObj = new Date(workout.started_at);
             const dateStr = dateObj.toLocaleDateString('en-US', {
               weekday: 'short',
@@ -425,6 +440,18 @@ export default function WorkoutHistory({
             );
           })}
         </div>
+      )}
+
+      {/* Infinite Scroll Sentinel for Workouts */}
+      {filteredWorkouts.length > 0 && (
+        <InfiniteScrollSentinel
+          sentinelRef={sentinelRef}
+          hasMore={hasMore}
+          visibleCount={visibleCount}
+          totalCount={totalCount}
+          onLoadMore={loadMore}
+          itemLabel="workout sessions"
+        />
       )}
 
       {/* Edit Workout Modal */}

@@ -32,6 +32,8 @@ import {
   getNutritionalFallbackForFood,
 } from '../../../lib/supabase';
 import { createFeedEventInSupabase } from '../../feed/lib/supabase-feed';
+import useInfiniteScroll from '../../../shared/hooks/useInfiniteScroll';
+import InfiniteScrollSentinel from '../../../shared/ui/InfiniteScrollSentinel';
 
 const LOCAL_DISHES_KEY = 'glowup_custom_dishes';
 
@@ -613,6 +615,19 @@ export default function DishesView({
     d.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const {
+    displayedItems: paginatedDishes,
+    hasMore,
+    totalCount,
+    visibleCount,
+    loadMore,
+    sentinelRef,
+  } = useInfiniteScroll({
+    items: filteredDishes,
+    pageSize: 16,
+    resetDependencies: [searchQuery],
+  });
+
   return (
     <div className="space-y-6 sm:space-y-7">
       {/* Top Header Banner */}
@@ -674,7 +689,7 @@ export default function DishesView({
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-          {filteredDishes.map((dish) => {
+          {paginatedDishes.map((dish) => {
             const totals = getDishTotals(dish);
             const per100gCals = Math.round((totals.calories / totals.totalGrams) * 100) || 0;
 
@@ -797,6 +812,18 @@ export default function DishesView({
             );
           })}
         </div>
+      )}
+
+      {/* Infinite Scroll Sentinel for Dishes */}
+      {filteredDishes.length > 0 && (
+        <InfiniteScrollSentinel
+          sentinelRef={sentinelRef}
+          hasMore={hasMore}
+          visibleCount={visibleCount}
+          totalCount={totalCount}
+          onLoadMore={loadMore}
+          itemLabel="dishes & recipes"
+        />
       )}
 
       {/* DISH CREATION / EDITING MODAL */}

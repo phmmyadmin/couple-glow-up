@@ -6,6 +6,8 @@ import { Input, Select } from '../../../shared/ui/Input';
 import { calculate1RM, doesSetMatchExercise } from '../lib/supabase-gym';
 import { getExerciseMedia } from '../lib/exercise-media';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
+import useInfiniteScroll from '../../../shared/hooks/useInfiniteScroll';
+import InfiniteScrollSentinel from '../../../shared/ui/InfiniteScrollSentinel';
 
 const MUSCLE_GROUPS = [
   { id: 'all', label: 'All Muscles' },
@@ -147,6 +149,19 @@ export default function ExerciseLibrary({
         !['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'kettlebell', 'smith_machine'].includes(eqLower));
 
     return matchesSearch && matchesMuscle && matchesEquipment;
+  });
+
+  const {
+    displayedItems: paginatedExercises,
+    hasMore,
+    totalCount,
+    visibleCount,
+    loadMore,
+    sentinelRef,
+  } = useInfiniteScroll({
+    items: filteredExercises,
+    pageSize: 20,
+    resetDependencies: [search, selectedMuscle, selectedEquipment],
   });
 
   // Handle Escape key to close modals
@@ -412,7 +427,7 @@ export default function ExerciseLibrary({
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-3">
-            {filteredExercises.map((exercise) => {
+            {paginatedExercises.map((exercise) => {
               const secondaryList = parseOtherMuscles(exercise);
 
               let typeLabel = 'Weight & Reps';
@@ -543,6 +558,18 @@ export default function ExerciseLibrary({
               );
             })}
           </div>
+        )}
+
+        {/* Infinite Scroll Sentinel for Exercises */}
+        {filteredExercises.length > 0 && (
+          <InfiniteScrollSentinel
+            sentinelRef={sentinelRef}
+            hasMore={hasMore}
+            visibleCount={visibleCount}
+            totalCount={totalCount}
+            onLoadMore={loadMore}
+            itemLabel="exercises"
+          />
         )}
       </div>
 

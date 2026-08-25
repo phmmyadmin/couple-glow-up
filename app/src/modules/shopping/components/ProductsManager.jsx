@@ -3,6 +3,8 @@ import { Package, Plus, ShoppingBag, Tag, Search, Check, Store } from 'lucide-re
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
+import useInfiniteScroll from '../../../shared/hooks/useInfiniteScroll';
+import InfiniteScrollSentinel from '../../../shared/ui/InfiniteScrollSentinel';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Categories', emoji: '📦' },
@@ -114,6 +116,19 @@ export default function ProductsManager({
     });
   }, [masterProducts, searchQuery, selectedCategory]);
 
+  const {
+    displayedItems: paginatedProducts,
+    hasMore,
+    totalCount,
+    visibleCount,
+    loadMore,
+    sentinelRef,
+  } = useInfiniteScroll({
+    items: filteredProducts,
+    pageSize: 18,
+    resetDependencies: [searchQuery, selectedCategory],
+  });
+
   const handleQuickAddToList = (prod) => {
     if (typeof onAddItem === 'function') {
       onAddItem({
@@ -179,7 +194,7 @@ export default function ProductsManager({
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProducts.map((prod, idx) => {
+          {paginatedProducts.map((prod, idx) => {
             const prices = getPricesForProduct(prod.name);
             const cheapest = getCheapestPrice(prices);
             const isJustAdded = addedItemNames.has(prod.name);
@@ -250,6 +265,18 @@ export default function ProductsManager({
             );
           })}
         </div>
+      )}
+
+      {/* Infinite Scroll Sentinel for Products */}
+      {filteredProducts.length > 0 && (
+        <InfiniteScrollSentinel
+          sentinelRef={sentinelRef}
+          hasMore={hasMore}
+          visibleCount={visibleCount}
+          totalCount={totalCount}
+          onLoadMore={loadMore}
+          itemLabel="products"
+        />
       )}
     </div>
   );
