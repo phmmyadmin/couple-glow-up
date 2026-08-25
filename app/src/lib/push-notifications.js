@@ -38,43 +38,53 @@ export async function subscribeUserToPush(profileId) {
       return { success: false, reason: 'permission_denied' };
     }
 
-    const registration = await navigator.serviceWorker.ready;
-    let subscription = await registration.pushManager.getSubscription();
+    const registration = await navigator.serviceWorker.ready.catch(() => null);
+    let subscription = null;
 
-    if (!subscription) {
-      const convertedVapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey,
-      });
-    }
+    if (registration && registration.pushManager) {
+      try {
+        subscription = await registration.pushManager.getSubscription();
 
-    const subJson = subscription.toJSON();
-    const endpoint = subJson.endpoint;
-    const p256dh = subJson.keys?.p256dh;
-    const auth = subJson.keys?.auth;
-
-    if (supabase && profileId && endpoint && p256dh && auth) {
-      const { error } = await supabase.from('push_subscriptions').upsert(
-        {
-          profile_id: profileId,
-          endpoint,
-          p256dh,
-          auth,
-          user_agent: navigator.userAgent,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'profile_id,endpoint' }
-      );
-
-      if (error) {
-        console.error('Error saving push subscription to Supabase:', error);
-      } else {
-        console.log('✅ Push subscription saved to Supabase successfully!');
+        if (!subscription && VAPID_PUBLIC_KEY) {
+          const convertedVapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedVapidKey,
+          });
+        }
+      } catch (pushErr) {
+        console.warn('PushManager subscription warning (falling back to standard notification permissions):', pushErr);
       }
     }
 
-    return { success: true, subscription };
+    if (subscription) {
+      const subJson = subscription.toJSON();
+      const endpoint = subJson.endpoint;
+      const p256dh = subJson.keys?.p256dh;
+      const auth = subJson.keys?.auth;
+
+      if (supabase && profileId && endpoint && p256dh && auth) {
+        const { error } = await supabase.from('push_subscriptions').upsert(
+          {
+            profile_id: profileId,
+            endpoint,
+            p256dh,
+            auth,
+            user_agent: navigator.userAgent,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'profile_id,endpoint' }
+        );
+
+        if (error) {
+          console.error('Error saving push subscription to Supabase:', error);
+        } else {
+          console.log('✅ Push subscription saved to Supabase successfully!');
+        }
+      }
+    }
+
+    return { success: true, permission: 'granted', subscription };
   } catch (err) {
     console.error('Error subscribing to push notifications:', err);
     return { success: false, reason: err.message };

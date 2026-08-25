@@ -25,14 +25,7 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
       if (isSupp) {
         const perm = await getPushPermissionState();
         setPermission(perm);
-
-        if (navigator.serviceWorker) {
-          const reg = await navigator.serviceWorker.ready.catch(() => null);
-          if (reg && reg.pushManager) {
-            const sub = await reg.pushManager.getSubscription();
-            setIsSubscribed(Boolean(sub));
-          }
-        }
+        setIsSubscribed(perm === 'granted');
       }
     }
 

@@ -22,6 +22,8 @@ import {
   subscribeToDailyLogs,
   subscribeToWeightLogs,
 } from './lib/supabase';
+import { subscribeToFeedEvents } from './modules/feed/lib/supabase-feed';
+import { playRestCompleteSound } from './lib/rest-timer-notifications';
 import './index.css';
 
 const getLocalDateStr = () => {
@@ -147,10 +149,47 @@ export default function App() {
       }
     });
 
+    const unsubFeed = subscribeToFeedEvents((payload) => {
+      if (payload.eventType === 'INSERT' && payload.new) {
+        const newEv = payload.new;
+        if (newEv.profile_id && newEv.profile_id !== activeProfileId) {
+          const title = newEv.title || 'Couple Glow Up ✨';
+          const body = newEv.description || 'New partner update!';
+
+          // 1. Play alert chime
+          playRestCompleteSound();
+
+          // 2. Show in-app Toast banner
+          setToastMessage(`🔔 ${title}: ${body}`);
+
+          // 3. Trigger OS System Notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            if (navigator.serviceWorker) {
+              navigator.serviceWorker.ready.then((reg) => {
+                reg.showNotification(title, {
+                  body,
+                  icon: '/favicon.svg',
+                  badge: '/favicon.svg',
+                  tag: `feed-${newEv.id}`,
+                  vibrate: [200, 100, 200],
+                  data: { url: './' },
+                });
+              }).catch(() => {
+                new Notification(title, { body, icon: '/favicon.svg' });
+              });
+            } else {
+              new Notification(title, { body, icon: '/favicon.svg' });
+            }
+          }
+        }
+      }
+    });
+
     return () => {
       unsubIntakes();
       unsubLogs();
       unsubWeight();
+      unsubFeed();
     };
   }, [activeProfileId]);
 

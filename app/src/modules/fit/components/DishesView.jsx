@@ -31,6 +31,7 @@ import {
   saveToCatalog,
   getNutritionalFallbackForFood,
 } from '../../../lib/supabase';
+import { createFeedEventInSupabase } from '../../feed/lib/supabase-feed';
 
 const LOCAL_DISHES_KEY = 'glowup_custom_dishes';
 
@@ -474,6 +475,18 @@ export default function DishesView({
     await saveDishesState(updatedList);
     setIsEditorOpen(false);
     setEditingDish(null);
+
+    if (supabase && activeProfileId) {
+      const creatorName = activeProfile?.name || 'Partner';
+      createFeedEventInSupabase({
+        profile_id: activeProfileId,
+        event_type: 'dish_created',
+        title: `🍲 ${creatorName} added a recipe`,
+        description: `${finalDish.name} (${totals.totalGrams}g batch, ~${totals.calories} kcal)`,
+        metadata: { dishId: finalDish.id, totalGrams: totals.totalGrams, calories: totals.calories },
+        emoji: '🍲',
+      }).catch((e) => console.warn('Feed event creation notice:', e));
+    }
 
     if (typeof setToastMessage === 'function') {
       setToastMessage(`🍲 Saved dish "${finalDish.name}" (${totals.totalGrams}g total)`);

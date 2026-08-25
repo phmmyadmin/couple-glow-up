@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Loader2, Mic, MicOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { parseFoodWithGemini } from '../../../lib/gemini';
-import { saveIntakesToSupabase, fetchDailyLogsFromSupabase } from '../../../lib/supabase';
+import { saveIntakesToSupabase, fetchDailyLogsFromSupabase, supabase } from '../../../lib/supabase';
+import { createFeedEventInSupabase } from '../../feed/lib/supabase-feed';
 
 export default function ChatInputBar({
   selectedDate,
@@ -182,6 +183,21 @@ export default function ChatInputBar({
       if (typeof setToastMessage === 'function') {
         setToastMessage(t('toast.foodLogged', `🥗 Logged: ${foodNames}`));
       }
+
+      // Create live feed event for partner notification
+      if (supabase && activeProfileId) {
+        const totalCals = formattedItems.reduce((sum, i) => sum + (i.calories || 0), 0);
+        const totalProt = formattedItems.reduce((sum, i) => sum + (i.protein || 0), 0);
+        createFeedEventInSupabase({
+          profile_id: activeProfileId,
+          event_type: 'nutrition_logged',
+          title: `🥗 ${data?.userProfile?.name || 'Partner'} logged food`,
+          description: `${foodNames} (${Math.round(totalCals)} kcal, ${Math.round(totalProt)}g protein)`,
+          metadata: { calories: totalCals, protein: totalProt, itemCount: formattedItems.length },
+          emoji: '🥗',
+        }).catch((e) => console.warn('Feed event creation notice:', e));
+      }
+
       setText('');
     } catch (err) {
       console.error('Error logging food:', err);
