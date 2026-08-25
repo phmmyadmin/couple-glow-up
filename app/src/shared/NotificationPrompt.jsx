@@ -9,6 +9,7 @@ import {
   subscribeUserToPush,
   unsubscribeUserFromPush,
 } from '../lib/push-notifications';
+import { getNotificationIcon } from '../lib/rest-timer-notifications';
 
 export default function NotificationPrompt({ activeProfile, setToastMessage }) {
   const { t } = useTranslation();
@@ -73,10 +74,11 @@ export default function NotificationPrompt({ activeProfile, setToastMessage }) {
 
     try {
       const reg = await navigator.serviceWorker.ready;
+      const iconUrl = getNotificationIcon();
       reg.showNotification('Couple Glow Up ✨', {
         body: 'Push notifications working 100%! 🚀',
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
+        icon: iconUrl,
+        badge: iconUrl,
         tag: 'test-push',
         vibrate: [100, 50, 100],
       });

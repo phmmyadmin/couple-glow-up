@@ -23,7 +23,7 @@ import {
   subscribeToWeightLogs,
 } from './lib/supabase';
 import { subscribeToFeedEvents } from './modules/feed/lib/supabase-feed';
-import { playRestCompleteSound } from './lib/rest-timer-notifications';
+import { playRestCompleteSound, getNotificationIcon } from './lib/rest-timer-notifications';
 import './index.css';
 
 const getLocalDateStr = () => {
@@ -164,21 +164,22 @@ export default function App() {
 
           // 3. Trigger OS System Notification
           if ('Notification' in window && Notification.permission === 'granted') {
+            const iconUrl = getNotificationIcon();
             if (navigator.serviceWorker) {
               navigator.serviceWorker.ready.then((reg) => {
                 reg.showNotification(title, {
                   body,
-                  icon: '/favicon.svg',
-                  badge: '/favicon.svg',
+                  icon: iconUrl,
+                  badge: iconUrl,
                   tag: `feed-${newEv.id}`,
                   vibrate: [200, 100, 200],
                   data: { url: './' },
                 });
               }).catch(() => {
-                new Notification(title, { body, icon: '/favicon.svg' });
+                new Notification(title, { body, icon: iconUrl });
               });
             } else {
-              new Notification(title, { body, icon: '/favicon.svg' });
+              new Notification(title, { body, icon: iconUrl });
             }
           }
         }

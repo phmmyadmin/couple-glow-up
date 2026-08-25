@@ -1,3 +1,41 @@
+let keepAliveAudioCtx = null;
+
+/**
+ * Returns a fully qualified absolute URL for the notification icon
+ * that works correctly on localhost, custom domains, and GitHub Pages subpaths.
+ */
+export function getNotificationIcon() {
+  try {
+    if (typeof window !== 'undefined' && window.location) {
+      const base = window.location.href.split('#')[0].split('?')[0];
+      return new URL('./favicon.svg', base).href;
+    }
+  } catch (e) {}
+  return './favicon.svg';
+}
+
+/**
+ * Enables a silent Web Audio node to prevent mobile browsers (iOS/Android)
+ * from killing the background execution while the app is backgrounded.
+ */
+export function enableWebAudioKeepAlive() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx && !keepAliveAudioCtx) {
+      keepAliveAudioCtx = new AudioCtx();
+      if (keepAliveAudioCtx.state === 'suspended') {
+        keepAliveAudioCtx.resume().catch(() => {});
+      }
+      // Create a silent buffer source node
+      const buffer = keepAliveAudioCtx.createBuffer(1, 1, 22050);
+      const source = keepAliveAudioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(keepAliveAudioCtx.destination);
+      source.start(0);
+    }
+  } catch (e) {}
+}
+
 export function playRestCompleteSound() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -60,6 +98,8 @@ export async function updateRestNotificationBar(remainingSeconds, isFinished = f
   if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
   if (Notification.permission !== 'granted') return;
 
+  const iconUrl = getNotificationIcon();
+
   try {
     const reg = await navigator.serviceWorker.ready;
 
@@ -71,8 +111,8 @@ export async function updateRestNotificationBar(remainingSeconds, isFinished = f
       // Show Rest Completed notification with time FIRST (00:00)
       reg.showNotification('00:00 - Rest Time Over! 🔔', {
         body: exerciseName ? `Time for your next set of ${exerciseName}! 🏋️` : 'Time to start your next set! 🏋️',
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
+        icon: iconUrl,
+        badge: iconUrl,
         tag: 'rest-timer-finished',
         renotify: true,
         vibrate: [200, 100, 200, 100, 200, 100, 300],
@@ -92,8 +132,8 @@ export async function updateRestNotificationBar(remainingSeconds, isFinished = f
 
     reg.showNotification(`${formatted} - Rest Timer ⏱️`, {
       body: exerciseName ? `Next set: ${exerciseName}` : 'Resting between sets...',
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
+      icon: iconUrl,
+      badge: iconUrl,
       tag: 'rest-timer-active',
       silent: true,
       renotify: false,

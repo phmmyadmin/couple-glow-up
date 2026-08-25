@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import { getNotificationIcon } from '../../../lib/rest-timer-notifications';
 
 export async function fetchFeedEventsFromSupabase() {
   if (!supabase) return [];
@@ -73,22 +74,23 @@ export function subscribeToFeedEvents(onChange) {
             if ('Notification' in window && Notification.permission === 'granted') {
               const title = newEv.title || 'Couple Glow Up ✨';
               const body = newEv.description || 'New feed update';
+              const iconUrl = getNotificationIcon();
 
               if (navigator.serviceWorker) {
                 navigator.serviceWorker.ready.then((reg) => {
                   reg.showNotification(title, {
                     body,
-                    icon: '/favicon.svg',
-                    badge: '/favicon.svg',
+                    icon: iconUrl,
+                    badge: iconUrl,
                     tag: `feed-${newEv.id}`,
                     vibrate: [100, 50, 100],
                     data: { url: './' },
                   });
                 }).catch(() => {
-                  new Notification(title, { body, icon: '/favicon.svg' });
+                  new Notification(title, { body, icon: iconUrl });
                 });
               } else {
-                new Notification(title, { body, icon: '/favicon.svg' });
+                new Notification(title, { body, icon: iconUrl });
               }
             }
           }

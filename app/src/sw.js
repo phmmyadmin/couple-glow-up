@@ -4,6 +4,15 @@ import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST || []);
 
+// Helper to compute absolute icon URL relative to SW location (safe on subpaths & GitHub Pages)
+function getSwIconUrl() {
+  try {
+    return new URL('./favicon.svg', self.location.href).href;
+  } catch (e) {
+    return './favicon.svg';
+  }
+}
+
 // ── SW REST TIMER BACKGROUND MANAGER ──
 let swRestTimeout = null;
 
@@ -15,19 +24,20 @@ self.addEventListener('message', (event) => {
     if (swRestTimeout) clearTimeout(swRestTimeout);
 
     const delay = Math.max(0, restEndTime - Date.now());
+    const iconUrl = getSwIconUrl();
 
     // 1. Try OS Native Scheduled Notification Trigger (Chrome / Android / W3C standard)
     if ('showTrigger' in Notification.prototype && typeof TimestampTrigger !== 'undefined') {
       try {
         self.registration.showNotification('00:00 - Rest Time Over! 🔔', {
           body: exerciseName ? `Time for your next set of ${exerciseName}! 🏋️` : 'Time for your next set! 🏋️',
-          icon: '/favicon.svg',
-          badge: '/favicon.svg',
+          icon: iconUrl,
+          badge: iconUrl,
           tag: 'rest-timer-finished',
           showTrigger: new TimestampTrigger(restEndTime),
           renotify: true,
           vibrate: [200, 100, 200, 100, 200, 100, 300],
-          data: { url: '/' },
+          data: { url: './' },
           actions: [
             { action: 'open', title: 'Open App 📲' },
             { action: 'dismiss', title: 'Dismiss ✖️' },
@@ -47,12 +57,12 @@ self.addEventListener('message', (event) => {
 
       self.registration.showNotification('00:00 - Rest Time Over! 🔔', {
         body: exerciseName ? `Time for your next set of ${exerciseName}! 🏋️` : 'Time for your next set! 🏋️',
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
+        icon: iconUrl,
+        badge: iconUrl,
         tag: 'rest-timer-finished',
         renotify: true,
         vibrate: [200, 100, 200, 100, 200, 100, 300],
-        data: { url: '/' },
+        data: { url: './' },
         actions: [
           { action: 'open', title: 'Open App 📲' },
           { action: 'dismiss', title: 'Dismiss ✖️' },
@@ -88,14 +98,15 @@ self.addEventListener('push', (event) => {
     data = { body: event.data.text() };
   }
 
+  const iconUrl = getSwIconUrl();
   const title = data.title || 'Couple Glow Up ✨';
   const options = {
     body: data.body || '',
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
+    icon: iconUrl,
+    badge: iconUrl,
     tag: data.tag || 'glowup-notification',
     data: {
-      url: data.url || '/',
+      url: data.url || './',
       event_type: data.event_type || 'general',
     },
     actions: [
@@ -115,26 +126,22 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'dismiss') return;
+  if (event.action === 'dismiss') {
+    return;
+  }
 
-  const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href;
-
+  // Focus existing open tab or open a new one
   event.waitUntil(
-    (async () => {
-      const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-
-      // 1. Try to find and focus an existing window for this origin
-      for (const client of windowClients) {
-        if (client.url && client.url.startsWith(self.location.origin)) {
-          await client.focus();
-          return;
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          return client.focus();
         }
       }
-
-      // 2. If no open window, open a new window with absolute URL
       if (clients.openWindow) {
-        await clients.openWindow(targetUrl);
+        const targetUrl = (event.notification.data && event.notification.data.url) || './';
+        return clients.openWindow(targetUrl);
       }
-    })()
+    })
   );
 });
