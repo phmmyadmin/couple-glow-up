@@ -33,23 +33,45 @@ export async function parseFoodWithGemini(userText) {
 
   const genAI = new GoogleGenerativeAI(apiKey);
 
-  const modelsToTry = [
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-flash-latest',
-    'gemini-flash-lite-latest',
-    'gemini-2.5-flash-lite',
-    'gemini-1.5-flash',
-    'gemini-pro-latest'
+  const candidateConfigs = [
+    {
+      model: 'gemini-3.5-flash',
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+        thinkingConfig: { thinkingBudget: 0 }
+      }
+    },
+    {
+      model: 'gemini-3.5-flash',
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1
+      }
+    },
+    {
+      model: 'gemini-flash-latest',
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1
+      }
+    },
+    {
+      model: 'gemini-3.6-flash',
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1
+      }
+    }
   ];
 
   let lastError = null;
 
-  for (const modelName of modelsToTry) {
+  for (const cfg of candidateConfigs) {
     try {
       const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: { responseMimeType: 'application/json' }
+        model: cfg.model,
+        generationConfig: cfg.generationConfig
       });
 
       const prompt = `
@@ -171,7 +193,7 @@ Return EXCLUSIVELY the strict JSON array:`;
         return parsed;
       }
     } catch (err) {
-      console.warn(`Gemini model ${modelName} failed:`, err);
+      console.warn(`Gemini model ${cfg.model} failed:`, err);
       lastError = err;
     }
   }
