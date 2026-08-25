@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "setup:hooks": "git config core.hooksPath ../.githooks && chmod +x ../.githooks/*",
     "preview": "vite preview"
   },
   "dependencies": {

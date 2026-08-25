@@ -1,0 +1,32 @@
+#!/bin/sh
+
+echo "🚀 [Git Pre-Push Hook] Running automated test suites before pushing..."
+
+# Determine repository root and app directory
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+APP_DIR="$REPO_ROOT/app"
+
+if [ -d "$APP_DIR" ]; then
+  cd "$APP_DIR" || exit 1
+fi
+
+echo "🧪 Running Vitest unit & integration test suites..."
+npm test
+
+TEST_EXIT_CODE=$?
+if [ $TEST_EXIT_CODE -ne 0 ]; then
+  echo "❌ [Git Pre-Push Hook Error] Tests failed (exit code $TEST_EXIT_CODE). Push aborted! Please fix tests before pushing."
+  exit 1
+fi
+
+echo "📦 Running production build verification (npm run build)..."
+npm run build
+
+BUILD_EXIT_CODE=$?
+if [ $BUILD_EXIT_CODE -ne 0 ]; then
+  echo "❌ [Git Pre-Push Hook Error] Build failed (exit code $BUILD_EXIT_CODE). Push aborted!"
+  exit 1
+fi
+
+echo "✅ [Git Pre-Push Hook] All tests and build verification passed! Proceeding with push. 🎉"
+exit 0
