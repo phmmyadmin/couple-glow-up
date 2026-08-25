@@ -54,47 +54,51 @@ function getExerciseInitials(name) {
 }
 
 export default function LiveWorkoutLogger({
-  exercises,
-  workouts = [],
-  onSaveWorkout,
-  onCancel,
-  activeProfile,
   initialRoutine = null,
   initialWorkoutState = null,
+  exercises = [],
+  workouts = [],
+  activeProfile,
+  onSaveWorkout,
+  onCancel,
   onAddCustomExercise,
 }) {
-  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState(null);
-  const [workoutName, setWorkoutName] = useState(() => {
-    return initialWorkoutState?.workoutName || initialRoutine?.name || 'Workout of the Day';
-  });
+  const [workoutName, setWorkoutName] = useState(
+    initialWorkoutState?.workoutName || initialRoutine?.name || 'Quick Workout'
+  );
 
   const startTimeRef = React.useRef(
     initialWorkoutState?.startTime || Date.now()
   );
 
-  const [secondsElapsed, setSecondsElapsed] = useState(() => {
-    if (initialWorkoutState?.startTime) {
-      return Math.max(0, Math.floor((Date.now() - initialWorkoutState.startTime) / 1000));
-    }
-    return initialWorkoutState?.secondsElapsed || 0;
-  });
+  const [secondsElapsed, setSecondsElapsed] = useState(
+    initialWorkoutState?.secondsElapsed || 0
+  );
 
-  const [workoutExercises, setWorkoutExercises] = useState(() => {
-    return initialWorkoutState?.workoutExercises || [];
-  });
+  const [workoutExercises, setWorkoutExercises] = useState(
+    initialWorkoutState?.workoutExercises || []
+  );
 
   const [isSelectingExercise, setIsSelectingExercise] = useState(false);
   const [replaceExerciseIndex, setReplaceExerciseIndex] = useState(null);
-
-  // Context Menu & Reorder Mode & Rest Target Edit States
+  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState(null);
   const [menuExerciseIndex, setMenuExerciseIndex] = useState(null);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [draggedItemIndex, setDraggedItemIndex] = useState(null);
   const [editingRestForExerciseIndex, setEditingRestForExerciseIndex] = useState(null);
 
   // Rest Timer State
-  const [restTimerSeconds, setRestTimerSeconds] = useState(0);
-  const [isRestTimerActive, setIsRestTimerActive] = useState(false);
+  const [isRestTimerActive, setIsRestTimerActive] = useState(() => {
+    return Boolean(initialWorkoutState?.restEndTime && initialWorkoutState.restEndTime > Date.now());
+  });
+
+  const [restTimerSeconds, setRestTimerSeconds] = useState(() => {
+    if (initialWorkoutState?.restEndTime && initialWorkoutState.restEndTime > Date.now()) {
+      return Math.max(0, Math.ceil((initialWorkoutState.restEndTime - Date.now()) / 1000));
+    }
+    return 0;
+  });
+
   const [defaultRestSeconds, setDefaultRestSeconds] = useState(90);
 
   const restEndTimeRef = React.useRef(
@@ -120,11 +124,14 @@ export default function LiveWorkoutLogger({
 
         // Find active exercise name for notification context
         const currentExName = workoutExercises[0]?.exercise?.name || workoutExercises[0]?.exercise?.name_es || '';
-        updateRestNotificationBar(remaining, remaining <= 0, currentExName);
 
         if (remaining <= 0) {
           setIsRestTimerActive(false);
           restEndTimeRef.current = null;
+          playRestCompleteSound();
+          updateRestNotificationBar(0, true, currentExName);
+        } else {
+          updateRestNotificationBar(remaining, false, currentExName);
         }
       }
     };
@@ -163,33 +170,44 @@ export default function LiveWorkoutLogger({
     }
   }, [workoutName, secondsElapsed, workoutExercises, initialRoutine]);
 
-  const startRestTimer = (seconds = defaultRestSeconds) => {
-    if (seconds <= 0) {
+  const startRestTimer = (seconds = defaultRestSeconds, exerciseName = '') => {
+    const secNum = parseInt(seconds, 10);
+    if (isNaN(secNum) || secNum <= 0) {
       setIsRestTimerActive(false);
       restEndTimeRef.current = null;
       setRestTimerSeconds(0);
       clearRestNotificationBar();
       return;
     }
-    const endTime = Date.now() + seconds * 1000;
+    const endTime = Date.now() + secNum * 1000;
     restEndTimeRef.current = endTime;
-    setRestTimerSeconds(seconds);
+    setRestTimerSeconds(secNum);
     setIsRestTimerActive(true);
-    const currentExName = workoutExercises[0]?.exercise?.name || workoutExercises[0]?.exercise?.name_es || '';
+    const currentExName = exerciseName || workoutExercises[0]?.exercise?.name || workoutExercises[0]?.exercise?.name_es || '';
     startBackgroundRestTimer(endTime, currentExName);
   };
 
-  const handleAdd30sRest = () => {
-    if (restEndTimeRef.current) {
-      restEndTimeRef.current += 30 * 1000;
+  const handleAdd30sRest = (deltaSeconds = 30) => {
+    const now = Date.now();
+    let currentEndTime = restEndTimeRef.current;
+    if (!currentEndTime || currentEndTime < now) {
+      currentEndTime = now + Math.max(10, deltaSeconds) * 1000;
     } else {
-      restEndTimeRef.current = Date.now() + 30 * 1000;
+      currentEndTime += deltaSeconds * 1000;
     }
-    const remaining = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+    const remaining = Math.max(0, Math.ceil((currentEndTime - now) / 1000));
+    if (remaining <= 0) {
+      setIsRestTimerActive(false);
+      restEndTimeRef.current = null;
+      setRestTimerSeconds(0);
+      clearRestNotificationBar();
+      return;
+    }
+    restEndTimeRef.current = currentEndTime;
     setRestTimerSeconds(remaining);
     setIsRestTimerActive(true);
     const currentExName = workoutExercises[0]?.exercise?.name || workoutExercises[0]?.exercise?.name_es || '';
-    startBackgroundRestTimer(restEndTimeRef.current, currentExName);
+    startBackgroundRestTimer(currentEndTime, currentExName);
   };
 
   const formatTimer = (totalSec) => {
@@ -645,42 +663,50 @@ export default function LiveWorkoutLogger({
 
   const handleToggleCheckSet = (exIndex, setIndex) => {
     const item = workoutExercises[exIndex];
-    const isDistanceDuration = item.exercise.exercise_type === 'distance_duration';
-    const isDurationOnly = item.exercise.exercise_type === 'duration_only';
+    if (!item) return;
+    const isDistanceDuration = item.exercise?.exercise_type === 'distance_duration';
+    const isDurationOnly = item.exercise?.exercise_type === 'duration_only';
+
+    const currentSet = item.sets[setIndex];
+    const willBeChecked = !currentSet?.is_checked;
 
     setWorkoutExercises((prev) => {
-      return prev.map((item, idx) => {
+      return prev.map((exItem, idx) => {
         if (idx === exIndex) {
-          const updatedSets = item.sets.map((s, sIdx) => {
+          const updatedSets = exItem.sets.map((s, sIdx) => {
             if (sIdx === setIndex) {
-              const newChecked = !s.is_checked;
-              const updated = { ...s, is_checked: newChecked };
+              const updated = { ...s, is_checked: willBeChecked };
 
-              // Trigger rest timer only when checking the set as completed
-              if (newChecked && !isDistanceDuration && !isDurationOnly) {
-                // If set was checked without typing values, auto-fill from previous performance or 0
+              // Auto-fill from previous performance if blank when checking set
+              if (willBeChecked && !isDistanceDuration && !isDurationOnly) {
                 if (s.weight_kg === undefined || s.weight_kg === null || s.weight_kg === '') {
-                  const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
+                  const lastPerf = exItem.lastPerformance || getLastPerformanceForExercise(exItem.exercise, workouts, exercises);
                   const prevSet = lastPerf?.sets?.[setIndex] || lastPerf?.sets?.[0];
-                  if (prevSet?.weight_kg) updated.weight_kg = prevSet.weight_kg;
+                  if (prevSet?.weight_kg !== undefined && prevSet?.weight_kg !== '') updated.weight_kg = prevSet.weight_kg;
                 }
                 if (s.reps === undefined || s.reps === null || s.reps === '') {
-                  const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
+                  const lastPerf = exItem.lastPerformance || getLastPerformanceForExercise(exItem.exercise, workouts, exercises);
                   const prevSet = lastPerf?.sets?.[setIndex] || lastPerf?.sets?.[0];
-                  if (prevSet?.reps) updated.reps = prevSet.reps;
+                  if (prevSet?.reps !== undefined && prevSet?.reps !== '') updated.reps = prevSet.reps;
                 }
-
-                startRestTimer(item.rest_seconds || defaultRestSeconds || 90);
               }
               return updated;
             }
             return s;
           });
-          return { ...item, sets: updatedSets };
+          return { ...exItem, sets: updatedSets };
         }
-        return item;
+        return exItem;
       });
     });
+
+    // Start rest timer if checking set as completed
+    if (willBeChecked && !isDistanceDuration && !isDurationOnly) {
+      const restSec = item.rest_seconds !== undefined ? item.rest_seconds : (defaultRestSeconds || 90);
+      if (restSec > 0) {
+        startRestTimer(restSec, item.exercise?.name || item.exercise?.name_es || '');
+      }
+    }
   };
 
   const handleCancelWorkout = () => {
@@ -786,18 +812,34 @@ export default function LiveWorkoutLogger({
                   <span className="font-mono font-extrabold text-sm sm:text-base text-indigo-700">{formatTimer(restTimerSeconds)}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 border-l border-slate-200 pl-2.5 shrink-0">
+              <div className="flex items-center gap-1.5 border-l border-slate-200 pl-2.5 shrink-0">
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="py-1 px-2.5 text-xs font-bold"
-                  onClick={handleAdd30sRest}
+                  className="py-1 px-2 text-xs font-bold"
+                  onClick={() => handleAdd30sRest(-15)}
+                  title="Subtract 15 seconds"
+                >
+                  -15s
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="py-1 px-2 text-xs font-bold"
+                  onClick={() => handleAdd30sRest(30)}
+                  title="Add 30 seconds"
                 >
                   +30s
                 </Button>
                 <button
-                  onClick={() => setIsRestTimerActive(false)}
-                  className="p-1 text-slate-400 hover:text-slate-700"
+                  type="button"
+                  onClick={() => {
+                    setIsRestTimerActive(false);
+                    restEndTimeRef.current = null;
+                    setRestTimerSeconds(0);
+                    clearRestNotificationBar();
+                  }}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                   aria-label="Dismiss rest timer"
                 >
                   <X className="w-4 h-4" />
@@ -1131,12 +1173,13 @@ export default function LiveWorkoutLogger({
                             <div className="col-span-1 flex justify-center">
                               <button
                                 type="button"
-                                onClick={() => handleUpdateSetField(exIdx, setIdx, 'is_checked', !set.is_checked)}
-                                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center transition-all ${
+                                onClick={() => handleToggleCheckSet(exIdx, setIdx)}
+                                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
                                   set.is_checked
                                     ? 'bg-emerald-500 text-white shadow-2xs scale-105'
-                                    : 'bg-slate-100 border border-slate-200 text-slate-400 hover:border-slate-300'
+                                    : 'bg-slate-100 border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600'
                                 }`}
+                                title={set.is_checked ? 'Mark as incomplete' : 'Complete set & start rest timer'}
                               >
                                 <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
                               </button>

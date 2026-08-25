@@ -1,26 +1,32 @@
-let silentAudioCtx = null;
-
-function enableWebAudioKeepAlive() {
+export function playRestCompleteSound() {
   try {
-    if (!silentAudioCtx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        silentAudioCtx = new AudioCtx();
-      }
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const playBeep = (freq, startTime, duration) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.18, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+      const now = ctx.currentTime;
+      playBeep(880, now, 0.15); // A5
+      playBeep(880, now + 0.2, 0.15); // A5
+      playBeep(1174.66, now + 0.4, 0.35); // D6
     }
-    if (silentAudioCtx && silentAudioCtx.state === 'suspended') {
-      silentAudioCtx.resume();
+  } catch (e) {}
+
+  try {
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200, 100, 300]);
     }
-    if (silentAudioCtx) {
-      const buffer = silentAudioCtx.createBuffer(1, 1, 22050);
-      const source = silentAudioCtx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(silentAudioCtx.destination);
-      source.start(0);
-    }
-  } catch (e) {
-    // Ignore audio context errors
-  }
+  } catch (e) {}
 }
 
 export async function startBackgroundRestTimer(restEndTime, exerciseName = '') {

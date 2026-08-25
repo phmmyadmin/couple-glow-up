@@ -182,6 +182,7 @@ export default function App() {
   });
 
   const [floatingSeconds, setFloatingSeconds] = useState(0);
+  const [floatingRestSeconds, setFloatingRestSeconds] = useState(0);
 
   useEffect(() => {
     const updateActiveWorkout = () => {
@@ -207,6 +208,13 @@ export default function App() {
       const updateTimer = () => {
         const secs = Math.floor((Date.now() - activeWorkoutData.startTime) / 1000);
         setFloatingSeconds(Math.max(0, secs));
+
+        if (activeWorkoutData?.restEndTime) {
+          const rem = Math.max(0, Math.ceil((activeWorkoutData.restEndTime - Date.now()) / 1000));
+          setFloatingRestSeconds(rem);
+        } else {
+          setFloatingRestSeconds(0);
+        }
       };
       updateTimer();
       interval = setInterval(updateTimer, 1000);
@@ -324,8 +332,18 @@ export default function App() {
               <div className="text-xs font-bold truncate text-slate-100">
                 {activeWorkoutData.workoutName || 'Active Workout'}
               </div>
-              <div className="text-[11px] font-mono font-bold text-emerald-400">
-                ⏱️ {Math.floor(floatingSeconds / 60).toString().padStart(2, '0')}:{(floatingSeconds % 60).toString().padStart(2, '0')} • {activeWorkoutData.workoutExercises?.length || 0} exercises
+              <div className="flex items-center gap-2 text-[11px] font-mono font-bold">
+                <span className="text-emerald-400">
+                  ⏱️ {Math.floor(floatingSeconds / 60).toString().padStart(2, '0')}:{(floatingSeconds % 60).toString().padStart(2, '0')}
+                </span>
+                {floatingRestSeconds > 0 && (
+                  <span className="bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.2 rounded-md animate-pulse">
+                    Rest: {Math.floor(floatingRestSeconds / 60).toString().padStart(2, '0')}:{(floatingRestSeconds % 60).toString().padStart(2, '0')}
+                  </span>
+                )}
+                <span className="text-slate-400">
+                  • {activeWorkoutData.workoutExercises?.length || 0} exercises
+                </span>
               </div>
             </div>
           </div>
