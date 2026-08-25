@@ -4,6 +4,7 @@ import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
 import { calculate1RM, doesSetMatchExercise } from '../lib/supabase-gym';
+import { getExerciseMedia } from '../lib/exercise-media';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 
 const MUSCLE_GROUPS = [
@@ -419,17 +420,31 @@ export default function ExerciseLibrary({
               if (exercise.exercise_type === 'duration_only') typeLabel = 'Duration';
               if (exercise.exercise_type === 'distance_duration') typeLabel = 'Distance & Time';
 
+              const media = getExerciseMedia(exercise.name || exercise.name_es);
+
               return (
                 <Card
                   key={exercise.id}
                   className="p-4 sm:p-5 space-y-3 hover:border-indigo-200 transition-all cursor-pointer group shadow-2xs"
                   onClick={() => onSelectExercise && onSelectExercise(exercise)}
                 >
-                  {/* Top Row: Dumbbell Icon + Full Width Name + Action Buttons */}
+                  {/* Top Row: Exercise Thumbnail/Icon + Full Width Name + Action Buttons */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all mt-0.5">
-                        <Dumbbell className="w-5 h-5" />
+                      <div className="w-11 h-11 rounded-xl bg-indigo-50/80 border border-indigo-100/90 flex items-center justify-center overflow-hidden shrink-0 mt-0.5 shadow-2xs group-hover:border-indigo-300 transition-all">
+                        {media?.imgUrl ? (
+                          <img
+                            src={media.imgUrl}
+                            alt={exercise.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <Dumbbell className="w-5 h-5 text-indigo-600" />
+                        )}
                       </div>
                       <div className="space-y-0.5 flex-1 min-w-0">
                         <h4 className="text-base sm:text-lg font-bold text-slate-900 leading-snug break-words">

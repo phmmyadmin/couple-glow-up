@@ -14,6 +14,7 @@ import {
 import { updateRestNotificationBar, clearRestNotificationBar, startBackgroundRestTimer } from '../../../lib/rest-timer-notifications';
 import ExerciseLibrary, { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
+import { getExerciseMedia } from '../lib/exercise-media';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input } from '../../../shared/ui/Input';
@@ -899,18 +900,32 @@ export default function LiveWorkoutLogger({
                 const restSecs = item.rest_seconds !== undefined ? item.rest_seconds : 90;
                 const lastPerf = item.lastPerformance || getLastPerformanceForExercise(item.exercise, workouts, exercises);
 
+                const media = getExerciseMedia(exName);
+
                 return (
                   <Card key={item.id} className="p-4 sm:p-5 space-y-4 shadow-xs border-slate-200/90">
                     {/* Hevy Exercise Header Row */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {/* Circular Initials Avatar Badge */}
+                        {/* Circular Media / Initials Avatar Badge */}
                         <div
                           onClick={() => setSelectedExerciseForHistory(item.exercise)}
-                          className="w-10 h-10 rounded-full bg-slate-200/80 border border-slate-300/60 text-slate-700 font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-2xs font-mono cursor-pointer hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
-                          title="Click to open Exercise History & Analytics"
+                          className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200/80 text-slate-700 font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-2xs font-mono cursor-pointer hover:border-indigo-300 overflow-hidden transition-all group"
+                          title="Click to view technique GIF & history"
                         >
-                          {initials}
+                          {media?.imgUrl ? (
+                            <img
+                              src={media.imgUrl}
+                              alt={exName}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <span>{initials}</span>
+                          )}
                         </div>
 
                         <div className="space-y-1 flex-1 min-w-0">

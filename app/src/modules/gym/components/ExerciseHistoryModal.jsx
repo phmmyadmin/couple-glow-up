@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Dumbbell, TrendingUp, Trophy, Calendar, ExternalLink } from 'lucide-react';
+import { X, Dumbbell, TrendingUp, Trophy, Calendar, ExternalLink, Play, Pause, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import Card from '../../../shared/ui/Card';
 import { doesSetMatchExercise, formatExerciseName } from '../lib/supabase-gym';
+import { getExerciseMedia } from '../lib/exercise-media';
 import { getMuscleGroupLabel } from './ExerciseLibrary';
 
 export default function ExerciseHistoryModal({
@@ -13,6 +14,8 @@ export default function ExerciseHistoryModal({
 }) {
   const [chartMetric, setChartMetric] = useState('max'); // 'max' or 'volume'
   const [hoveredPointIdx, setHoveredPointIdx] = useState(null);
+  const [isPlayingGif, setIsPlayingGif] = useState(true);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -227,6 +230,78 @@ export default function ExerciseHistoryModal({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Technique GIF & Instruction Guide Card */}
+        {(() => {
+          const media = getExerciseMedia(targetEx.name || targetEx.name_es || exercise.name);
+          if (!media || (!media.gifUrl && !media.imgUrl)) return null;
+
+          return (
+            <div className="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-3 sm:p-4 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                  <span>🎬</span> Technique Demonstration
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsPlayingGif((p) => !p)}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-white px-2 py-0.5 rounded-lg border border-slate-200 shadow-2xs cursor-pointer"
+                >
+                  {isPlayingGif ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                  <span>{isPlayingGif ? 'Pause GIF' : 'Play GIF'}</span>
+                </button>
+              </div>
+
+              {/* Centered Media Box */}
+              <div
+                className="relative rounded-xl overflow-hidden bg-slate-900/5 flex items-center justify-center max-h-56 cursor-pointer border border-slate-200/80 shadow-inner group"
+                onClick={() => setIsPlayingGif((p) => !p)}
+              >
+                <img
+                  src={isPlayingGif ? media.gifUrl : media.imgUrl}
+                  alt={targetEx.name}
+                  className="max-h-56 w-auto object-contain mx-auto transition-transform group-hover:scale-102 duration-300"
+                  loading="lazy"
+                />
+                <span className="absolute bottom-2 right-2 bg-slate-900/70 backdrop-blur-md text-white text-[10px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1">
+                  {isPlayingGif ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
+                  <span>Tap to toggle</span>
+                </span>
+              </div>
+
+              {/* Collapsible Step-by-Step Instructions */}
+              {Array.isArray(media.instructions) && media.instructions.length > 0 && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowInstructions((s) => !s)}
+                    className="w-full flex items-center justify-between text-xs font-bold text-slate-700 hover:text-slate-900 py-1 cursor-pointer"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Form & Execution Steps ({media.instructions.length})</span>
+                    </span>
+                    {showInstructions ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+
+                  {showInstructions && (
+                    <ol className="mt-2 space-y-1.5 text-xs text-slate-600 pl-4 list-decimal marker:text-indigo-600 marker:font-bold border-t border-slate-200/60 pt-2 animate-fadeIn">
+                      {media.instructions.map((step, sIdx) => (
+                        <li key={sIdx} className="leading-relaxed">
+                          {step}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Overview Key Metrics Grid */}
         <div className="grid grid-cols-3 gap-3">

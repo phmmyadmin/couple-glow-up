@@ -1,5 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Card from '../../../shared/ui/Card';
+import BODY_PATHS from '../lib/body-paths';
+
+const INERT_PARTS = new Set(['head', 'hair', 'neck', 'hands', 'knees', 'tibialis', 'ankles', 'feet']);
+
+const MUSCLE_NAMES = {
+  chest: 'Chest',
+  deltoids: 'Shoulders',
+  biceps: 'Biceps',
+  triceps: 'Triceps',
+  abs: 'Abs / Core',
+  obliques: 'Obliques',
+  serratus: 'Serratus',
+  'hip-flexors': 'Hip Flexors',
+  'upper-back': 'Upper Back / Lats',
+  trapezius: 'Traps',
+  'lower-back': 'Lower Back',
+  quadriceps: 'Quadriceps',
+  adductors: 'Adductors',
+  hamstring: 'Hamstrings',
+  gluteal: 'Glutes',
+  calves: 'Calves',
+  forearm: 'Forearms',
+};
 
 export default function MuscleBodyHeatmap({
   activeMuscles = [],
@@ -7,188 +30,154 @@ export default function MuscleBodyHeatmap({
   title = 'Muscles Worked',
   hideHeader = false,
 }) {
-  // Normalize active muscle strings
+  const [selectedGender, setSelectedGender] = useState('male'); // 'male' | 'female'
+  const [hoveredMuscle, setHoveredMuscle] = useState(null);
+
+  // Normalize active muscles
   const activeSet = new Set(activeMuscles.map((m) => String(m).toLowerCase().trim()));
 
-  const isMuscleActive = (muscleKey) => {
-    if (activeSet.has(muscleKey)) return true;
-
-    // Abs / Core / Abdominals mapping
-    if (
-      muscleKey === 'abs' &&
-      (activeSet.has('abdominals') ||
-        activeSet.has('abs') ||
-        activeSet.has('abdominales') ||
-        activeSet.has('core') ||
-        activeSet.has('abdominal') ||
-        activeSet.has('obliques') ||
-        activeSet.has('oblicuos'))
-    ) {
-      return true;
-    }
-
-    // Chest mapping
-    if (
-      muscleKey === 'chest' &&
-      (activeSet.has('pecs') || activeSet.has('pecho') || activeSet.has('pectoral') || activeSet.has('pectorales'))
-    ) {
-      return true;
-    }
-
-    // Shoulders mapping
-    if (
-      muscleKey === 'shoulders' &&
-      (activeSet.has('delts') || activeSet.has('shoulder') || activeSet.has('hombro') || activeSet.has('hombros') || activeSet.has('deltoides'))
-    ) {
-      return true;
-    }
-
-    // Biceps mapping
-    if (muscleKey === 'biceps' && (activeSet.has('bicep') || activeSet.has('brazo') || activeSet.has('arms'))) {
-      return true;
-    }
-
-    // Triceps mapping
-    if (muscleKey === 'triceps' && (activeSet.has('tricep') || activeSet.has('brazo') || activeSet.has('arms'))) {
-      return true;
-    }
-
-    // Forearms mapping
-    if (muscleKey === 'forearms' && (activeSet.has('forearm') || activeSet.has('antebrazo') || activeSet.has('antebrazos'))) {
-      return true;
-    }
-
-    // Quads mapping
-    if (
-      muscleKey === 'quadriceps' &&
-      (activeSet.has('quads') || activeSet.has('quad') || activeSet.has('cuadriceps') || activeSet.has('cuádriceps') || activeSet.has('legs') || activeSet.has('piernas'))
-    ) {
-      return true;
-    }
-
-    // Hamstrings mapping
-    if (
-      muscleKey === 'hamstrings' &&
-      (activeSet.has('hamstring') || activeSet.has('isquios') || activeSet.has('isquiotibiales') || activeSet.has('femoral') || activeSet.has('legs') || activeSet.has('piernas'))
-    ) {
-      return true;
-    }
-
-    // Glutes mapping
-    if (
-      muscleKey === 'glutes' &&
-      (activeSet.has('glute') || activeSet.has('gluteos') || activeSet.has('glúteos') || activeSet.has('gluteo') || activeSet.has('legs') || activeSet.has('piernas'))
-    ) {
-      return true;
-    }
-
-    // Calves mapping
-    if (
-      muscleKey === 'calves' &&
-      (activeSet.has('calf') || activeSet.has('gemelos') || activeSet.has('pantorrillas') || activeSet.has('legs') || activeSet.has('piernas'))
-    ) {
-      return true;
-    }
-
-    // Lats mapping
-    if (
-      muscleKey === 'lats' &&
-      (activeSet.has('lat') || activeSet.has('dorsal') || activeSet.has('dorsales') || activeSet.has('back') || activeSet.has('espalda'))
-    ) {
-      return true;
-    }
-
-    // Upper Back mapping
-    if (
-      muscleKey === 'upper_back' &&
-      (activeSet.has('upper back') || activeSet.has('traps') || activeSet.has('trapecio') || activeSet.has('trapecios') || activeSet.has('back') || activeSet.has('espalda'))
-    ) {
-      return true;
-    }
-
-    // Lower Back mapping
-    if (
-      muscleKey === 'lower_back' &&
-      (activeSet.has('lower back') || activeSet.has('lumbar') || activeSet.has('lumbares') || activeSet.has('back') || activeSet.has('espalda'))
-    ) {
-      return true;
-    }
-
-    return false;
-  };
-
-  // Resolve set volume for a given SVG muscle key
-  const getSetsForMuscleKey = (muscleKey) => {
+  const getSetsForSlug = (slug) => {
     if (!muscleVolumeMap) {
-      return isMuscleActive(muscleKey) ? 5 : 0;
+      if (slug === 'chest' && (activeSet.has('chest') || activeSet.has('pecho'))) return 4;
+      if (slug === 'deltoids' && (activeSet.has('shoulders') || activeSet.has('delts') || activeSet.has('hombros'))) return 4;
+      if (slug === 'biceps' && (activeSet.has('biceps') || activeSet.has('bicep') || activeSet.has('arms'))) return 4;
+      if (slug === 'triceps' && (activeSet.has('triceps') || activeSet.has('tricep') || activeSet.has('arms'))) return 4;
+      if (slug === 'quadriceps' && (activeSet.has('quads') || activeSet.has('quadriceps') || activeSet.has('legs'))) return 4;
+      if (slug === 'hamstring' && (activeSet.has('hamstrings') || activeSet.has('isquios') || activeSet.has('legs'))) return 4;
+      if (slug === 'gluteal' && (activeSet.has('glutes') || activeSet.has('gluteos') || activeSet.has('legs'))) return 4;
+      if (slug === 'calves' && (activeSet.has('calves') || activeSet.has('gemelos') || activeSet.has('legs'))) return 4;
+      if ((slug === 'upper-back' || slug === 'trapezius' || slug === 'lower-back') && (activeSet.has('back') || activeSet.has('lats') || activeSet.has('espalda'))) return 4;
+      if ((slug === 'abs' || slug === 'obliques') && (activeSet.has('abs') || activeSet.has('core'))) return 4;
+      return 0;
     }
 
-    if (muscleKey === 'chest') return muscleVolumeMap.chest || 0;
-    if (muscleKey === 'shoulders') return muscleVolumeMap.shoulders || 0;
-    if (muscleKey === 'biceps') return muscleVolumeMap.biceps || 0;
-    if (muscleKey === 'triceps') return muscleVolumeMap.triceps || 0;
-    if (muscleKey === 'abs') return muscleVolumeMap.abs || 0;
-    if (muscleKey === 'quadriceps') return muscleVolumeMap.quads || 0;
-    if (muscleKey === 'hamstrings') return muscleVolumeMap.hamstrings || 0;
-    if (muscleKey === 'glutes') return muscleVolumeMap.glutes || 0;
-    if (muscleKey === 'calves') return muscleVolumeMap.calves || 0;
-    if (muscleKey === 'lats' || muscleKey === 'upper_back' || muscleKey === 'lower_back') {
+    if (slug === 'chest') return muscleVolumeMap.chest || 0;
+    if (slug === 'deltoids') return muscleVolumeMap.shoulders || 0;
+    if (slug === 'biceps') return muscleVolumeMap.biceps || 0;
+    if (slug === 'triceps') return muscleVolumeMap.triceps || 0;
+    if (slug === 'abs' || slug === 'obliques' || slug === 'serratus' || slug === 'hip-flexors') {
+      return muscleVolumeMap.abs || 0;
+    }
+    if (slug === 'quadriceps' || slug === 'adductors') return muscleVolumeMap.quads || 0;
+    if (slug === 'hamstring') return muscleVolumeMap.hamstrings || 0;
+    if (slug === 'gluteal') return muscleVolumeMap.glutes || 0;
+    if (slug === 'calves') return muscleVolumeMap.calves || 0;
+    if (slug === 'upper-back' || slug === 'trapezius' || slug === 'lower-back') {
       return muscleVolumeMap.back || 0;
     }
-    if (muscleKey === 'forearms') return (muscleVolumeMap.biceps || 0) * 0.5;
+    if (slug === 'forearm') return Math.round((muscleVolumeMap.biceps || 0) * 0.5);
 
     return 0;
   };
 
-  const getStyle = (muscleKey) => {
-    const sets = getSetsForMuscleKey(muscleKey);
+  const getStyleForSlug = (slug) => {
+    if (INERT_PARTS.has(slug)) {
+      return {
+        fill: '#f1f5f9',
+        stroke: '#cbd5e1',
+        strokeWidth: 0.75,
+      };
+    }
+
+    const sets = getSetsForSlug(slug);
 
     if (sets <= 0) {
       return {
-        fill: '#e2e8f0', // Inactive light slate
+        fill: '#e2e8f0',
         stroke: '#cbd5e1',
-        strokeWidth: 1,
-        transition: 'all 0.3s ease',
+        strokeWidth: 0.8,
+        cursor: 'pointer',
+        transition: 'all 0.25s ease',
       };
     }
 
     if (sets <= 3) {
-      // Low Volume (1-3 sets) -> Light Sky Blue
+      // 1-3 sets: Light Blue
       return {
         fill: '#93c5fd',
         stroke: '#3b82f6',
-        strokeWidth: 1.2,
-        transition: 'all 0.3s ease',
+        strokeWidth: 1.0,
+        cursor: 'pointer',
+        transition: 'all 0.25s ease',
       };
     }
 
     if (sets <= 6) {
-      // Moderate Volume (4-6 sets) -> Vibrant Royal Blue
+      // 4-6 sets: Vibrant Blue
       return {
         fill: '#3b82f6',
         stroke: '#1d4ed8',
-        strokeWidth: 1.5,
-        transition: 'all 0.3s ease',
+        strokeWidth: 1.2,
+        cursor: 'pointer',
+        transition: 'all 0.25s ease',
       };
     }
 
     if (sets <= 10) {
-      // High Volume (7-10 sets) -> Deep Blue
+      // 7-10 sets: Deep Blue
       return {
         fill: '#1d4ed8',
         stroke: '#1e40af',
-        strokeWidth: 1.8,
-        transition: 'all 0.3s ease',
+        strokeWidth: 1.4,
+        cursor: 'pointer',
+        transition: 'all 0.25s ease',
       };
     }
 
-    // Max Volume (10+ sets) -> Electric Indigo/Purple
+    // 10+ sets: Indigo / Royal
     return {
       fill: '#4338ca',
       stroke: '#312e81',
-      strokeWidth: 2.0,
-      transition: 'all 0.3s ease',
+      strokeWidth: 1.6,
+      cursor: 'pointer',
+      transition: 'all 0.25s ease',
     };
+  };
+
+  const modelData = BODY_PATHS?.[selectedGender] || BODY_PATHS?.male;
+  const frontView = modelData?.front;
+  const backView = modelData?.back;
+
+  const renderView = (view, label) => {
+    if (!view) return null;
+    return (
+      <div className="flex flex-col items-center flex-1">
+        <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-1">
+          {label}
+        </span>
+        <svg
+          viewBox={view.vb}
+          className="w-full max-h-[280px] drop-shadow-2xs select-none"
+          role="img"
+        >
+          {Object.entries(view.p || {}).map(([slug, paths]) =>
+            (paths || []).map((d, idx) => {
+              const style = getStyleForSlug(slug);
+              const isHovered = hoveredMuscle === slug;
+              const sets = getSetsForSlug(slug);
+              const name = MUSCLE_NAMES[slug] || slug;
+
+              return (
+                <path
+                  key={`${slug}-${idx}`}
+                  d={d}
+                  style={{
+                    ...style,
+                    ...(isHovered && !INERT_PARTS.has(slug)
+                      ? { fill: '#6366f1', stroke: '#4338ca', strokeWidth: 2, filter: 'drop-shadow(0 2px 4px rgba(99,102,241,0.4))' }
+                      : {}),
+                  }}
+                  onMouseEnter={() => !INERT_PARTS.has(slug) && setHoveredMuscle(slug)}
+                  onMouseLeave={() => setHoveredMuscle(null)}
+                >
+                  <title>{!INERT_PARTS.has(slug) ? `${name}: ${sets} set(s)` : ''}</title>
+                </path>
+              );
+            })
+          )}
+        </svg>
+      </div>
+    );
   };
 
   const content = (
@@ -199,132 +188,69 @@ export default function MuscleBodyHeatmap({
             <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
             <span>{title}</span>
           </h4>
-          <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100 uppercase">
-            {activeSet.size} Group{activeSet.size !== 1 ? 's' : ''}
-          </span>
+          <div className="flex bg-slate-100 p-0.5 rounded-lg text-xs font-bold text-slate-600">
+            <button
+              type="button"
+              onClick={() => setSelectedGender('male')}
+              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                selectedGender === 'male' ? 'bg-white text-indigo-700 shadow-2xs font-extrabold' : 'hover:text-slate-900'
+              }`}
+            >
+              Male
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedGender('female')}
+              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                selectedGender === 'female' ? 'bg-white text-indigo-700 shadow-2xs font-extrabold' : 'hover:text-slate-900'
+              }`}
+            >
+              Female
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Front & Back Anatomical Silhouettes */}
-      <div className="flex items-center justify-center gap-6 py-2">
-        {/* FRONT VIEW */}
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Front</span>
-          <svg viewBox="0 0 100 200" className="w-24 h-48 sm:w-28 sm:h-52 drop-shadow-2xs">
-            {/* Head */}
-            <circle cx="50" cy="18" r="10" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1" />
-            {/* Neck */}
-            <rect x="47" y="27" width="6" height="7" rx="2" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1" />
-
-            {/* Shoulders (Deltoids) */}
-            <path d="M 31 34 Q 25 36 24 45 Q 31 43 33 37 Z" style={getStyle('shoulders')} />
-            <path d="M 69 34 Q 75 36 76 45 Q 69 43 67 37 Z" style={getStyle('shoulders')} />
-
-            {/* Chest (Pectorals) */}
-            <path d="M 34 37 Q 50 39 50 54 Q 35 54 34 37 Z" style={getStyle('chest')} />
-            <path d="M 66 37 Q 50 39 50 54 Q 65 54 66 37 Z" style={getStyle('chest')} />
-
-            {/* Biceps */}
-            <path d="M 23 46 Q 21 58 26 64 Q 30 58 29 47 Z" style={getStyle('biceps')} />
-            <path d="M 77 46 Q 79 58 74 64 Q 70 58 71 47 Z" style={getStyle('biceps')} />
-
-            {/* Forearms */}
-            <path d="M 25 66 Q 20 80 23 92 Q 27 88 28 67 Z" style={getStyle('forearms')} />
-            <path d="M 75 66 Q 80 80 77 92 Q 73 88 72 67 Z" style={getStyle('forearms')} />
-
-            {/* Abs / Core (6-pack & obliques grid) */}
-            <g style={{ transition: 'all 0.3s ease' }}>
-              {/* Upper Abs */}
-              <rect x="41" y="56" width="8" height="9" rx="2" style={getStyle('abs')} />
-              <rect x="51" y="56" width="8" height="9" rx="2" style={getStyle('abs')} />
-              {/* Mid Abs */}
-              <rect x="41" y="67" width="8" height="9" rx="2" style={getStyle('abs')} />
-              <rect x="51" y="67" width="8" height="9" rx="2" style={getStyle('abs')} />
-              {/* Lower Abs */}
-              <path d="M 41 78 L 49 78 L 47 88 L 42 88 Z" style={getStyle('abs')} />
-              <path d="M 51 78 L 59 78 L 58 88 L 53 88 Z" style={getStyle('abs')} />
-              {/* Obliques */}
-              <path d="M 35 56 L 39 56 L 39 86 L 37 86 Z" style={getStyle('abs')} />
-              <path d="M 61 56 L 65 56 L 63 86 L 61 86 Z" style={getStyle('abs')} />
-            </g>
-
-            {/* Quadriceps (Front Thighs) */}
-            <path d="M 37 92 Q 35 125 43 140 Q 48 135 48 93 Z" style={getStyle('quadriceps')} />
-            <path d="M 63 92 Q 65 125 57 140 Q 52 135 52 93 Z" style={getStyle('quadriceps')} />
-
-            {/* Calves (Front Shin/Calf Side) */}
-            <path d="M 38 144 Q 34 165 40 185 Q 45 180 44 144 Z" style={getStyle('calves')} />
-            <path d="M 62 144 Q 66 165 60 185 Q 55 180 56 144 Z" style={getStyle('calves')} />
-          </svg>
-        </div>
-
-        {/* BACK VIEW */}
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Back</span>
-          <svg viewBox="0 0 100 200" className="w-24 h-48 sm:w-28 sm:h-52 drop-shadow-2xs">
-            {/* Head */}
-            <circle cx="50" cy="18" r="10" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1" />
-            {/* Neck */}
-            <rect x="47" y="27" width="6" height="7" rx="2" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1" />
-
-            {/* Upper Back / Traps */}
-            <path d="M 34 34 L 50 44 L 66 34 L 50 30 Z" style={getStyle('upper_back')} />
-
-            {/* Lats (Latissimus Dorsi) */}
-            <path d="M 32 36 L 49 46 L 40 70 L 29 50 Z" style={getStyle('lats')} />
-            <path d="M 68 36 L 51 46 L 60 70 L 71 50 Z" style={getStyle('lats')} />
-
-            {/* Lower Back */}
-            <path d="M 40 70 L 60 70 L 58 88 L 42 88 Z" style={getStyle('lower_back')} />
-
-            {/* Triceps */}
-            <path d="M 23 45 Q 20 58 25 64 Q 29 58 29 46 Z" style={getStyle('triceps')} />
-            <path d="M 77 45 Q 80 58 75 64 Q 71 58 71 46 Z" style={getStyle('triceps')} />
-
-            {/* Glutes */}
-            <path d="M 36 90 Q 50 88 50 108 Q 36 108 36 90 Z" style={getStyle('glutes')} />
-            <path d="M 64 90 Q 50 88 50 108 Q 64 108 64 90 Z" style={getStyle('glutes')} />
-
-            {/* Hamstrings */}
-            <path d="M 36 110 Q 36 135 44 140 Q 48 135 48 110 Z" style={getStyle('hamstrings')} />
-            <path d="M 64 110 Q 64 135 56 140 Q 52 135 52 110 Z" style={getStyle('hamstrings')} />
-
-            {/* Calves (Back Calves) */}
-            <path d="M 38 144 Q 33 165 40 185 Q 46 180 45 144 Z" style={getStyle('calves')} />
-            <path d="M 62 144 Q 67 165 60 185 Q 54 180 55 144 Z" style={getStyle('calves')} />
-          </svg>
-        </div>
+      {/* Anatomy Body Map Rendering */}
+      <div className="flex items-center justify-center gap-3 sm:gap-6 py-2 px-1 bg-gradient-to-b from-slate-50/50 to-slate-100/30 rounded-xl border border-slate-100/80">
+        {renderView(frontView, 'Front')}
+        <div className="w-[1px] h-48 bg-slate-200/60 self-center hidden sm:block" />
+        {renderView(backView, 'Back')}
       </div>
 
-      {/* Volume Color Intensity Legend */}
-      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[10px] font-bold text-slate-500 flex-wrap gap-1">
-        <span>Volume Scale:</span>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-xs bg-[#93c5fd]" />
-            <span>Low (1-3s)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-xs bg-[#3b82f6]" />
-            <span>Med (4-6s)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-xs bg-[#1d4ed8]" />
-            <span>High (7-10s)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-xs bg-[#4338ca]" />
-            <span>Max (10+s)</span>
-          </div>
+      {/* Hovered Tooltip Card */}
+      <div className="min-h-[22px] text-center text-xs">
+        {hoveredMuscle && !INERT_PARTS.has(hoveredMuscle) ? (
+          <span className="inline-flex items-center gap-1.5 font-bold px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200/70 shadow-2xs animate-fadeIn">
+            <span>🎯 {MUSCLE_NAMES[hoveredMuscle] || hoveredMuscle}:</span>
+            <span className="font-extrabold">{getSetsForSlug(hoveredMuscle)} sets</span>
+          </span>
+        ) : (
+          <span className="text-[11px] text-slate-400 font-medium">Hover or tap on any muscle group to view sets</span>
+        )}
+      </div>
+
+      {/* Volume Heatmap Legend */}
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[10px] text-slate-500 font-bold">
+        <span>0 sets</span>
+        <div className="flex items-center gap-1">
+          <span className="w-3.5 h-2.5 rounded-xs bg-[#e2e8f0] border border-[#cbd5e1]" title="0 sets" />
+          <span className="w-3.5 h-2.5 rounded-xs bg-[#93c5fd] border border-[#3b82f6]" title="1-3 sets" />
+          <span className="w-3.5 h-2.5 rounded-xs bg-[#3b82f6] border border-[#1d4ed8]" title="4-6 sets" />
+          <span className="w-3.5 h-2.5 rounded-xs bg-[#1d4ed8] border border-[#1e40af]" title="7-10 sets" />
+          <span className="w-3.5 h-2.5 rounded-xs bg-[#4338ca] border border-[#312e81]" title="10+ sets" />
         </div>
+        <span className="text-indigo-700 font-extrabold">10+ sets</span>
       </div>
     </div>
   );
 
-  if (hideHeader) return content;
+  if (hideHeader) {
+    return content;
+  }
 
   return (
-    <Card className="p-4 sm:p-5 space-y-3 shadow-sm border border-slate-200/90 rounded-2xl bg-white flex flex-col justify-between">
+    <Card className="p-4 sm:p-5 shadow-sm border border-slate-200/90 rounded-2xl bg-white">
       {content}
     </Card>
   );
