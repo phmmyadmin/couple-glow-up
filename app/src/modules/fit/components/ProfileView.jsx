@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, User, Activity, Target, Key, Sparkles, RefreshCw } from 'lucide-react';
+import { Save, User, Activity, Target, Key, Sparkles, RefreshCw, Smartphone, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { saveProfile } from '../../../lib/supabase';
 import { calculateProfileTargets, calculateMaintenanceTDEE } from '../../../utils/profile';
@@ -389,7 +389,7 @@ export default function ProfileView({
           </CardTitle>
 
           <p className="text-xs text-slate-500">
-            La IA analiza el texto de comidas y extrae calorías, macros, fibra, azúcar y sodio automáticamente.
+            Gemini AI parses meal text, photo logs, and calculates exact calories and macro distributions.
           </p>
 
           <div className="flex items-center gap-2">
@@ -410,13 +410,39 @@ export default function ProfileView({
               onClick={() => {
                 setGeminiApiKey(geminiKeyInput);
                 if (typeof setToastMessage === 'function') {
-                  setToastMessage('✅ Gemini API Key guardada en almacenamiento local.');
+                  setToastMessage('✅ Gemini API Key saved to local storage.');
                 }
               }}
             >
-              Guardar Key
+              Save Key
             </Button>
           </div>
+        </div>
+
+        {/* 5. Native Android App (.APK) Download */}
+        <div className="space-y-2 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-emerald-600" />
+              <span className="text-xs font-bold text-slate-800">Native Android App (APK)</span>
+            </div>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              Samsung Health Sync
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Install the native OpenFit Android app on your phone for direct Samsung Health / Health Connect step sync and Home Screen widgets.
+          </p>
+
+          <a
+            href="./openfit.apk"
+            download="openfit.apk"
+            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all text-center"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download OpenFit Android APK</span>
+          </a>
         </div>
 
         {/* Save Button */}
@@ -428,7 +454,7 @@ export default function ProfileView({
           size="lg"
           className="w-full justify-center mt-3 cursor-pointer shadow-md"
         >
-          {isSaving ? t('profile.saving', 'Saving...') : 'Guardar Perfil y Objetivos'}
+          {isSaving ? t('profile.saving', 'Saving...') : 'Save Profile & Targets'}
         </Button>
       </form>
     </Card>
