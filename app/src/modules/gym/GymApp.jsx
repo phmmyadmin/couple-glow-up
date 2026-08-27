@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dumbbell, List, History, Play, Calendar, Zap } from 'lucide-react';
+import { Dumbbell, List, History, Play, Calendar, Zap, Database } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import ExerciseLibrary from './components/ExerciseLibrary';
@@ -7,6 +7,7 @@ import RoutineBuilder from './components/RoutineBuilder';
 import LiveWorkoutLogger from './components/LiveWorkoutLogger';
 import WorkoutHistory from './components/WorkoutHistory';
 import WeeklyScheduleModal from './components/WeeklyScheduleModal';
+import DataPortabilityModal from './components/DataPortabilityModal';
 import {
   getCurrentDayOfWeek,
   getScheduledRoutineForDay,
@@ -71,6 +72,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   const [activeRoutine, setActiveRoutine] = useState(null);
   const [targetWorkoutId, setTargetWorkoutId] = useState(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isPortabilityModalOpen, setIsPortabilityModalOpen] = useState(false);
   const [scheduleMapping, setScheduleMapping] = useState(() =>
     getScheduleMapping(activeProfile?.id)
   );
@@ -406,6 +408,42 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     handleGymTabChange('history');
   };
 
+  const handleImportWorkouts = async (importedWorkouts) => {
+    if (!importedWorkouts || importedWorkouts.length === 0) return;
+
+    let savedCount = 0;
+    for (const w of importedWorkouts) {
+      const payload = {
+        ...w,
+        profile_id: activeProfile?.id || null,
+      };
+      const saved = await saveWorkoutSessionToSupabase(payload);
+      if (saved) {
+        setWorkouts((prev) => [saved, ...prev.filter((p) => p.id !== saved.id)]);
+        savedCount++;
+      } else {
+        setWorkouts((prev) => [payload, ...prev]);
+        savedCount++;
+      }
+    }
+  };
+
+  const handleRestoreBackup = async (payload) => {
+    if (!payload) return;
+    if (payload.workouts && Array.isArray(payload.workouts)) {
+      setWorkouts(payload.workouts);
+    }
+    if (payload.routines && Array.isArray(payload.routines)) {
+      setRoutines(payload.routines);
+    }
+    if (payload.exercises && Array.isArray(payload.exercises)) {
+      setExercises(payload.exercises);
+    }
+    if (payload.personalRecords && Array.isArray(payload.personalRecords)) {
+      setPersonalRecords(payload.personalRecords);
+    }
+  };
+
   const tabItems = [
     { id: 'workout', label: 'Workout', icon: Play },
     { id: 'routines', label: 'Routines', icon: List, badge: routines.length },
@@ -523,16 +561,24 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
             );
           })()}
 
-          {/* Quick Schedule Management Pill */}
-          <div className="flex items-center justify-between bg-slate-100/80 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs text-slate-600">
-            <span className="font-medium">Weekly Workout Planning</span>
+          {/* Quick Management Pill: Schedule + Portability */}
+          <div className="flex items-center justify-between bg-slate-100/80 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs text-slate-600 flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setIsScheduleModalOpen(true)}
-              className="font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 transition-colors"
+              className="font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>Weekly Schedule</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsPortabilityModalOpen(true)}
+              className="font-bold text-slate-600 hover:text-indigo-600 flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Import / Export (Hevy / Strong)</span>
             </button>
           </div>
 
@@ -617,6 +663,21 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
         routines={routines}
         activeProfile={activeProfile}
         onScheduleUpdated={(next) => setScheduleMapping(next)}
+      />
+
+      {/* Data Backup & Portability Modal */}
+      <DataPortabilityModal
+        isOpen={isPortabilityModalOpen}
+        onClose={() => setIsPortabilityModalOpen(false)}
+        dataContext={{
+          workouts,
+          exercises,
+          routines,
+          personalRecords,
+        }}
+        onImportWorkouts={handleImportWorkouts}
+        onRestoreBackup={handleRestoreBackup}
+        setToastMessage={setToastMessage}
       />
     </div>
   );

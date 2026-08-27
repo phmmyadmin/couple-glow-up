@@ -9,6 +9,7 @@ import { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 import WorkoutCalendar from './WorkoutCalendar';
 import MuscleAnalyticsContainer from './MuscleAnalyticsContainer';
+import AnnualActivityMatrix from './AnnualActivityMatrix';
 import useInfiniteScroll from '../../../shared/hooks/useInfiniteScroll';
 import InfiniteScrollSentinel from '../../../shared/ui/InfiniteScrollSentinel';
 
@@ -161,6 +162,9 @@ export default function WorkoutHistory({
           selectedCalendarDay={selectedCalendarDay}
         />
       </div>
+
+      {/* 52-Week GitHub-Style Activity Consistency Matrix */}
+      {workouts.length > 0 && <AnnualActivityMatrix workouts={workouts} />}
 
       {/* Personal Records Highlight Card */}
       {personalRecords.length > 0 && (

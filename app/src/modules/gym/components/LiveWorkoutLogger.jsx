@@ -12,6 +12,7 @@ import {
   getLastPerformanceForExercise,
   getSmartOverloadRecommendation
 } from '../lib/supabase-gym';
+import { detectExerciseStall } from '../lib/progressive-overload';
 import { updateRestNotificationBar, clearRestNotificationBar, startBackgroundRestTimer } from '../../../lib/rest-timer-notifications';
 import { requestWakeLock, releaseWakeLock } from '../../../lib/wake-lock';
 import ExerciseLibrary, { getMuscleGroupLabel } from './ExerciseLibrary';
@@ -1118,6 +1119,43 @@ export default function LiveWorkoutLogger({
                         />
                       </div>
                     )}
+
+                    {/* Deload / Plateau Warning Card if detected */}
+                    {(() => {
+                      const exHistory = (workouts || []).filter((w) =>
+                        (w.workout_sets || []).some((s) => doesSetMatchExercise(s, item.exercise))
+                      ).map((w) => ({
+                        sets: (w.workout_sets || []).filter((s) => doesSetMatchExercise(s, item.exercise))
+                      }));
+
+                      const stall = detectExerciseStall(exHistory);
+                      if (!stall.isStalled || !stall.deloadSuggestion) return null;
+
+                      return (
+                        <div className="mt-2 mb-1 p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-1.5 shadow-2xs">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-wider">
+                                💡 DELOAD ADVISORY
+                              </span>
+                              <span className="text-xs font-extrabold text-amber-950">3-Session Plateau</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleUpdateSetField(exIdx, 0, 'weight_kg', stall.deloadSuggestion.targetWeight);
+                              }}
+                              className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-2xs transition-all cursor-pointer"
+                            >
+                              <span>Set Deload ({stall.deloadSuggestion.targetWeight}kg)</span>
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-amber-800 leading-snug">
+                            {stall.recommendation}
+                          </p>
+                        </div>
+                      );
+                    })()}
 
                     {/* Progressive Overload Smart Suggestion Card */}
                     {(() => {
