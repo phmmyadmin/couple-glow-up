@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { saveDailyStepsToSupabase, supabase } from './supabase';
 
 /**
  * Health Connect & Steps Client Bridge
@@ -65,6 +66,10 @@ export async function getStepData(dateStr, profileId = 'default') {
         date: dateStr,
       });
       if (result && typeof result.steps === 'number') {
+        // Sync native steps to Supabase in background
+        if (profileId && profileId !== 'default') {
+          saveDailyStepsToSupabase(dateStr, result.steps, profileId).catch(() => {});
+        }
         return {
           steps: result.steps,
           date: dateStr,
@@ -98,11 +103,21 @@ export async function getStepData(dateStr, profileId = 'default') {
 
 /**
  * Saves manual step count or user correction for a date
+ * Persists to localStorage and syncs with Supabase in the background
  */
 export async function saveManualSteps(dateStr, steps, profileId = 'default') {
   if (!dateStr) return;
   const s = Math.max(0, parseInt(steps, 10) || 0);
   const storageKey = `openfit_steps_${profileId}_${dateStr}`;
   localStorage.setItem(storageKey, String(s));
+
+  // Sync to Supabase in background
+  if (profileId && profileId !== 'default') {
+    saveDailyStepsToSupabase(dateStr, s, profileId).catch((err) => {
+      console.warn('Background Supabase steps sync error:', err);
+    });
+  }
+
   return { steps: s, date: dateStr, source: 'local' };
 }
+

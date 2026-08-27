@@ -813,3 +813,31 @@ export function subscribeToWeightLogs(onChange) {
   };
 }
 
+export async function saveDailyStepsToSupabase(dateStr, steps, profileId) {
+  if (!supabase || !profileId || !dateStr) return null;
+  try {
+    const s = Math.max(0, parseInt(steps, 10) || 0);
+    const { data, error } = await supabase
+      .from('daily_logs')
+      .upsert(
+        {
+          profile_id: profileId,
+          date: dateStr,
+          steps: s,
+        },
+        { onConflict: 'profile_id,date' }
+      )
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Note on Supabase daily_logs steps sync:', error.message);
+    }
+    return data;
+  } catch (err) {
+    console.warn('Error saving daily steps to Supabase:', err);
+    return null;
+  }
+}
+
+

@@ -199,15 +199,17 @@ export default function FitApp({
           />
 
           {/* Chat Input Bar - Fixed right below Macro Ring */}
-          <ChatInputBar
-            selectedDate={selectedDate}
-            data={data}
-            setData={setData}
-            activeProfileId={activeProfile?.id}
-            isLoading={isLoading}
-            setIsLoading={setIsLoading}
-            setToastMessage={setToastMessage}
-          />
+          <div className="py-0.5">
+            <ChatInputBar
+              selectedDate={selectedDate}
+              data={data}
+              setData={setData}
+              activeProfileId={activeProfile?.id}
+              isLoading={isLoading}
+              setIsLoading={setIsLoading}
+              setToastMessage={setToastMessage}
+            />
+          </div>
 
           {/* Daily Steps & Activity Card (Samsung Health / Health Connect Bridge) */}
           <DailyStepsCard

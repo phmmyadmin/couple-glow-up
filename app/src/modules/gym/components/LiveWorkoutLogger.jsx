@@ -571,10 +571,11 @@ export default function LiveWorkoutLogger({
       ];
     }
 
+    const cachedNote = localStorage.getItem(`openfit_exercise_notes_${exercise.id}`) || '';
     const newEx = {
       id: Date.now().toString(),
       exercise: exercise,
-      notes: '',
+      notes: lastPerf?.notes || cachedNote || '',
       rest_seconds: isDist ? 0 : 90,
       lastPerformance: lastPerf,
       sets: initialSets,
@@ -591,7 +592,17 @@ export default function LiveWorkoutLogger({
 
   const handleUpdateExerciseNotes = (exIndex, notesText) => {
     setWorkoutExercises((prev) =>
-      prev.map((item, idx) => (idx === exIndex ? { ...item, notes: notesText } : item))
+      prev.map((item, idx) => {
+        if (idx === exIndex) {
+          if (item.exercise?.id) {
+            try {
+              localStorage.setItem(`openfit_exercise_notes_${item.exercise.id}`, notesText);
+            } catch (e) {}
+          }
+          return { ...item, notes: notesText };
+        }
+        return item;
+      })
     );
   };
 

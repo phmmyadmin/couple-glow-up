@@ -409,6 +409,8 @@ export function getLastPerformanceForExercise(targetExercise, workouts = [], cat
         return '-';
       }).join(', ');
 
+      const notes = validSets.find((s) => s.notes)?.notes || w.notes || '';
+
       return {
         workoutId: w.id,
         workoutName: w.name || 'Workout',
@@ -417,6 +419,7 @@ export function getLastPerformanceForExercise(targetExercise, workouts = [], cat
         sets: validSets,
         topSet,
         summaryText,
+        notes,
       };
     }
   }
@@ -791,8 +794,19 @@ export async function saveWorkoutSessionToSupabase(workoutObj, sets = []) {
         distance_meters: (s.distance_meters !== undefined && s.distance_meters !== '' && s.distance_meters !== null) ? parseFloat(s.distance_meters) : null,
         rpe: (s.rpe !== undefined && s.rpe !== '' && s.rpe !== null) ? parseFloat(s.rpe) : null,
         superset_id: s.superset_id || null,
+        notes: s.notes || null,
         prs: Array.isArray(s.prs) ? s.prs : [],
       };
+    });
+
+    // Cache exercise notes locally for instant pre-fill in future workouts
+    sets.forEach((s) => {
+      const exId = s.exercise_id || s.exercise?.id;
+      if (s.notes && exId) {
+        try {
+          localStorage.setItem(`openfit_exercise_notes_${exId}`, s.notes);
+        } catch (e) {}
+      }
     });
 
     let enrichedSets = [];
