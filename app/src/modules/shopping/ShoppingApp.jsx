@@ -6,6 +6,7 @@ import ShoppingList from './components/ShoppingList';
 import MarketManager from './components/MarketManager';
 import PriceComparator from './components/PriceComparator';
 import Tabs from '../../shared/ui/Tabs';
+import { ShoppingModuleSkeleton } from '../../shared/ui/Skeleton';
 
 import {
   fetchOrCreateActiveList,
@@ -65,46 +66,33 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
     { id: 'mk2', name: 'Wet Market', emoji: '🥦', address: 'Local market' },
   ]);
 
-  const [productPrices, setProductPrices] = useState([
-    {
-      id: 'pr1',
-      product_name: 'Chicken breast',
-      market_id: 'mk1',
-      price: 280,
-      currency: 'PHP',
-      unit: 'kg',
-      markets: { name: 'Supermarket A', emoji: '🏪' },
-    },
-    {
-      id: 'pr2',
-      product_name: 'Chicken breast',
-      market_id: 'mk2',
-      price: 220,
-      currency: 'PHP',
-      unit: 'kg',
-      markets: { name: 'Wet Market', emoji: '🥦' },
-    },
-  ]);
+  const [productPrices, setProductPrices] = useState([]);
+  const [isLoadingShop, setIsLoadingShop] = useState(true);
 
   useEffect(() => {
     async function loadData() {
-      const list = await fetchOrCreateActiveList();
-      if (list) {
-        setActiveList(list);
-        const dbItems = await fetchShoppingItems(list.id);
-        if (Array.isArray(dbItems)) {
-          setItems(dbItems);
+      setIsLoadingShop(true);
+      try {
+        const list = await fetchOrCreateActiveList();
+        if (list) {
+          setActiveList(list);
+          const dbItems = await fetchShoppingItems(list.id);
+          if (Array.isArray(dbItems)) {
+            setItems(dbItems);
+          }
         }
-      }
 
-      const dbMarkets = await fetchMarkets();
-      if (Array.isArray(dbMarkets)) {
-        setMarkets(dbMarkets);
-      }
+        const dbMarkets = await fetchMarkets();
+        if (Array.isArray(dbMarkets)) {
+          setMarkets(dbMarkets);
+        }
 
-      const dbPrices = await fetchProductPrices();
-      if (Array.isArray(dbPrices)) {
-        setProductPrices(dbPrices);
+        const dbPrices = await fetchProductPrices();
+        if (Array.isArray(dbPrices)) {
+          setProductPrices(dbPrices);
+        }
+      } finally {
+        setIsLoadingShop(false);
       }
     }
 
@@ -344,8 +332,12 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
       {/* Sub Tabs */}
       <Tabs items={tabItems} activeTab={shopTab} onChange={handleShopTabChange} />
 
-      {/* Tab Views */}
-      {shopTab === 'list' && (
+      {isLoadingShop && items.length === 0 ? (
+        <ShoppingModuleSkeleton />
+      ) : (
+        <>
+          {/* Tab Views */}
+          {shopTab === 'list' && (
         <ShoppingList
           items={items}
           onAddItem={handleAddItem}
@@ -381,6 +373,8 @@ export default function ShoppingApp({ activeProfile, profiles, setToastMessage }
           onSaveMarket={handleSaveMarket}
           onRenameProduct={handleRenameProduct}
         />
+      )}
+        </>
       )}
     </div>
   );

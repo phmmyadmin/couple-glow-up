@@ -16,6 +16,7 @@ import {
 import Tabs from '../../shared/ui/Tabs';
 import Card from '../../shared/ui/Card';
 import Button from '../../shared/ui/Button';
+import { GymModuleSkeleton } from '../../shared/ui/Skeleton';
 
 import {
   fetchExercisesFromSupabase,
@@ -76,6 +77,7 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
   const [scheduleMapping, setScheduleMapping] = useState(() =>
     getScheduleMapping(activeProfile?.id)
   );
+  const [isLoadingGym, setIsLoadingGym] = useState(true);
 
   // Pending offline workouts queue
   const [pendingOfflineWorkouts, setPendingOfflineWorkouts] = useState(() => {
@@ -110,27 +112,32 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
 
   useEffect(() => {
     async function loadGymData() {
-      const dbEx = await fetchExercisesFromSupabase();
-      if (dbEx && dbEx.length > 0) {
-        setExercises(dbEx);
-      }
+      setIsLoadingGym(true);
+      try {
+        const dbEx = await fetchExercisesFromSupabase();
+        if (dbEx && dbEx.length > 0) {
+          setExercises(dbEx);
+        }
 
-      const profileId = activeProfile?.id || null;
-      const dbRoutines = await fetchRoutinesFromSupabase(profileId);
-      if (dbRoutines) {
-        setRoutines(dbRoutines);
-      }
+        const profileId = activeProfile?.id || null;
+        const dbRoutines = await fetchRoutinesFromSupabase(profileId);
+        if (dbRoutines) {
+          setRoutines(dbRoutines);
+        }
 
-      const dbWorkouts = await fetchWorkoutsFromSupabase(profileId);
-      if (dbWorkouts) {
-        const pending = JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
-        const total = [...pending, ...dbWorkouts];
-        setWorkouts(total);
-      }
+        const dbWorkouts = await fetchWorkoutsFromSupabase(profileId);
+        if (dbWorkouts) {
+          const pending = JSON.parse(localStorage.getItem('couple_glow_up_pending_workouts') || '[]');
+          const total = [...pending, ...dbWorkouts];
+          setWorkouts(total);
+        }
 
-      if (profileId) {
-        const dbPRs = await fetchPersonalRecordsFromSupabase(profileId);
-        setPersonalRecords(dbPRs);
+        if (profileId) {
+          const dbPRs = await fetchPersonalRecordsFromSupabase(profileId);
+          setPersonalRecords(dbPRs);
+        }
+      } finally {
+        setIsLoadingGym(false);
       }
     }
 
@@ -506,8 +513,12 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
       {/* Gym Sub-Tabs */}
       <Tabs items={tabItems} activeTab={gymTab} onChange={handleGymTabChange} />
 
-      {/* Tab Views */}
-      {gymTab === 'workout' && (
+      {isLoadingGym && workouts.length === 0 && routines.length === 0 ? (
+        <GymModuleSkeleton />
+      ) : (
+        <>
+          {/* Tab Views */}
+          {gymTab === 'workout' && (
         <div className="space-y-6 sm:space-y-7">
           {/* Guided Workout: Today's Scheduled Routine Banner */}
           {(() => {
@@ -679,6 +690,8 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
         onRestoreBackup={handleRestoreBackup}
         setToastMessage={setToastMessage}
       />
+        </>
+      )}
     </div>
   );
 }

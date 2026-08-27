@@ -11,6 +11,7 @@ import ChatInputBar from './components/ChatInputBar';
 import EditDrawer from './components/EditDrawer';
 import ProfileView from './components/ProfileView';
 import Tabs from '../../shared/ui/Tabs';
+import { FitModuleSkeleton } from '../../shared/ui/Skeleton';
 
 export default function FitApp({
   data,
@@ -178,6 +179,9 @@ export default function FitApp({
 
       {/* Tab Content */}
       {fitTab === 'dashboard' && (
+        isLoading && (!data || !daysList.length) ? (
+          <FitModuleSkeleton />
+        ) : (
         <div className="space-y-6 sm:space-y-7">
           {/* Macro Rings */}
           <MacroRing
@@ -234,6 +238,7 @@ export default function FitApp({
             }}
           />
         </div>
+        )
       )}
 
       {fitTab === 'dishes' && (

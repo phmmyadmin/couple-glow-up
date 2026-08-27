@@ -20,15 +20,18 @@ export function isNativePlatform() {
  */
 export async function checkNativeStepPermissions() {
   if (isNativePlatform()) {
-    // 1. Try Health Connect (Samsung Health / Android 14 official)
+    // 1. Check Health Connect availability & permissions
     try {
       if (HealthConnect) {
+        const avail = await HealthConnect.checkAvailability();
+        logAppErrorToSupabase('info', 'health_connect', `Health Connect availability: ${avail?.availability || JSON.stringify(avail)}`, avail);
+
         const hcPerm = await HealthConnect.checkHealthPermissions({
           read: ['Steps'],
           write: [],
         });
+        logAppErrorToSupabase('info', 'health_connect', 'Health Connect permissions check result', hcPerm);
         if (hcPerm && hcPerm.hasAllPermissions) {
-          logAppErrorToSupabase('info', 'health_connect', 'Health Connect permissions confirmed granted', hcPerm);
           return { granted: true, hasSensor: true, provider: 'health_connect' };
         }
       }
@@ -164,15 +167,15 @@ export async function getStepData(dateStr, profileId = 'default') {
     // A. Query Health Connect (Samsung Health records)
     try {
       if (HealthConnect) {
-        const startOfDay = new Date(`${dateStr}T00:00:00`);
-        const endOfDay = new Date(`${dateStr}T23:59:59`);
+        const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
+        const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
         const response = await HealthConnect.readRecords({
           type: 'Steps',
           timeRangeFilter: {
             type: 'between',
-            startTime: startOfDay,
-            endTime: endOfDay,
+            startTime: startOfDay.toISOString(),
+            endTime: endOfDay.toISOString(),
           },
         });
 
@@ -189,6 +192,10 @@ export async function getStepData(dateStr, profileId = 'default') {
             if (profileId && profileId !== 'default') {
               saveDailyStepsToSupabase(dateStr, totalSteps, profileId).catch(() => {});
             }
+            try {
+              await StepSensorNative.calibrateBaseline({ todaySteps: totalSteps });
+            } catch (e) {}
+
             return {
               steps: totalSteps,
               date: dateStr,

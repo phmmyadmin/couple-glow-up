@@ -5,7 +5,7 @@ import Avatar from '../../shared/Avatar';
 import Card from '../../shared/ui/Card';
 import Button from '../../shared/ui/Button';
 import { Input } from '../../shared/ui/Input';
-import Skeleton from '../../shared/ui/Skeleton';
+import Skeleton, { FeedModuleSkeleton } from '../../shared/ui/Skeleton';
 import {
   fetchFeedEventsFromSupabase,
   createFeedEventInSupabase,
@@ -134,10 +134,7 @@ export default function FeedApp({ activeProfile, profiles, setToastMessage }) {
       {/* Feed Stream */}
       <div className="space-y-5 sm:space-y-6">
         {isLoading && feedEvents.length === 0 ? (
-          <div className="space-y-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
+          <FeedModuleSkeleton />
         ) : feedEvents.length === 0 ? (
           <Card className="text-center py-12 space-y-3">
             <MessageSquare className="w-12 h-12 text-slate-300 mx-auto" />
