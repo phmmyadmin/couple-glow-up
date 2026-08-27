@@ -54,13 +54,14 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         Context ctx = getContext();
         sensorManager = (SensorManager) ctx.getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
+            // SENSOR_DELAY_NORMAL saves battery while accurately updating step counts
             stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
             if (stepCounterSensor != null) {
-                sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_FASTEST);
+                sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
             }
             stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
             if (stepDetectorSensor != null) {
-                sensorManager.registerListener(this, stepDetectorSensor, SensorManager.SENSOR_DELAY_FASTEST);
+                sensorManager.registerListener(this, stepDetectorSensor, SensorManager.SENSOR_DELAY_NORMAL);
             }
             try {
                 sensorManager.flush(this);
@@ -82,6 +83,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         int baselineSteps = prefs.getInt(KEY_BASELINE_STEPS, -1);
 
         if (!today.equals(savedDate)) {
+            // New Day: store current odometer reading as baseline and start day at 0
             prefs.edit()
                 .putString(KEY_BASELINE_DATE, today)
                 .putInt(KEY_BASELINE_STEPS, currentSensorSteps)
@@ -92,6 +94,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         }
 
         if (baselineSteps < 0) {
+            // First time setup
             prefs.edit()
                 .putString(KEY_BASELINE_DATE, today)
                 .putInt(KEY_BASELINE_STEPS, currentSensorSteps)
@@ -139,6 +142,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         }
         ret.put("granted", hasPermission);
         ret.put("hasSensor", (stepCounterSensor != null || stepDetectorSensor != null));
+        ret.put("provider", "samsung_sensor");
         call.resolve(ret);
     }
 
@@ -153,6 +157,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         JSObject ret = new JSObject();
         ret.put("granted", true);
         ret.put("hasSensor", (stepCounterSensor != null || stepDetectorSensor != null));
+        ret.put("provider", "samsung_sensor");
         call.resolve(ret);
     }
 
@@ -213,6 +218,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         JSObject ret = new JSObject();
         ret.put("steps", todaySteps);
         ret.put("rawSensorSteps", lastSensor);
+        ret.put("baseline", baseline);
         ret.put("date", reqDate);
         ret.put("source", "samsung_health_sensor");
         ret.put("hasPermission", hasPermission);
@@ -249,7 +255,16 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
                 call.resolve();
             }
         } catch (Exception e) {
-            call.reject("Could not launch Samsung Health: " + e.getMessage());
+            try {
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                Uri uri = Uri.fromParts("package", getContext().getPackageName(), null);
+                intent.setData(uri);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+                call.resolve();
+            } catch (Exception ex) {
+                call.reject("Could not launch Samsung Health or settings: " + ex.getMessage());
+            }
         }
     }
 }
