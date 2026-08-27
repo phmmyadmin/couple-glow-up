@@ -11,6 +11,7 @@ import {
   isNativePlatform,
   checkNativeStepPermissions,
   requestNativeStepPermissions,
+  openSamsungHealthApp,
 } from '../../../lib/health-connect';
 import { APP_VERSION } from '../../../version';
 
@@ -194,7 +195,7 @@ export default function DailyStepsCard({
       </div>
 
       {/* 🚀 PROMINENT SYNC BUTTON */}
-      <div>
+      <div className="space-y-2">
         <button
           type="button"
           onClick={handleSyncButton}
@@ -204,6 +205,19 @@ export default function DailyStepsCard({
           <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
           <span>{isSyncing ? 'Syncing Steps...' : 'Sync with Samsung Health'}</span>
         </button>
+
+        {isNative && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => openSamsungHealthApp()}
+              className="text-[11px] text-slate-500 hover:text-emerald-700 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Open Samsung Health App ↗</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Secondary Metrics: Calories & Distance */}

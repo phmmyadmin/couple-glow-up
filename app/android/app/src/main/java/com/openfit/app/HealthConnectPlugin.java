@@ -7,7 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
+import android.hardware.SensorEventListener2;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Build;
@@ -28,15 +28,19 @@ import java.util.Locale;
     name = "HealthConnect",
     permissions = {
         @Permission(
-            strings = { Manifest.permission.ACTIVITY_RECOGNITION },
+            strings = {
+                Manifest.permission.ACTIVITY_RECOGNITION,
+                Manifest.permission.BODY_SENSORS
+            },
             alias = "activityRecognition"
         )
     }
 )
-public class HealthConnectPlugin extends Plugin implements SensorEventListener {
+public class HealthConnectPlugin extends Plugin implements SensorEventListener2 {
 
     private SensorManager sensorManager;
     private Sensor stepCounterSensor;
+    private Sensor stepDetectorSensor;
     private static final String PREFS_NAME = "openfit_step_prefs";
     private static final String KEY_LAST_STEPS = "last_sensor_steps";
     private static final String KEY_BASELINE_STEPS = "baseline_sensor_steps";
@@ -52,8 +56,15 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
         if (sensorManager != null) {
             stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
             if (stepCounterSensor != null) {
-                sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_UI);
+                sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_FASTEST);
             }
+            stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
+            if (stepDetectorSensor != null) {
+                sensorManager.registerListener(this, stepDetectorSensor, SensorManager.SENSOR_DELAY_FASTEST);
+            }
+            try {
+                sensorManager.flush(this);
+            } catch (Exception ignored) {}
         }
     }
 
@@ -82,7 +93,7 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
         }
 
         if (baselineSteps < 0) {
-            // First time running the app today: take all current sensor steps as today's baseline steps
+            // First time running the app today: start with 0 baseline so all steps walked today are preserved
             prefs.edit()
                 .putString(KEY_BASELINE_DATE, today)
                 .putInt(KEY_BASELINE_STEPS, 0)
@@ -105,11 +116,22 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
         if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER && event.values.length > 0) {
             int totalStepsSinceBoot = (int) event.values[0];
             calculateTodaySteps(totalStepsSinceBoot);
+        } else if (event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR && event.values.length > 0) {
+            // Individual step detected
+            Context ctx = getContext();
+            SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            int current = prefs.getInt(KEY_ACCUMULATED_DAILY, 0);
+            prefs.edit().putInt(KEY_ACCUMULATED_DAILY, current + 1).apply();
         }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+
+    @Override
+    public void onFlushCompleted(Sensor sensor) {
+        // Hardware sensor FIFO flushed
+    }
 
     @PluginMethod
     public void checkPermissions(PluginCall call) {
@@ -122,7 +144,7 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
             ) == PackageManager.PERMISSION_GRANTED;
         }
         ret.put("granted", hasPermission);
-        ret.put("hasSensor", stepCounterSensor != null);
+        ret.put("hasSensor", (stepCounterSensor != null || stepDetectorSensor != null));
         call.resolve(ret);
     }
 
@@ -136,7 +158,7 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
         }
         JSObject ret = new JSObject();
         ret.put("granted", true);
-        ret.put("hasSensor", stepCounterSensor != null);
+        ret.put("hasSensor", (stepCounterSensor != null || stepDetectorSensor != null));
         call.resolve(ret);
     }
 
@@ -147,6 +169,12 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
 
     @PluginMethod
     public void getDailySteps(PluginCall call) {
+        if (sensorManager != null) {
+            try {
+                sensorManager.flush(this);
+            } catch (Exception ignored) {}
+        }
+
         String reqDate = call.getString("date", getTodayDateStr());
         Context ctx = getContext();
         SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -162,7 +190,6 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
         int todaySteps = prefs.getInt(KEY_ACCUMULATED_DAILY, 0);
         int lastSensor = prefs.getInt(KEY_LAST_STEPS, latestLiveSensorReading);
 
-        // If today steps is 0 but we have a live reading on first install, use live reading
         if (todaySteps == 0 && lastSensor > 0) {
             todaySteps = lastSensor;
         }
@@ -173,7 +200,7 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
         ret.put("date", reqDate);
         ret.put("source", "samsung_health_sensor");
         ret.put("hasPermission", hasPermission);
-        ret.put("hasSensor", stepCounterSensor != null);
+        ret.put("hasSensor", (stepCounterSensor != null || stepDetectorSensor != null));
         call.resolve(ret);
     }
 
@@ -200,7 +227,6 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
                 getContext().startActivity(launchIntent);
                 call.resolve();
             } else {
-                // Fallback to open Health Connect Settings in Android 14+
                 Intent hcIntent = new Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS");
                 hcIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 getContext().startActivity(hcIntent);
