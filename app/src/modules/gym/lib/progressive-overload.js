@@ -129,3 +129,69 @@ export function generateAnnualActivityMatrix(workouts = [], referenceDate = new 
     days,
   };
 }
+
+/**
+ * Calculates current streak, active training days, and volume metrics
+ */
+export function calculateStreakMetrics(workouts = [], referenceDate = new Date()) {
+  const workoutDates = new Set();
+  let totalMinutes = 0;
+
+  for (const w of workouts) {
+    const rawDate = w.started_at || w.created_at || '';
+    const dStr = rawDate.slice(0, 10);
+    if (dStr) workoutDates.add(dStr);
+
+    const dur = w.duration_minutes || Math.round((w.duration_seconds || 0) / 60) || 0;
+    totalMinutes += dur;
+  }
+
+  const sortedDates = Array.from(workoutDates).sort().reverse();
+  const activeDaysCount = sortedDates.length;
+
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  const ref = new Date(referenceDate);
+  const todayStr = ref.toISOString().slice(0, 10);
+  const yesterdayStr = new Date(ref.getTime() - oneDayMs).toISOString().slice(0, 10);
+
+  let currentStreak = 0;
+  let checkDate = null;
+
+  if (workoutDates.has(todayStr)) {
+    checkDate = new Date(ref);
+  } else if (workoutDates.has(yesterdayStr)) {
+    checkDate = new Date(ref.getTime() - oneDayMs);
+  }
+
+  if (checkDate) {
+    while (true) {
+      const dStr = checkDate.toISOString().slice(0, 10);
+      if (workoutDates.has(dStr)) {
+        currentStreak++;
+        checkDate = new Date(checkDate.getTime() - oneDayMs);
+      } else {
+        break;
+      }
+    }
+  }
+
+  const dayOfWeek = ref.getDay();
+  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const mondayMs = ref.getTime() - daysSinceMonday * oneDayMs;
+  let workoutsThisWeek = 0;
+
+  for (const w of workouts) {
+    const wMs = new Date(w.started_at || w.created_at || 0).getTime();
+    if (wMs >= mondayMs) {
+      workoutsThisWeek++;
+    }
+  }
+
+  return {
+    totalWorkouts: workouts.length,
+    activeDaysCount,
+    currentStreak,
+    workoutsThisWeek,
+    totalMinutesTrained: totalMinutes,
+  };
+}

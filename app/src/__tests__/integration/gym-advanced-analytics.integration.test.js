@@ -63,5 +63,22 @@ describe('Advanced Gym Analytics (Stall Detection, Smart Deload & 365-Day Heatma
       expect(aug25.count).toBe(1);
       expect(aug25.level).toBeGreaterThan(0);
     });
+
+    it('calculates workout streak, active days, and weekly averages accurately', async () => {
+      const { calculateStreakMetrics } = await import('../../modules/gym/lib/progressive-overload');
+
+      const mockWorkouts = [
+        { started_at: '2026-08-27T10:00:00Z', duration_minutes: 45 },
+        { started_at: '2026-08-26T10:00:00Z', duration_minutes: 60 },
+        { started_at: '2026-08-25T10:00:00Z', duration_minutes: 50 },
+        { started_at: '2026-08-20T10:00:00Z', duration_minutes: 40 },
+      ];
+
+      const metrics = calculateStreakMetrics(mockWorkouts, new Date('2026-08-27T12:00:00Z'));
+      expect(metrics.totalWorkouts).toBe(4);
+      expect(metrics.activeDaysCount).toBe(4);
+      expect(metrics.currentStreak).toBe(3); // 27, 26, 25 are consecutive
+      expect(metrics.totalMinutesTrained).toBe(195);
+    });
   });
 });
