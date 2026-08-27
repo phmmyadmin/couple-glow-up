@@ -1,10 +1,11 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { HealthConnect } from '@kiwi-health/capacitor-health-connect';
 import { saveDailyStepsToSupabase, logAppErrorToSupabase, supabase } from './supabase';
 
 /**
- * Native Capacitor Bridge for HealthConnectPlugin
+ * Native Capacitor Bridge for Hardware Step Sensor Fallback
  */
-export const HealthConnectNative = registerPlugin('HealthConnect');
+export const StepSensorNative = registerPlugin('StepSensor');
 
 export function isNativePlatform() {
   try {
@@ -15,32 +16,66 @@ export function isNativePlatform() {
 }
 
 /**
- * Checks if Physical Activity / Health permissions are granted in native Android
+ * Checks if Health Connect (Samsung Health) or Step Sensor permissions are granted
  */
 export async function checkNativeStepPermissions() {
   if (isNativePlatform()) {
+    // 1. Try Health Connect (Samsung Health / Android 14 official)
     try {
-      const res = await HealthConnectNative.checkPermissions();
-      logAppErrorToSupabase('info', 'step_sensor', 'checkPermissions called', res);
-      return res || { granted: false, hasSensor: false };
+      if (HealthConnect) {
+        const hcPerm = await HealthConnect.checkHealthPermissions({
+          read: ['Steps'],
+          write: [],
+        });
+        if (hcPerm && hcPerm.hasAllPermissions) {
+          logAppErrorToSupabase('info', 'health_connect', 'Health Connect permissions confirmed granted', hcPerm);
+          return { granted: true, hasSensor: true, provider: 'health_connect' };
+        }
+      }
+    } catch (hcErr) {
+      logAppErrorToSupabase('warn', 'health_connect', `Health Connect check error: ${hcErr?.message || hcErr}`);
+    }
+
+    // 2. Try Fallback Hardware Step Sensor
+    try {
+      const res = await StepSensorNative.checkPermissions();
+      logAppErrorToSupabase('info', 'step_sensor', 'StepSensor checkPermissions result', res);
+      return res || { granted: false, hasSensor: false, provider: 'sensor' };
     } catch (e) {
-      logAppErrorToSupabase('error', 'step_sensor', `checkPermissions error: ${e?.message || e}`, { stack: e?.stack });
+      logAppErrorToSupabase('error', 'step_sensor', `StepSensor check error: ${e?.message || e}`);
     }
   }
-  return { granted: true, hasSensor: false };
+  return { granted: true, hasSensor: false, provider: 'web' };
 }
 
 /**
- * Requests Physical Activity / Step permission from Android runtime
+ * Requests Physical Activity & Health Connect permissions
  */
 export async function requestNativeStepPermissions() {
   if (isNativePlatform()) {
+    // 1. Request Health Connect permission (Samsung Health)
     try {
-      const res = await HealthConnectNative.requestPermissions();
-      logAppErrorToSupabase('info', 'step_sensor', 'requestPermissions result', res);
+      if (HealthConnect) {
+        const hcRes = await HealthConnect.requestHealthPermissions({
+          read: ['Steps'],
+          write: [],
+        });
+        logAppErrorToSupabase('info', 'health_connect', 'Health Connect permission request result', hcRes);
+        if (hcRes && (hcRes.hasAllPermissions || (hcRes.grantedPermissions && hcRes.grantedPermissions.length > 0))) {
+          return { granted: true, provider: 'health_connect' };
+        }
+      }
+    } catch (hcErr) {
+      logAppErrorToSupabase('warn', 'health_connect', `Health Connect request error: ${hcErr?.message || hcErr}`);
+    }
+
+    // 2. Request Hardware Activity Recognition permission
+    try {
+      const res = await StepSensorNative.requestPermissions();
+      logAppErrorToSupabase('info', 'step_sensor', 'StepSensor requestPermissions result', res);
       return res || { granted: false };
     } catch (e) {
-      logAppErrorToSupabase('error', 'step_sensor', `requestPermissions error: ${e?.message || e}`, { stack: e?.stack });
+      logAppErrorToSupabase('error', 'step_sensor', `StepSensor request error: ${e?.message || e}`);
     }
   }
   return { granted: true };
@@ -52,9 +87,16 @@ export async function requestNativeStepPermissions() {
 export async function openNativeHealthSettings() {
   if (isNativePlatform()) {
     try {
-      await HealthConnectNative.openHealthSettings();
+      if (HealthConnect) {
+        await HealthConnect.openHealthConnectSetting();
+        return;
+      }
+    } catch (e) {}
+
+    try {
+      await StepSensorNative.openHealthSettings();
     } catch (e) {
-      logAppErrorToSupabase('error', 'step_sensor', `openHealthSettings error: ${e?.message || e}`, { stack: e?.stack });
+      logAppErrorToSupabase('error', 'step_sensor', `openHealthSettings error: ${e?.message || e}`);
     }
   }
 }
@@ -65,9 +107,9 @@ export async function openNativeHealthSettings() {
 export async function openSamsungHealthApp() {
   if (isNativePlatform()) {
     try {
-      await HealthConnectNative.openSamsungHealthApp();
+      await StepSensorNative.openSamsungHealthApp();
     } catch (e) {
-      logAppErrorToSupabase('error', 'step_sensor', `openSamsungHealthApp error: ${e?.message || e}`, { stack: e?.stack });
+      logAppErrorToSupabase('error', 'step_sensor', `openSamsungHealthApp error: ${e?.message || e}`);
     }
   }
 }
@@ -112,34 +154,75 @@ export function getStepProgressPercent(steps, target = 10000) {
 
 /**
  * Retrieves daily steps for a date and profile
- * Reads from native Health Connect if available, otherwise localStorage / Supabase
+ * Reads from Health Connect (Samsung Health) first, then hardware sensor, then localStorage
  */
 export async function getStepData(dateStr, profileId = 'default') {
   if (!dateStr) return { steps: 0, date: dateStr, source: 'none' };
 
-  // 1. If running on native Capacitor Android with Health Connect Plugin available:
+  // 1. If running on native Android:
   if (isNativePlatform()) {
+    // A. Query Health Connect (Samsung Health records)
     try {
-      const result = await HealthConnectNative.getDailySteps({
+      if (HealthConnect) {
+        const startOfDay = new Date(`${dateStr}T00:00:00`);
+        const endOfDay = new Date(`${dateStr}T23:59:59`);
+
+        const response = await HealthConnect.readRecords({
+          type: 'Steps',
+          timeRangeFilter: {
+            type: 'between',
+            startTime: startOfDay,
+            endTime: endOfDay,
+          },
+        });
+
+        if (response?.records && Array.isArray(response.records)) {
+          const totalSteps = response.records.reduce((sum, r) => sum + (parseInt(r.count, 10) || 0), 0);
+
+          logAppErrorToSupabase('info', 'health_connect', `HealthConnect query returned ${totalSteps} steps (${response.records.length} records)`, {
+            date: dateStr,
+            totalSteps,
+            recordCount: response.records.length,
+          });
+
+          if (totalSteps > 0 || response.records.length > 0) {
+            if (profileId && profileId !== 'default') {
+              saveDailyStepsToSupabase(dateStr, totalSteps, profileId).catch(() => {});
+            }
+            return {
+              steps: totalSteps,
+              date: dateStr,
+              source: 'samsung_health_connect',
+              lastSynced: new Date().toISOString(),
+            };
+          }
+        }
+      }
+    } catch (hcErr) {
+      logAppErrorToSupabase('warn', 'health_connect', `Health Connect readRecords error: ${hcErr?.message || hcErr}`, { stack: hcErr?.stack });
+    }
+
+    // B. Fallback to hardware step sensor
+    try {
+      const result = await StepSensorNative.getDailySteps({
         date: dateStr,
       });
 
-      logAppErrorToSupabase('info', 'step_sensor', `getDailySteps result: ${result?.steps || 0} steps`, result);
+      logAppErrorToSupabase('info', 'step_sensor', `StepSensor query result: ${result?.steps || 0} steps`, result);
 
-      if (result && typeof result.steps === 'number') {
-        // Sync native steps to Supabase in background
+      if (result && typeof result.steps === 'number' && result.steps > 0) {
         if (profileId && profileId !== 'default') {
           saveDailyStepsToSupabase(dateStr, result.steps, profileId).catch(() => {});
         }
         return {
           steps: result.steps,
           date: dateStr,
-          source: 'health_connect',
+          source: 'samsung_health_sensor',
           lastSynced: new Date().toISOString(),
         };
       }
     } catch (err) {
-      logAppErrorToSupabase('warn', 'step_sensor', `Native getDailySteps error: ${err?.message || err}`, { stack: err?.stack });
+      logAppErrorToSupabase('warn', 'step_sensor', `StepSensor query error: ${err?.message || err}`);
     }
   }
 

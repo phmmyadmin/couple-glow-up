@@ -68,14 +68,15 @@ export default function DailyStepsCard({
 
   const handleSyncButton = async () => {
     if (isNative) {
-      if (!hasNativePermission) {
+      const perm = await checkNativeStepPermissions();
+      if (!perm.granted) {
         const res = await requestNativeStepPermissions();
         if (res.granted) {
           setHasNativePermission(true);
-          if (setToastMessage) setToastMessage('✅ Step sensor access granted! Syncing...');
+          if (setToastMessage) setToastMessage('✅ Step access granted! Reading Samsung Health...');
           await fetchSteps(true);
         } else {
-          if (setToastMessage) setToastMessage('⚠️ Permission was denied in Android settings.');
+          if (setToastMessage) setToastMessage('⚠️ Please grant Steps permission in Health Connect / Android settings.');
         }
       } else {
         await fetchSteps(true);

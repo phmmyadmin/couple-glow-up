@@ -25,7 +25,7 @@ import java.util.Date;
 import java.util.Locale;
 
 @CapacitorPlugin(
-    name = "HealthConnect",
+    name = "StepSensor",
     permissions = {
         @Permission(
             strings = {
@@ -36,7 +36,7 @@ import java.util.Locale;
         )
     }
 )
-public class HealthConnectPlugin extends Plugin implements SensorEventListener2 {
+public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
 
     private SensorManager sensorManager;
     private Sensor stepCounterSensor;
@@ -82,7 +82,6 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener2 
         int baselineSteps = prefs.getInt(KEY_BASELINE_STEPS, -1);
 
         if (!today.equals(savedDate)) {
-            // New Day: set baseline to current sensor count so today starts fresh
             prefs.edit()
                 .putString(KEY_BASELINE_DATE, today)
                 .putInt(KEY_BASELINE_STEPS, currentSensorSteps)
@@ -93,7 +92,6 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener2 
         }
 
         if (baselineSteps < 0) {
-            // First time running the app today: start with 0 baseline so all steps walked today are preserved
             prefs.edit()
                 .putString(KEY_BASELINE_DATE, today)
                 .putInt(KEY_BASELINE_STEPS, 0)
@@ -117,7 +115,6 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener2 
             int totalStepsSinceBoot = (int) event.values[0];
             calculateTodaySteps(totalStepsSinceBoot);
         } else if (event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR && event.values.length > 0) {
-            // Individual step detected
             Context ctx = getContext();
             SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             int current = prefs.getInt(KEY_ACCUMULATED_DAILY, 0);
@@ -129,9 +126,7 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener2 
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
     @Override
-    public void onFlushCompleted(Sensor sensor) {
-        // Hardware sensor FIFO flushed
-    }
+    public void onFlushCompleted(Sensor sensor) {}
 
     @PluginMethod
     public void checkPermissions(PluginCall call) {
