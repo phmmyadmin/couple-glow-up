@@ -12,6 +12,7 @@ import {
   checkNativeStepPermissions,
   requestNativeStepPermissions,
 } from '../../../lib/health-connect';
+import { APP_VERSION } from '../../../version';
 
 export default function DailyStepsCard({
   selectedDate,
@@ -282,11 +283,11 @@ export default function DailyStepsCard({
             <div className="space-y-2 pt-1">
               <a
                 href="./openfit.apk"
-                download="openfit.apk"
+                download={`openfit-v${APP_VERSION}.apk`}
                 className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black shadow-sm transition-all text-center"
               >
                 <Download className="w-4 h-4 text-emerald-400" />
-                <span>Download OpenFit APK (Android)</span>
+                <span>Download OpenFit APK v{APP_VERSION} (Android)</span>
               </a>
 
               <button

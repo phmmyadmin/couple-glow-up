@@ -7,6 +7,7 @@ import { getGeminiApiKey, setGeminiApiKey } from '../../../lib/gemini';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { Input, Select } from '../../../shared/ui/Input';
+import { APP_VERSION, APP_BUILD, APP_RELEASE_DATE } from '../../../version';
 
 const defaultForm = {
   name: '',
@@ -168,14 +169,14 @@ export default function ProfileView({
       <Card className="p-5 sm:p-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white border-none shadow-xl space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl text-emerald-400 shrink-0">
+            <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20">
               <Smartphone className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base font-extrabold text-white">OpenFit Native Android App</h3>
-                <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] font-black rounded-full uppercase tracking-wider">
-                  APK
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-base text-white">OpenFit Native Android App</h3>
+                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 font-mono font-black text-[11px] rounded-full border border-emerald-500/30">
+                  v{APP_VERSION}
                 </span>
               </div>
               <p className="text-xs text-slate-300 font-medium mt-0.5">
@@ -199,14 +200,14 @@ export default function ProfileView({
         <div className="pt-2">
           <a
             href="./openfit.apk"
-            download="openfit.apk"
+            download={`openfit-v${APP_VERSION}.apk`}
             className="flex items-center justify-center gap-2.5 w-full py-3.5 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-98 text-slate-950 rounded-2xl font-black text-sm shadow-lg transition-all text-center cursor-pointer"
           >
             <Download className="w-5 h-5 stroke-[2.5]" />
-            <span>Download OpenFit APK (Android)</span>
+            <span>Download OpenFit APK v{APP_VERSION} (Android)</span>
           </a>
           <p className="text-[11px] text-slate-400 text-center mt-2">
-            Direct download from GitHub Pages build. Tap to install on any Android phone.
+            Direct download from GitHub Pages build • Build {APP_BUILD} ({APP_RELEASE_DATE})
           </p>
         </div>
       </Card>
@@ -494,6 +495,11 @@ export default function ProfileView({
             {isSaving ? t('profile.saving', 'Saving...') : 'Save Profile & Targets'}
           </Button>
         </form>
+
+        {/* Version Information */}
+        <div className="text-center pt-2 pb-1 text-[11px] text-slate-400 font-medium">
+          OpenFit v{APP_VERSION} (Build {APP_BUILD}) • Release {APP_RELEASE_DATE}
+        </div>
       </Card>
     </div>
   );

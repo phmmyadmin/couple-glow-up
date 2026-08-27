@@ -72,7 +72,9 @@ jobs:
         run: |
           mkdir -p app/dist
           cp app/android/app/build/outputs/apk/debug/app-debug.apk app/dist/openfit.apk
-          echo "APK successfully copied to dist/openfit.apk"
+          VERSION=$(node -p "require('./app/package.json').version")
+          cp app/android/app/build/outputs/apk/debug/app-debug.apk "app/dist/openfit-v${VERSION}.apk"
+          echo "APK successfully copied to dist/openfit.apk and dist/openfit-v${VERSION}.apk"
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4
