@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Footprints, Flame, Navigation, Plus, Edit2, Check, X, Smartphone, Globe, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Footprints, Flame, Navigation, Plus, Edit2, Check, X, Smartphone, Globe, RefreshCw, ShieldAlert, Sparkles, Download } from 'lucide-react';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import {
@@ -24,40 +24,62 @@ export default function DailyStepsCard({
   const [editStepInput, setEditStepInput] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [hasNativePermission, setHasNativePermission] = useState(true);
+  const [showWebSyncModal, setShowWebSyncModal] = useState(false);
 
   const targetSteps = activeProfile?.target_steps || 10000;
   const userWeight = activeProfile?.weight || 70;
   const userHeight = activeProfile?.height || 175;
   const isNative = isNativePlatform();
 
-  const fetchSteps = async () => {
+  const fetchSteps = async (showFeedback = false) => {
     if (!selectedDate) return;
     setIsSyncing(true);
 
-    if (isNative) {
-      const perm = await checkNativeStepPermissions();
-      setHasNativePermission(perm.granted);
-    }
+    try {
+      if (isNative) {
+        const perm = await checkNativeStepPermissions();
+        setHasNativePermission(perm.granted);
+      }
 
-    const data = await getStepData(selectedDate, activeProfile?.id);
-    setSteps(data.steps || 0);
-    setSource(data.source || 'none');
-    setIsSyncing(false);
+      const data = await getStepData(selectedDate, activeProfile?.id);
+      setSteps(data.steps || 0);
+      setSource(data.source || 'none');
+
+      if (showFeedback && setToastMessage) {
+        if (data.steps > 0) {
+          setToastMessage(`👣 Synced ${data.steps.toLocaleString()} steps with Samsung Health!`);
+        } else {
+          setToastMessage('👣 Steps synced (0 steps recorded for today).');
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching steps:', err);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // Load steps on date or profile change
   useEffect(() => {
-    fetchSteps();
+    fetchSteps(false);
   }, [selectedDate, activeProfile?.id]);
 
-  const handleRequestPermission = async () => {
-    const res = await requestNativeStepPermissions();
-    if (res.granted) {
-      setHasNativePermission(true);
-      if (setToastMessage) setToastMessage('✅ Step tracking permission granted!');
-      await fetchSteps();
+  const handleSyncButton = async () => {
+    if (isNative) {
+      if (!hasNativePermission) {
+        const res = await requestNativeStepPermissions();
+        if (res.granted) {
+          setHasNativePermission(true);
+          if (setToastMessage) setToastMessage('✅ Step sensor access granted! Syncing...');
+          await fetchSteps(true);
+        } else {
+          if (setToastMessage) setToastMessage('⚠️ Permission was denied in Android settings.');
+        }
+      } else {
+        await fetchSteps(true);
+      }
     } else {
-      if (setToastMessage) setToastMessage('⚠️ Permission was denied in Android settings.');
+      setShowWebSyncModal(true);
     }
   };
 
@@ -98,7 +120,7 @@ export default function DailyStepsCard({
             <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
               {isNative ? (
                 <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                  <Smartphone className="w-3.5 h-3.5" /> Samsung Health Sync
+                  <Smartphone className="w-3.5 h-3.5" /> Samsung Health Connected
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-slate-500">
@@ -113,21 +135,12 @@ export default function DailyStepsCard({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={fetchSteps}
-            disabled={isSyncing}
-            className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
-            title="Sync latest steps"
-          >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-emerald-600' : ''}`} />
-          </button>
-          <button
-            type="button"
             onClick={() => {
               setEditStepInput(String(steps || ''));
               setIsEditing(true);
             }}
             className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-            title="Edit daily steps"
+            title="Edit daily steps manually"
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -136,15 +149,18 @@ export default function DailyStepsCard({
 
       {/* Permission Warning Banner on Native Android */}
       {isNative && !hasNativePermission && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-900">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-            <span className="font-medium">Step sensor permission is required.</span>
+        <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between gap-3 text-xs text-amber-900">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="font-bold">Step Tracking Permission Required</p>
+              <p className="text-[11px] text-amber-700">Grant permission to read Samsung Health step sensor.</p>
+            </div>
           </div>
           <button
             type="button"
-            onClick={handleRequestPermission}
-            className="px-2.5 py-1 bg-amber-600 text-white font-bold rounded-lg text-xs hover:bg-amber-700 transition-colors cursor-pointer shrink-0"
+            onClick={handleSyncButton}
+            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl text-xs transition-colors cursor-pointer shrink-0 shadow-xs"
           >
             Grant Access
           </button>
@@ -155,25 +171,38 @@ export default function DailyStepsCard({
       <div className="space-y-2.5">
         <div className="flex items-baseline justify-between">
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900 font-mono tracking-tight">
+            <span className="text-3xl sm:text-4xl font-black text-slate-900 font-mono tracking-tight">
               {steps.toLocaleString()}
             </span>
             <span className="text-xs font-bold text-slate-400">
               / {targetSteps.toLocaleString()} steps
             </span>
           </div>
-          <span className="text-xs font-black text-emerald-600 font-mono bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+          <span className="text-xs font-black text-emerald-600 font-mono bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200">
             {progressPercent}%
           </span>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200/60">
+        <div className="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden border border-slate-200/60 p-0.5">
           <div
-            className="bg-gradient-to-r from-emerald-500 to-teal-500 h-3 rounded-full transition-all duration-500"
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2.5 rounded-full transition-all duration-500 shadow-xs"
             style={{ width: `${Math.min(100, progressPercent)}%` }}
           />
         </div>
+      </div>
+
+      {/* 🚀 PROMINENT SYNC BUTTON */}
+      <div>
+        <button
+          type="button"
+          onClick={handleSyncButton}
+          disabled={isSyncing}
+          className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all cursor-pointer disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          <span>{isSyncing ? 'Syncing Steps...' : 'Sync with Samsung Health'}</span>
+        </button>
       </div>
 
       {/* Secondary Metrics: Calories & Distance */}
@@ -221,6 +250,60 @@ export default function DailyStepsCard({
           </button>
         ))}
       </div>
+
+      {/* Web Sync / APK Download Information Modal */}
+      {showWebSyncModal && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setShowWebSyncModal(false)}
+        >
+          <Card
+            className="max-w-sm w-full p-5 space-y-4 shadow-xl border border-slate-200 cursor-default rounded-2xl bg-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-emerald-600" />
+                <CardTitle className="text-sm">Samsung Health Sync</CardTitle>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWebSyncModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Real-time hardware step sensor synchronization requires the <strong>OpenFit Native Android App (APK)</strong>.
+            </p>
+
+            <div className="space-y-2 pt-1">
+              <a
+                href="./openfit.apk"
+                download="openfit.apk"
+                className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black shadow-sm transition-all text-center"
+              >
+                <Download className="w-4 h-4 text-emerald-400" />
+                <span>Download OpenFit APK (Android)</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowWebSyncModal(false);
+                  setEditStepInput(String(steps || ''));
+                  setIsEditing(true);
+                }}
+                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+              >
+                Enter Steps Manually
+              </button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Manual Step Edit Modal */}
       {isEditing && (
