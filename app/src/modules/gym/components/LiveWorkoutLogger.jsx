@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X, ArrowUp, ArrowDown,
   Timer, Flame, Edit3, Save, Info, MoreVertical, GripVertical, RotateCcw,
-  FileText, ChevronDown, User, ArrowLeft, Minus, TrendingUp, Zap, Calendar, Target
+  FileText, ChevronDown, User, ArrowLeft, Minus, TrendingUp, Zap, Calendar, Target,
+  Calculator
 } from 'lucide-react';
 import {
   calculate1RM,
@@ -12,8 +13,10 @@ import {
   getSmartOverloadRecommendation
 } from '../lib/supabase-gym';
 import { updateRestNotificationBar, clearRestNotificationBar, startBackgroundRestTimer } from '../../../lib/rest-timer-notifications';
+import { requestWakeLock, releaseWakeLock } from '../../../lib/wake-lock';
 import ExerciseLibrary, { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
+import PlateCalculator from './PlateCalculator';
 import { getExerciseMedia } from '../lib/exercise-media';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
@@ -108,6 +111,18 @@ export default function LiveWorkoutLogger({
   // Duration Edit Modal State
   const [isEditingTimeModal, setIsEditingTimeModal] = useState(false);
   const [editMinutesInput, setEditMinutesInput] = useState('');
+
+  // Plate Calculator State
+  const [isPlateCalcOpen, setIsPlateCalcOpen] = useState(false);
+  const [plateCalcTargetWeight, setPlateCalcTargetWeight] = useState('');
+
+  // Wake Lock on mount
+  useEffect(() => {
+    requestWakeLock();
+    return () => {
+      releaseWakeLock();
+    };
+  }, []);
 
   // Main session duration & rest timer updater (Timestamp-delta based for mobile screen lock support)
   useEffect(() => {
@@ -704,6 +719,7 @@ export default function LiveWorkoutLogger({
 
   const handleCancelWorkout = () => {
     if (window.confirm('Are you sure you want to cancel this workout? Progress will be lost.')) {
+      releaseWakeLock();
       clearRestNotificationBar();
       localStorage.removeItem('couple_glow_up_active_workout');
       window.dispatchEvent(new Event('active_workout_updated'));
@@ -723,6 +739,7 @@ export default function LiveWorkoutLogger({
   };
 
   const handleFinish = () => {
+    releaseWakeLock();
     clearRestNotificationBar();
     localStorage.removeItem('couple_glow_up_active_workout');
     window.dispatchEvent(new Event('active_workout_updated'));
@@ -1004,15 +1021,35 @@ export default function LiveWorkoutLogger({
                         </div>
                       </div>
 
-                      {/* 3-Dots Context Menu Button */}
-                      <button
-                        type="button"
-                        onClick={() => setMenuExerciseIndex(exIdx)}
-                        className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors shrink-0"
-                        title="Exercise Options"
-                      >
-                        <MoreVertical className="w-5 h-5" />
-                      </button>
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* Plate Calculator Button */}
+                        {!isDistanceDuration && !isDurationOnly && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Pre-fill with the first set's weight if available
+                              const firstWeight = item.sets?.[0]?.weight_kg || '';
+                              setPlateCalcTargetWeight(firstWeight);
+                              setIsPlateCalcOpen(true);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-slate-100 transition-colors"
+                            title="Plate Calculator"
+                          >
+                            <Calculator className="w-5 h-5" />
+                          </button>
+                        )}
+                        
+                        {/* 3-Dots Context Menu Button */}
+                        <button
+                          type="button"
+                          onClick={() => setMenuExerciseIndex(exIdx)}
+                          className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors"
+                          title="Exercise Options"
+                        >
+                          <MoreVertical className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Progressive Overload Smart Suggestion Card */}
@@ -1468,6 +1505,14 @@ export default function LiveWorkoutLogger({
             </form>
           </Card>
         </div>
+      )}
+
+      {/* Plate Calculator Modal */}
+      {isPlateCalcOpen && (
+        <PlateCalculator
+          initialWeight={plateCalcTargetWeight}
+          onClose={() => setIsPlateCalcOpen(false)}
+        />
       )}
     </div>
   );
