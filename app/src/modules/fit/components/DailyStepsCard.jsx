@@ -13,7 +13,7 @@ import {
   requestNativeStepPermissions,
   openSamsungHealthApp,
 } from '../../../lib/health-connect';
-import { APP_VERSION } from '../../../version';
+import { APP_VERSION, APP_BUILD } from '../../../version';
 
 export default function DailyStepsCard({
   selectedDate,
@@ -299,11 +299,14 @@ export default function DailyStepsCard({
               <a
                 href="./openfit.apk"
                 download={`openfit-v${APP_VERSION}.apk`}
-                className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black shadow-sm transition-all text-center"
+                className="flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black shadow-sm transition-all text-center"
               >
                 <Download className="w-4 h-4 text-emerald-400" />
                 <span>Download OpenFit APK v{APP_VERSION} (Android)</span>
               </a>
+              <div className="text-center text-[10px] text-slate-400 font-mono">
+                Build: v{APP_VERSION} (Build {APP_BUILD})
+              </div>
 
               <button
                 type="button"

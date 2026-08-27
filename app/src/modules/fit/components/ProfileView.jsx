@@ -166,21 +166,21 @@ export default function ProfileView({
   return (
     <div className="max-w-xl mx-auto space-y-5">
       {/* 📱 1. PROMINENT NATIVE ANDROID APP DOWNLOAD CARD */}
-      <Card className="p-5 sm:p-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white border-none shadow-xl space-y-4">
+      <Card className="p-5 sm:p-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white border border-slate-800 shadow-xl space-y-4 rounded-3xl">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20">
-              <Smartphone className="w-6 h-6" />
+            <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20 shrink-0">
+              <Smartphone className="w-7 h-7" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-base text-white">OpenFit Native Android App</h3>
-                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 font-mono font-black text-[11px] rounded-full border border-emerald-500/30">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-black text-base sm:text-lg text-white">OpenFit Native Android App</h3>
+                <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-mono font-black text-xs rounded-full border border-emerald-500/40 shadow-xs">
                   v{APP_VERSION}
                 </span>
               </div>
               <p className="text-xs text-slate-300 font-medium mt-0.5">
-                Samsung Health sync, step tracking & home screen widgets.
+                Official Samsung Health & Health Connect sync, steps & offline tracking.
               </p>
             </div>
           </div>
@@ -189,26 +189,27 @@ export default function ProfileView({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300 pt-1">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Samsung Health / Health Connect</span>
+            <span>Samsung Health / Health Connect (Android 14)</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Offline & Native Performance</span>
+            <span>Live Step Sync & Supabase Cloud Backup</span>
           </div>
         </div>
 
-        <div className="pt-2">
+        <div className="pt-2 space-y-2">
           <a
             href="./openfit.apk"
             download={`openfit-v${APP_VERSION}.apk`}
-            className="flex items-center justify-center gap-2.5 w-full py-3.5 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-98 text-slate-950 rounded-2xl font-black text-sm shadow-lg transition-all text-center cursor-pointer"
+            className="flex items-center justify-center gap-2.5 w-full py-4 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-98 text-slate-950 rounded-2xl font-black text-sm shadow-lg transition-all text-center cursor-pointer"
           >
             <Download className="w-5 h-5 stroke-[2.5]" />
-            <span>Download OpenFit APK v{APP_VERSION} (Android)</span>
+            <span>Download OpenFit APK v{APP_VERSION} (Build {APP_BUILD})</span>
           </a>
-          <p className="text-[11px] text-slate-400 text-center mt-2">
-            Direct download from GitHub Pages build • Build {APP_BUILD} ({APP_RELEASE_DATE})
-          </p>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+            <span>Direct download from GitHub Pages</span>
+            <span className="font-mono font-bold text-emerald-400">Version: v{APP_VERSION} • {APP_RELEASE_DATE}</span>
+          </div>
         </div>
       </Card>
 
