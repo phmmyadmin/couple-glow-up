@@ -250,10 +250,17 @@ export async function getStepData(dateStr, profileId = 'default') {
  * Persists to localStorage and syncs with Supabase in the background
  */
 export async function saveManualSteps(dateStr, steps, profileId = 'default') {
-  if (!dateStr) return;
+  if (!dateStr) return { steps: 0, date: dateStr, source: 'local' };
   const s = Math.max(0, parseInt(steps, 10) || 0);
   const storageKey = `openfit_steps_${profileId}_${dateStr}`;
   localStorage.setItem(storageKey, String(s));
+
+  // Calibrate native hardware pedometer baseline so hardware step tracking matches
+  if (isNativePlatform()) {
+    try {
+      await StepSensorNative.calibrateBaseline({ todaySteps: s });
+    } catch (e) {}
+  }
 
   // Sync to Supabase in background
   if (profileId && profileId !== 'default') {
