@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   pace TEXT DEFAULT 'moderate',
   target_macros JSONB DEFAULT '{"calories": 1950, "protein": 145, "carbs": 195, "fats": 65}'::jsonb,
   maintenance_calories INTEGER DEFAULT 2450,
+  target_steps INTEGER DEFAULT 10000,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.daily_logs (
   protein NUMERIC DEFAULT 0,
   carbs NUMERIC DEFAULT 0,
   fats NUMERIC DEFAULT 0,
+  steps INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(profile_id, date)
 );
@@ -178,8 +180,18 @@ CREATE TABLE IF NOT EXISTS public.workout_sets (
   distance_meters NUMERIC,
   rpe NUMERIC,
   superset_id INTEGER,
+  notes TEXT,
   prs JSONB DEFAULT '[]',
   completed_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.exercise_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  exercise_id UUID REFERENCES public.exercises(id) ON DELETE CASCADE,
+  notes TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(profile_id, exercise_id)
 );
 
 CREATE TABLE IF NOT EXISTS public.personal_records (

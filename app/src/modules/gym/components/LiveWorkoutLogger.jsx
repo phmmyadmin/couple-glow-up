@@ -10,7 +10,8 @@ import {
   doesSetMatchExercise,
   estimateWorkoutCalories,
   getLastPerformanceForExercise,
-  getSmartOverloadRecommendation
+  getSmartOverloadRecommendation,
+  saveExerciseNoteToSupabase
 } from '../lib/supabase-gym';
 import { detectExerciseStall } from '../lib/progressive-overload';
 import { updateRestNotificationBar, clearRestNotificationBar, startBackgroundRestTimer } from '../../../lib/rest-timer-notifications';
@@ -595,9 +596,7 @@ export default function LiveWorkoutLogger({
       prev.map((item, idx) => {
         if (idx === exIndex) {
           if (item.exercise?.id) {
-            try {
-              localStorage.setItem(`openfit_exercise_notes_${item.exercise.id}`, notesText);
-            } catch (e) {}
+            saveExerciseNoteToSupabase(activeProfile?.id, item.exercise.id, notesText);
           }
           return { ...item, notes: notesText };
         }

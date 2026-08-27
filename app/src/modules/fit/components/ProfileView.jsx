@@ -27,6 +27,7 @@ const defaultForm = {
   target_fiber: 30,
   target_sugar: 50,
   target_sodium: 2300,
+  target_steps: 10000,
 };
 
 const getNormalizedProfile = (prof) => {
@@ -35,6 +36,7 @@ const getNormalizedProfile = (prof) => {
     ...defaultForm,
     ...prof,
     language: prof.language || 'en',
+    target_steps: prof.target_steps || prof.targetSteps || defaultForm.target_steps,
     maintenance_calories:
       prof.maintenance_calories ||
       prof.maintenanceCalories ||
@@ -103,6 +105,7 @@ export default function ProfileView({
       'target_fiber',
       'target_sugar',
       'target_sodium',
+      'target_steps',
     ];
     const finalValue = numFields.includes(name) ? (value === '' ? '' : Number(value)) : value;
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
@@ -130,6 +133,7 @@ export default function ProfileView({
 
     const payload = {
       ...formData,
+      target_steps: Number(formData.target_steps) || 10000,
       target_calories: Number(formData.target_calories) || 2000,
       target_protein: Number(formData.target_protein) || 150,
       target_carbs: Number(formData.target_carbs) || 200,
@@ -293,7 +297,7 @@ export default function ProfileView({
               {t('profile.activityAndGoal', 'Activity & Goal')}
             </CardTitle>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
               <Select
                 label={t('profile.activityLevel', 'Activity Level')}
                 name="activity_level"
@@ -328,6 +332,15 @@ export default function ProfileView({
                 <option value="moderate">{t('profile.paceModerate', 'Moderate')}</option>
                 <option value="aggressive">{t('profile.paceAggressive', 'Aggressive')}</option>
               </Select>
+
+              <Input
+                label="Daily Steps Goal"
+                type="number"
+                name="target_steps"
+                value={formData.target_steps ?? 10000}
+                onChange={handleChange}
+                className="font-mono font-bold"
+              />
             </div>
           </div>
 

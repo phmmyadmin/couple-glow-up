@@ -10,6 +10,8 @@ import {
 import {
   saveWorkoutSessionToSupabase,
   getLastPerformanceForExercise,
+  saveExerciseNoteToSupabase,
+  fetchExerciseNotesFromSupabase,
 } from '../../modules/gym/lib/supabase-gym';
 
 const memoryStore = {};
@@ -66,6 +68,14 @@ describe('Supabase Steps & Exercise Notes Persistence', () => {
       const perf = getLastPerformanceForExercise(exercise, workouts, [exercise]);
       expect(perf).not.toBeNull();
       expect(perf.notes).toBe('Seat at pin 4, grip slightly wider than shoulder width');
+    });
+
+    it('saves and caches custom exercise notes per exercise', async () => {
+      const exId = 'ex-incline-press';
+      const note = 'Incline 30 degrees, slow eccentric';
+      const res = await saveExerciseNoteToSupabase('prof-123', exId, note);
+      expect(res.notes).toBe(note);
+      expect(localStorage.getItem(`openfit_exercise_notes_${exId}`)).toBe(note);
     });
   });
 });

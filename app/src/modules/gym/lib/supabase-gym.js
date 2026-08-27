@@ -1116,3 +1116,65 @@ export function subscribeToRoutines(onChange) {
     supabase.removeChannel(channel);
   };
 }
+
+// ── EXERCISE NOTES PERSISTENCE ──
+export async function saveExerciseNoteToSupabase(profileId, exerciseId, noteText) {
+  if (!exerciseId) return null;
+  const cleanNote = (noteText || '').trim();
+
+  // 1. Local Cache
+  try {
+    localStorage.setItem(`openfit_exercise_notes_${exerciseId}`, cleanNote);
+  } catch (e) {}
+
+  if (!supabase || !profileId) return { notes: cleanNote };
+
+  // 2. Supabase Cloud Sync
+  try {
+    const { data, error } = await supabase
+      .from('exercise_notes')
+      .upsert(
+        {
+          profile_id: profileId,
+          exercise_id: exerciseId,
+          notes: cleanNote,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'profile_id,exercise_id' }
+      )
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Note on Supabase exercise_notes sync:', error.message);
+    }
+    return data || { notes: cleanNote };
+  } catch (err) {
+    console.warn('Error saving exercise note to Supabase:', err);
+    return { notes: cleanNote };
+  }
+}
+
+export async function fetchExerciseNotesFromSupabase(profileId) {
+  if (!supabase || !profileId) return {};
+  try {
+    const { data, error } = await supabase
+      .from('exercise_notes')
+      .select('*')
+      .eq('profile_id', profileId);
+
+    if (error) throw error;
+    const notesMap = {};
+    (data || []).forEach((row) => {
+      notesMap[row.exercise_id] = row.notes;
+      try {
+        localStorage.setItem(`openfit_exercise_notes_${row.exercise_id}`, row.notes);
+      } catch (e) {}
+    });
+    return notesMap;
+  } catch (err) {
+    console.warn('Error fetching exercise notes from Supabase:', err);
+    return {};
+  }
+}
+
