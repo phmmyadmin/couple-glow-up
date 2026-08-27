@@ -270,14 +270,11 @@ export default function App() {
 
       {/* Sleek, Compact Header: Logo Left, Profiles Right */}
       <header className="app-header mb-4 sm:mb-5 pt-1 pb-3 border-b border-slate-100 flex items-center justify-between gap-3">
-        {/* Left: Cute Compact GlowUp Logo Badge */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-indigo-50 via-rose-50 to-amber-50 border border-indigo-100/80 shadow-2xs shrink-0">
-          <Sparkles className="w-4 h-4 text-indigo-500" />
-          <span className="text-sm font-black bg-gradient-to-r from-indigo-600 via-rose-500 to-amber-500 bg-clip-text text-transparent tracking-tight font-heading">
-            GlowUp ✨
-          </span>
-          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-rose-100/60 text-rose-500 ml-0.5">
-            <Heart className="w-2.5 h-2.5 fill-rose-500 text-rose-500 animate-pulse" />
+        {/* Left: OpenFit Logo Badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-indigo-50 via-slate-50 to-blue-50 border border-indigo-100/80 shadow-2xs shrink-0">
+          <Sparkles className="w-4 h-4 text-indigo-600" />
+          <span className="text-sm font-black bg-gradient-to-r from-indigo-600 to-blue-700 bg-clip-text text-transparent tracking-tight font-heading">
+            OpenFit
           </span>
         </div>
 

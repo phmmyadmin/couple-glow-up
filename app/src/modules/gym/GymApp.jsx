@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Dumbbell, List, History, Play } from 'lucide-react';
+import { Dumbbell, List, History, Play, Calendar, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import ExerciseLibrary from './components/ExerciseLibrary';
 import RoutineBuilder from './components/RoutineBuilder';
 import LiveWorkoutLogger from './components/LiveWorkoutLogger';
 import WorkoutHistory from './components/WorkoutHistory';
+import WeeklyScheduleModal from './components/WeeklyScheduleModal';
+import {
+  getCurrentDayOfWeek,
+  getScheduledRoutineForDay,
+  getScheduleMapping,
+} from './lib/routine-scheduler';
 import Tabs from '../../shared/ui/Tabs';
 import Card from '../../shared/ui/Card';
 import Button from '../../shared/ui/Button';
@@ -64,6 +70,10 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
 
   const [activeRoutine, setActiveRoutine] = useState(null);
   const [targetWorkoutId, setTargetWorkoutId] = useState(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleMapping, setScheduleMapping] = useState(() =>
+    getScheduleMapping(activeProfile?.id)
+  );
 
   // Pending offline workouts queue
   const [pendingOfflineWorkouts, setPendingOfflineWorkouts] = useState(() => {
@@ -461,6 +471,71 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
       {/* Tab Views */}
       {gymTab === 'workout' && (
         <div className="space-y-6 sm:space-y-7">
+          {/* Guided Workout: Today's Scheduled Routine Banner */}
+          {(() => {
+            const currentDayName = getCurrentDayOfWeek();
+            const todaysScheduledRoutine = getScheduledRoutineForDay(
+              currentDayName,
+              scheduleMapping,
+              routines
+            );
+
+            if (!todaysScheduledRoutine) return null;
+
+            return (
+              <Card className="p-5 sm:p-6 bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white border-indigo-500/40 shadow-xl space-y-4 animate-in fade-in duration-300">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="px-2.5 py-1 bg-indigo-500/30 border border-indigo-400/40 text-indigo-300 text-xs font-bold rounded-lg uppercase tracking-wider flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 fill-current text-amber-400" />
+                    Today's Plan · {currentDayName}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsScheduleModalOpen(true)}
+                    className="text-xs text-indigo-300 hover:text-white flex items-center gap-1 font-semibold transition-colors"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Edit Schedule</span>
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  <h3 className="text-xl font-extrabold text-white tracking-tight">
+                    {todaysScheduledRoutine.name}
+                  </h3>
+                  <p className="text-xs text-indigo-200/80 font-medium">
+                    {todaysScheduledRoutine.exercises?.length || 0} exercises programmed for today.
+                  </p>
+                </div>
+
+                <div className="pt-1 flex flex-wrap gap-3">
+                  <Button
+                    size="md"
+                    variant="primary"
+                    icon={Play}
+                    onClick={() => handleStartRoutine(todaysScheduledRoutine)}
+                    className="w-full sm:w-auto bg-indigo-500 hover:bg-indigo-400 text-white font-bold shadow-lg cursor-pointer"
+                  >
+                    Start Today's Workout (1-Tap)
+                  </Button>
+                </div>
+              </Card>
+            );
+          })()}
+
+          {/* Quick Schedule Management Pill */}
+          <div className="flex items-center justify-between bg-slate-100/80 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs text-slate-600">
+            <span className="font-medium">Weekly Workout Planning</span>
+            <button
+              type="button"
+              onClick={() => setIsScheduleModalOpen(true)}
+              className="font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 transition-colors"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Weekly Schedule</span>
+            </button>
+          </div>
+
           <Card className="text-center space-y-4 py-10 shadow-sm">
             <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto border border-indigo-100 shadow-sm">
               <Play className="w-8 h-8 fill-indigo-600" />
@@ -534,6 +609,15 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
           initialExpandedWorkoutId={targetWorkoutId}
         />
       )}
+
+      {/* Weekly Routine Schedule Modal */}
+      <WeeklyScheduleModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        routines={routines}
+        activeProfile={activeProfile}
+        onScheduleUpdated={(next) => setScheduleMapping(next)}
+      />
     </div>
   );
 }

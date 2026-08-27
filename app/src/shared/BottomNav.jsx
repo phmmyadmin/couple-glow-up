@@ -7,11 +7,6 @@ export default function BottomNav({ activeModule, setActiveModule }) {
 
   const navItems = [
     {
-      id: 'feed',
-      label: t('nav.feed', 'Feed'),
-      icon: Heart,
-    },
-    {
       id: 'fit',
       label: t('nav.fit', 'Fit'),
       icon: Apple,
@@ -25,6 +20,11 @@ export default function BottomNav({ activeModule, setActiveModule }) {
       id: 'shopping',
       label: t('nav.shopping', 'Shopping'),
       icon: ShoppingCart,
+    },
+    {
+      id: 'feed',
+      label: t('nav.feed', 'Social'),
+      icon: Heart,
     },
   ];
 
