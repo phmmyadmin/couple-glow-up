@@ -60,6 +60,19 @@ export async function openNativeHealthSettings() {
 }
 
 /**
+ * Opens Samsung Health app or Health Connect settings
+ */
+export async function openSamsungHealthApp() {
+  if (isNativePlatform()) {
+    try {
+      await HealthConnectNative.openSamsungHealthApp();
+    } catch (e) {
+      logAppErrorToSupabase('error', 'step_sensor', `openSamsungHealthApp error: ${e?.message || e}`, { stack: e?.stack });
+    }
+  }
+}
+
+/**
  * Calculates active walking calories based on step count and user weight
  * Formula: MET walking (~3.5) * weightKg * (steps / steps_per_minute / 60)
  * Average: ~0.00055 kcal per step per kg bodyweight

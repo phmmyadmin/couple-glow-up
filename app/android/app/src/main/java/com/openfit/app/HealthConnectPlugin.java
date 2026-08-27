@@ -42,6 +42,7 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
     private static final String KEY_BASELINE_STEPS = "baseline_sensor_steps";
     private static final String KEY_BASELINE_DATE = "baseline_date";
     private static final String KEY_ACCUMULATED_DAILY = "accumulated_daily_steps";
+    private int latestLiveSensorReading = 0;
 
     @Override
     public void load() {
@@ -62,14 +63,15 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
     }
 
     private int calculateTodaySteps(int currentSensorSteps) {
+        latestLiveSensorReading = currentSensorSteps;
         Context ctx = getContext();
         SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String today = getTodayDateStr();
         String savedDate = prefs.getString(KEY_BASELINE_DATE, "");
         int baselineSteps = prefs.getInt(KEY_BASELINE_STEPS, -1);
 
-        if (!today.equals(savedDate) || baselineSteps < 0 || currentSensorSteps < baselineSteps) {
-            // New day or device rebooted -> update baseline to current sensor count
+        if (!today.equals(savedDate)) {
+            // New Day: set baseline to current sensor count so today starts fresh
             prefs.edit()
                 .putString(KEY_BASELINE_DATE, today)
                 .putInt(KEY_BASELINE_STEPS, currentSensorSteps)
@@ -77,6 +79,17 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
                 .putInt(KEY_ACCUMULATED_DAILY, 0)
                 .apply();
             return 0;
+        }
+
+        if (baselineSteps < 0) {
+            // First time running the app today: take all current sensor steps as today's baseline steps
+            prefs.edit()
+                .putString(KEY_BASELINE_DATE, today)
+                .putInt(KEY_BASELINE_STEPS, 0)
+                .putInt(KEY_LAST_STEPS, currentSensorSteps)
+                .putInt(KEY_ACCUMULATED_DAILY, currentSensorSteps)
+                .apply();
+            return currentSensorSteps;
         }
 
         int dailySteps = Math.max(0, currentSensorSteps - baselineSteps);
@@ -147,9 +160,16 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
         }
 
         int todaySteps = prefs.getInt(KEY_ACCUMULATED_DAILY, 0);
+        int lastSensor = prefs.getInt(KEY_LAST_STEPS, latestLiveSensorReading);
+
+        // If today steps is 0 but we have a live reading on first install, use live reading
+        if (todaySteps == 0 && lastSensor > 0) {
+            todaySteps = lastSensor;
+        }
 
         JSObject ret = new JSObject();
         ret.put("steps", todaySteps);
+        ret.put("rawSensorSteps", lastSensor);
         ret.put("date", reqDate);
         ret.put("source", "samsung_health_sensor");
         ret.put("hasPermission", hasPermission);
@@ -168,6 +188,26 @@ public class HealthConnectPlugin extends Plugin implements SensorEventListener {
             call.resolve();
         } catch (Exception e) {
             call.reject("Could not open settings: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openSamsungHealthApp(PluginCall call) {
+        try {
+            Intent launchIntent = getContext().getPackageManager().getLaunchIntentForPackage("com.sec.android.app.shealth");
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(launchIntent);
+                call.resolve();
+            } else {
+                // Fallback to open Health Connect Settings in Android 14+
+                Intent hcIntent = new Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS");
+                hcIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(hcIntent);
+                call.resolve();
+            }
+        } catch (Exception e) {
+            call.reject("Could not launch Samsung Health: " + e.getMessage());
         }
     }
 }
