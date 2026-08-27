@@ -985,10 +985,22 @@ export default function LiveWorkoutLogger({
                 <span className="font-mono font-extrabold text-slate-900 text-sm">{totalCompletedSets}</span>
               </div>
 
-              <div className="flex justify-end">
-                <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200/80 text-slate-600 flex items-center justify-center shrink-0" title="Muscles Targeted">
-                  <User className="w-4.5 h-4.5" />
-                </div>
+              <div className="text-right">
+                <span className="text-[11px] font-medium text-slate-400 block">Est. Burn</span>
+                <span className="font-mono font-extrabold text-amber-600 text-sm flex items-center justify-end gap-1">
+                  <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
+                  <span>
+                    {Math.max(
+                      1,
+                      estimateWorkoutCalories(
+                        Math.max(1, Math.round(secondsElapsed / 60)),
+                        activeProfile?.weight || 70,
+                        workoutExercises.flatMap((e) => e.sets || [])
+                      )
+                    )}{' '}
+                    <span className="text-xs font-normal text-slate-500 font-sans">kcal</span>
+                  </span>
+                </span>
               </div>
             </div>
           </div>
