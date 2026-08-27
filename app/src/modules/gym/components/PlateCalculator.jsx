@@ -1,147 +1,230 @@
-import React, { useState } from 'react';
-import { X, Dumbbell } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Dumbbell, Plus, Minus, RotateCcw } from 'lucide-react';
 import { calculatePlates } from '../lib/plate-calculator';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
-import { Input } from '../../../shared/ui/Input';
 
 const KG_COLORS = {
-  25: 'bg-red-600',
-  20: 'bg-red-500',
-  15: 'bg-yellow-400',
-  10: 'bg-green-500',
-  5: 'bg-white border border-slate-300',
-  2.5: 'bg-slate-800 text-white',
-  1.25: 'bg-slate-300 text-slate-800'
+  25: { bg: 'bg-red-600', text: 'text-white', border: 'border-red-700' },
+  20: { bg: 'bg-blue-600', text: 'text-white', border: 'border-blue-700' },
+  15: { bg: 'bg-yellow-400', text: 'text-yellow-950', border: 'border-yellow-500' },
+  10: { bg: 'bg-green-600', text: 'text-white', border: 'border-green-700' },
+  5: { bg: 'bg-white', text: 'text-slate-800', border: 'border-slate-300' },
+  2.5: { bg: 'bg-slate-800', text: 'text-white', border: 'border-slate-900' },
+  1.25: { bg: 'bg-slate-400', text: 'text-slate-900', border: 'border-slate-500' },
 };
 
 const LBS_COLORS = {
-  45: 'bg-red-500',
-  35: 'bg-yellow-400',
-  25: 'bg-green-500',
-  10: 'bg-white border border-slate-300',
-  5: 'bg-slate-800 text-white',
-  2.5: 'bg-slate-300 text-slate-800'
+  45: { bg: 'bg-blue-600', text: 'text-white', border: 'border-blue-700' },
+  35: { bg: 'bg-yellow-400', text: 'text-yellow-950', border: 'border-yellow-500' },
+  25: { bg: 'bg-green-600', text: 'text-white', border: 'border-green-700' },
+  10: { bg: 'bg-white', text: 'text-slate-800', border: 'border-slate-300' },
+  5: { bg: 'bg-slate-800', text: 'text-white', border: 'border-slate-900' },
+  2.5: { bg: 'bg-slate-400', text: 'text-slate-900', border: 'border-slate-500' },
 };
 
 export default function PlateCalculator({ onClose, initialWeight = '' }) {
-  const [weight, setWeight] = useState(initialWeight || '');
+  const [weight, setWeight] = useState(() => (initialWeight ? String(initialWeight) : '100'));
   const [isLbs, setIsLbs] = useState(false);
   const barWeight = isLbs ? 45 : 20;
 
-  const plates = calculatePlates(parseFloat(weight) || 0, barWeight, isLbs);
+  const numWeight = useMemo(() => {
+    const parsed = parseFloat(weight);
+    return isNaN(parsed) || parsed < 0 ? 0 : parsed;
+  }, [weight]);
+
+  const plates = useMemo(() => {
+    return calculatePlates(numWeight, barWeight, isLbs);
+  }, [numWeight, barWeight, isLbs]);
+
   const colors = isLbs ? LBS_COLORS : KG_COLORS;
 
+  const handleQuickAdjust = (delta) => {
+    const next = Math.max(barWeight, Math.round((numWeight + delta) * 10) / 10);
+    setWeight(String(next));
+  };
+
+  const handlePreset = (val) => {
+    setWeight(String(val));
+  };
+
+  const presets = isLbs ? [135, 185, 225, 275, 315] : [60, 80, 100, 120, 140];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <Card className="w-full max-w-md bg-white shadow-2xl relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-        
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
-              <Dumbbell className="w-6 h-6" />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <Card
+        className="w-full max-w-md bg-white shadow-2xl p-5 sm:p-6 space-y-5 border border-slate-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+              <Dumbbell className="w-5 h-5" />
             </div>
-            <CardTitle>Plate Calculator</CardTitle>
-          </div>
-
-          <div className="space-y-6">
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Target Weight
-                </label>
-                <Input
-                  type="number"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  placeholder={`e.g. ${isLbs ? '225' : '100'}`}
-                  className="text-lg"
-                />
-              </div>
-              
-              <div className="flex bg-slate-100 p-1 rounded-lg">
-                <button
-                  onClick={() => setIsLbs(false)}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${
-                    !isLbs ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  KG
-                </button>
-                <button
-                  onClick={() => setIsLbs(true)}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${
-                    isLbs ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  LBS
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 overflow-hidden">
-              <div className="text-center mb-4 text-sm text-slate-500 font-medium">
-                Bar: {barWeight} {isLbs ? 'lbs' : 'kg'}
-              </div>
-              
-              <div className="flex justify-center items-center h-24 max-w-full overflow-x-auto">
-                {/* Bar */}
-                <div className="w-16 h-4 bg-slate-300 rounded-l-sm" />
-                <div className="w-2 h-6 bg-slate-400 rounded-sm" />
-                
-                {/* Plates */}
-                {plates.length > 0 ? (
-                  <div className="flex items-center gap-[2px] mx-1">
-                    {plates.map((plate, idx) => {
-                      // Determine plate size based on weight
-                      let heightClass = 'h-24';
-                      if (plate <= 5) heightClass = 'h-12';
-                      else if (plate <= 10) heightClass = 'h-16';
-                      else if (plate <= 15) heightClass = 'h-20';
-
-                      const colorClass = colors[plate] || 'bg-slate-400';
-
-                      return (
-                        <div 
-                          key={idx}
-                          className={`w-4 rounded-sm flex items-center justify-center ${heightClass} ${colorClass} shadow-sm border border-black/10`}
-                          title={`${plate} ${isLbs ? 'lbs' : 'kg'}`}
-                        />
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="w-16 flex items-center justify-center text-xs text-slate-400 px-2 text-center">
-                    Add weight
-                  </div>
-                )}
-                
-                <div className="w-24 h-4 bg-slate-300 rounded-r-sm" />
-              </div>
-              
-              {plates.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                  {plates.map((plate, idx) => (
-                    <span key={idx} className="px-2 py-1 bg-white border border-slate-200 rounded text-xs font-medium text-slate-600 shadow-sm">
-                      {plate} {isLbs ? 'lbs' : 'kg'}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            <div className="flex justify-end pt-2">
-              <Button onClick={onClose} variant="primary" className="w-full sm:w-auto">
-                Done
-              </Button>
+            <div>
+              <CardTitle className="text-base">Barbell Plate Calculator</CardTitle>
+              <p className="text-xs text-slate-500 font-medium">Plates needed per side on the bar.</p>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Input & Unit Switcher */}
+        <div className="flex gap-3 items-end">
+          <div className="flex-1 space-y-1">
+            <label className="block text-xs font-bold text-slate-700">Target Total Weight</label>
+            <div className="relative">
+              <input
+                type="number"
+                step="any"
+                min="0"
+                max="1000"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                placeholder={isLbs ? '225' : '100'}
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-base font-extrabold text-slate-900 font-mono focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors"
+              />
+              <span className="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400 font-mono">
+                {isLbs ? 'LBS' : 'KG'}
+              </span>
+            </div>
+          </div>
+
+          {/* Unit Toggle */}
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+            <button
+              type="button"
+              onClick={() => setIsLbs(false)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                !isLbs ? 'bg-white shadow-xs text-indigo-600' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              KG
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsLbs(true)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                isLbs ? 'bg-white shadow-xs text-indigo-600' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              LBS
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Delta Increments */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[11px] font-bold text-slate-400 mr-1">Quick:</span>
+          {[-10, -2.5, +2.5, +5, +10, +20].map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => handleQuickAdjust(d)}
+              className="px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 font-mono font-bold text-[11px] rounded-lg border border-slate-200/80 transition-colors"
+            >
+              {d > 0 ? `+${d}` : d}
+            </button>
+          ))}
+        </div>
+
+        {/* Bar Visualizer */}
+        <div className="bg-slate-900 rounded-2xl p-5 border border-slate-800 text-white space-y-3">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span>Olympic Bar: <strong>{barWeight} {isLbs ? 'lbs' : 'kg'}</strong></span>
+            <span>Per Side: <strong>{numWeight > barWeight ? `${((numWeight - barWeight) / 2).toFixed(1)} ${isLbs ? 'lbs' : 'kg'}` : '0'}</strong></span>
+          </div>
+
+          {/* Barbell graphic */}
+          <div className="flex items-center justify-center h-28 max-w-full overflow-x-auto py-2">
+            {/* Left Bar Collar */}
+            <div className="w-12 h-3 bg-slate-500 rounded-l-xs shrink-0" />
+            <div className="w-2.5 h-10 bg-slate-400 rounded-xs shrink-0" />
+
+            {/* Plates (Loaded on one side representation) */}
+            {plates.length > 0 ? (
+              <div className="flex items-center gap-1 mx-1.5">
+                {plates.map((plate, idx) => {
+                  let heightClass = 'h-24';
+                  if (plate <= 2.5) heightClass = 'h-10';
+                  else if (plate <= 5) heightClass = 'h-14';
+                  else if (plate <= 10) heightClass = 'h-18';
+                  else if (plate <= 15) heightClass = 'h-20';
+
+                  const col = colors[plate] || { bg: 'bg-slate-400', text: 'text-white', border: 'border-slate-500' };
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`w-5 rounded-xs flex items-center justify-center text-[10px] font-black font-mono select-none ${heightClass} ${col.bg} ${col.text} border ${col.border} shadow-md`}
+                      title={`${plate} ${isLbs ? 'lbs' : 'kg'}`}
+                    >
+                      <span className="rotate-90 text-[9px]">{plate}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="px-4 text-xs font-semibold text-slate-500 italic">
+                {numWeight <= barWeight ? 'Add weight above bar' : 'No plates required'}
+              </div>
+            )}
+
+            {/* Right Bar Sleeve */}
+            <div className="w-24 h-3 bg-slate-500 rounded-r-xs shrink-0" />
+          </div>
+
+          {/* Plates Breakdown Summary */}
+          {plates.length > 0 && (
+            <div className="pt-2 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs">
+              <span className="text-slate-400">Plates per side:</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {plates.map((plate, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2 py-0.5 bg-slate-800 border border-slate-700 text-indigo-300 font-mono font-bold rounded-md"
+                  >
+                    {plate} {isLbs ? 'lbs' : 'kg'}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Presets */}
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <span className="text-slate-400 font-medium">Presets:</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {presets.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => handlePreset(p)}
+                className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 font-mono font-bold rounded-lg border border-slate-200 transition-colors"
+              >
+                {p}{isLbs ? 'lb' : 'k'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="pt-2 border-t border-slate-100 flex justify-end">
+          <Button variant="primary" onClick={onClose} className="w-full sm:w-auto font-bold">
+            Done
+          </Button>
         </div>
       </Card>
     </div>

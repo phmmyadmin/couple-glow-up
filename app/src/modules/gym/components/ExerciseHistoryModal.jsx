@@ -496,7 +496,7 @@ export default function ExerciseHistoryModal({
 
             {onGoToWorkout && (
               <p className="text-[11px] text-indigo-600/80 font-medium text-center italic">
-                💡 Clica en cualquier punto o tarjeta para ver el entrenamiento completo
+                💡 Click any data node or session card below to view the full workout
               </p>
             )}
           </div>
@@ -523,7 +523,7 @@ export default function ExerciseHistoryModal({
                       ? 'hover:border-indigo-300 hover:bg-indigo-50/40 hover:shadow-xs cursor-pointer group'
                       : ''
                   }`}
-                  title={onGoToWorkout ? 'Abrir este entrenamiento en el historial' : ''}
+                  title={onGoToWorkout ? 'Open this workout session in history' : ''}
                 >
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                     <span className="flex items-center gap-1.5 text-indigo-900 group-hover:text-indigo-600 transition-colors">
