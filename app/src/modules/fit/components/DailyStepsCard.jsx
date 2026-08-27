@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Footprints, Flame, Navigation, Plus, Edit2, Check, X, Smartphone, Globe } from 'lucide-react';
+import { Footprints, Flame, Navigation, Plus, Edit2, Check, X, Smartphone, Globe, RefreshCw, ShieldAlert } from 'lucide-react';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import {
@@ -9,6 +9,8 @@ import {
   calculateStepDistanceKm,
   getStepProgressPercent,
   isNativePlatform,
+  checkNativeStepPermissions,
+  requestNativeStepPermissions,
 } from '../../../lib/health-connect';
 
 export default function DailyStepsCard({
@@ -20,32 +22,48 @@ export default function DailyStepsCard({
   const [source, setSource] = useState('none');
   const [isEditing, setIsEditing] = useState(false);
   const [editStepInput, setEditStepInput] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [hasNativePermission, setHasNativePermission] = useState(true);
 
   const targetSteps = activeProfile?.target_steps || 10000;
   const userWeight = activeProfile?.weight || 70;
   const userHeight = activeProfile?.height || 175;
+  const isNative = isNativePlatform();
+
+  const fetchSteps = async () => {
+    if (!selectedDate) return;
+    setIsSyncing(true);
+
+    if (isNative) {
+      const perm = await checkNativeStepPermissions();
+      setHasNativePermission(perm.granted);
+    }
+
+    const data = await getStepData(selectedDate, activeProfile?.id);
+    setSteps(data.steps || 0);
+    setSource(data.source || 'none');
+    setIsSyncing(false);
+  };
 
   // Load steps on date or profile change
   useEffect(() => {
-    let isMounted = true;
-    async function fetchSteps() {
-      if (!selectedDate) return;
-      const data = await getStepData(selectedDate, activeProfile?.id);
-      if (isMounted) {
-        setSteps(data.steps || 0);
-        setSource(data.source || 'none');
-      }
-    }
     fetchSteps();
-    return () => {
-      isMounted = false;
-    };
   }, [selectedDate, activeProfile?.id]);
+
+  const handleRequestPermission = async () => {
+    const res = await requestNativeStepPermissions();
+    if (res.granted) {
+      setHasNativePermission(true);
+      if (setToastMessage) setToastMessage('✅ Step tracking permission granted!');
+      await fetchSteps();
+    } else {
+      if (setToastMessage) setToastMessage('⚠️ Permission was denied in Android settings.');
+    }
+  };
 
   const calories = calculateStepCalories(steps, userWeight);
   const distanceKm = calculateStepDistanceKm(steps, userHeight);
   const progressPercent = getStepProgressPercent(steps, targetSteps);
-  const isNative = isNativePlatform();
 
   const handleSaveEdit = async (e) => {
     if (e) e.preventDefault();
@@ -91,19 +109,47 @@ export default function DailyStepsCard({
           </div>
         </div>
 
-        {/* Action Button */}
-        <button
-          type="button"
-          onClick={() => {
-            setEditStepInput(String(steps || ''));
-            setIsEditing(true);
-          }}
-          className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-          title="Edit daily steps"
-        >
-          <Edit2 className="w-4 h-4" />
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={fetchSteps}
+            disabled={isSyncing}
+            className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+            title="Sync latest steps"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-emerald-600' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEditStepInput(String(steps || ''));
+              setIsEditing(true);
+            }}
+            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+            title="Edit daily steps"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Permission Warning Banner on Native Android */}
+      {isNative && !hasNativePermission && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-900">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+            <span className="font-medium">Step sensor permission is required.</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleRequestPermission}
+            className="px-2.5 py-1 bg-amber-600 text-white font-bold rounded-lg text-xs hover:bg-amber-700 transition-colors cursor-pointer shrink-0"
+          >
+            Grant Access
+          </button>
+        </div>
+      )}
 
       {/* Main Steps Display & Progress Bar */}
       <div className="space-y-2.5">
@@ -161,7 +207,7 @@ export default function DailyStepsCard({
         </div>
       </div>
 
-      {/* Quick Add Buttons for Web Testing & Daily Adjustments */}
+      {/* Quick Add Buttons for Adjustments */}
       <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-100 text-xs">
         <span className="text-[11px] font-bold text-slate-400 mr-1">Quick Add:</span>
         {[+1000, +2500, +5000].map((delta) => (

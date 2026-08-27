@@ -15,6 +15,49 @@ export function isNativePlatform() {
 }
 
 /**
+ * Checks if Physical Activity / Health permissions are granted in native Android
+ */
+export async function checkNativeStepPermissions() {
+  if (isNativePlatform() && window?.Capacitor?.Plugins?.HealthConnect) {
+    try {
+      const res = await window.Capacitor.Plugins.HealthConnect.checkPermissions();
+      return res || { granted: false, hasSensor: false };
+    } catch (e) {
+      console.warn('Error checking native permissions:', e);
+    }
+  }
+  return { granted: true, hasSensor: false };
+}
+
+/**
+ * Requests Physical Activity / Step permission from Android runtime
+ */
+export async function requestNativeStepPermissions() {
+  if (isNativePlatform() && window?.Capacitor?.Plugins?.HealthConnect) {
+    try {
+      const res = await window.Capacitor.Plugins.HealthConnect.requestPermissions();
+      return res || { granted: false };
+    } catch (e) {
+      console.warn('Error requesting native permissions:', e);
+    }
+  }
+  return { granted: true };
+}
+
+/**
+ * Opens Android system settings for app permissions
+ */
+export async function openNativeHealthSettings() {
+  if (isNativePlatform() && window?.Capacitor?.Plugins?.HealthConnect) {
+    try {
+      await window.Capacitor.Plugins.HealthConnect.openHealthSettings();
+    } catch (e) {
+      console.warn('Error opening health settings:', e);
+    }
+  }
+}
+
+/**
  * Calculates active walking calories based on step count and user weight
  * Formula: MET walking (~3.5) * weightKg * (steps / steps_per_minute / 60)
  * Average: ~0.00055 kcal per step per kg bodyweight
