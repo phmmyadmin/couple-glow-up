@@ -117,6 +117,31 @@ export default function LiveWorkoutLogger({
   const [isPlateCalcOpen, setIsPlateCalcOpen] = useState(false);
   const [plateCalcTargetWeight, setPlateCalcTargetWeight] = useState('');
 
+  // Handle ESC key to dismiss any active modal or menu
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (isPlateCalcOpen) setIsPlateCalcOpen(false);
+        else if (selectedExerciseForHistory) setSelectedExerciseForHistory(null);
+        else if (isEditingTimeModal) setIsEditingTimeModal(false);
+        else if (isSelectingExercise) setIsSelectingExercise(false);
+        else if (isReorderMode) setIsReorderMode(false);
+        else if (editingRestForExerciseIndex !== null) setEditingRestForExerciseIndex(null);
+        else if (menuExerciseIndex !== null) setMenuExerciseIndex(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isPlateCalcOpen,
+    selectedExerciseForHistory,
+    isEditingTimeModal,
+    isSelectingExercise,
+    isReorderMode,
+    editingRestForExerciseIndex,
+    menuExerciseIndex,
+  ]);
+
   // Notes state
   const [expandedNotes, setExpandedNotes] = useState({});
 

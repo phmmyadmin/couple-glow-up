@@ -22,6 +22,16 @@ export default function NewProfileModal({ isOpen, onClose, onProfileCreated }) {
     language: i18n.language || 'en'
   });
 
+  // ESC key listener to close modal
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleChange = (field, value) => {

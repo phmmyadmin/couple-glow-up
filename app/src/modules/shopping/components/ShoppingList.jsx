@@ -218,6 +218,20 @@ export default function ShoppingList({
     setIsNewStoreModalOpen(false);
   };
 
+  // ESC key listener to close modals
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (isNewStoreModalOpen) setIsNewStoreModalOpen(false);
+        else if (editingItem) setEditingItem(null);
+        else if (inspectingItem) setInspectingItem(null);
+        else if (showSuggestions) setShowSuggestions(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isNewStoreModalOpen, editingItem, inspectingItem, showSuggestions]);
+
   const handleAdd = (e) => {
     e.preventDefault();
     if (!nameInput.trim()) return;

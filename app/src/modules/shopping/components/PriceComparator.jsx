@@ -29,6 +29,18 @@ export default function PriceComparator({ items = [], markets, productPrices, on
     }
   }, [markets]);
 
+  // ESC key listener to close editing modal
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (editingProductName) setEditingProductName(null);
+        if (editingPriceId) setEditingPriceId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingProductName, editingPriceId]);
+
   // Derive unique list of all known products (default catalog + shopping list items + market prices)
   const allProductSuggestions = React.useMemo(() => {
     const defaultCatalog = [

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Check, X, Trash2, Zap } from 'lucide-react';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
@@ -21,6 +21,16 @@ export default function WeeklyScheduleModal({
     return getScheduleMapping(activeProfile?.id);
   });
 
+  // ESC key listener to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const currentDay = getCurrentDayOfWeek();
@@ -37,8 +47,14 @@ export default function WeeklyScheduleModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <Card className="w-full max-w-lg max-h-[90vh] flex flex-col p-5 sm:p-6 shadow-2xl border-slate-700/80 bg-white">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <Card
+        className="w-full max-w-lg max-h-[90vh] flex flex-col p-5 sm:p-6 shadow-2xl border-slate-700/80 bg-white"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2.5">

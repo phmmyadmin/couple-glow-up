@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Store, Plus, Trash2, MapPin, AlertTriangle, Edit3, X, Check } from 'lucide-react';
 import Card, { CardTitle } from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
@@ -17,6 +17,18 @@ export default function MarketManager({ markets, productPrices = [], onSaveMarke
 
   // Deletion safeguard state
   const [deletingMarket, setDeletingMarket] = useState(null);
+
+  // ESC key listener to close modals
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (editingMarket) setEditingMarket(null);
+        if (deletingMarket) setDeletingMarket(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingMarket, deletingMarket]);
 
   const EMOJI_OPTIONS = ['🏪', '🛒', '🥦', '🥩', '🥖', '🏬', '📍'];
 

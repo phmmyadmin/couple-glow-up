@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { X, Dumbbell, Plus, Minus, RotateCcw } from 'lucide-react';
 import { calculatePlates } from '../lib/plate-calculator';
 import Card, { CardTitle } from '../../../shared/ui/Card';
@@ -27,6 +27,17 @@ export default function PlateCalculator({ onClose, initialWeight = '' }) {
   const [weight, setWeight] = useState(() => (initialWeight ? String(initialWeight) : '100'));
   const [isLbs, setIsLbs] = useState(false);
   const barWeight = isLbs ? 45 : 20;
+
+  // ESC key listener to close modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const numWeight = useMemo(() => {
     const parsed = parseFloat(weight);
