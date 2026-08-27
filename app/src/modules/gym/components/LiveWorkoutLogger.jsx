@@ -3,7 +3,7 @@ import {
   Play, Check, Plus, Trash2, Clock, Dumbbell, Award, X, ArrowUp, ArrowDown,
   Timer, Flame, Edit3, Save, Info, MoreVertical, GripVertical, RotateCcw,
   FileText, ChevronDown, User, ArrowLeft, Minus, TrendingUp, Zap, Calendar, Target,
-  Calculator
+  Calculator, Link, Unlink
 } from 'lucide-react';
 import {
   calculate1RM,
@@ -115,6 +115,9 @@ export default function LiveWorkoutLogger({
   // Plate Calculator State
   const [isPlateCalcOpen, setIsPlateCalcOpen] = useState(false);
   const [plateCalcTargetWeight, setPlateCalcTargetWeight] = useState('');
+
+  // Notes state
+  const [expandedNotes, setExpandedNotes] = useState({});
 
   // Wake Lock on mount
   useEffect(() => {
@@ -607,6 +610,31 @@ export default function LiveWorkoutLogger({
     setDraggedItemIndex(null);
   };
 
+  const handleToggleSuperset = (exIndex) => {
+    setWorkoutExercises((prev) => {
+      const copy = [...prev];
+      const current = copy[exIndex];
+      if (current.supersetId) {
+        // Unlink: remove supersetId from this and any adjacent with same ID
+        const targetId = current.supersetId;
+        return copy.map(item => item.supersetId === targetId ? { ...item, supersetId: null } : item);
+      } else {
+        // Link with next exercise
+        if (exIndex < copy.length - 1) {
+          const next = copy[exIndex + 1];
+          const targetId = next.supersetId || `ss-${Date.now()}`;
+          return copy.map((item, idx) => {
+            if (idx === exIndex) return { ...item, supersetId: targetId };
+            if (idx === exIndex + 1) return { ...item, supersetId: targetId };
+            return item;
+          });
+        }
+      }
+      return prev;
+    });
+  };
+
+
   const handleAddSet = (exIndex) => {
     setWorkoutExercises((prev) => {
       return prev.map((item, idx) => {
@@ -711,7 +739,14 @@ export default function LiveWorkoutLogger({
     // Start rest timer if checking set as completed
     if (willBeChecked && !isDistanceDuration && !isDurationOnly) {
       const restSec = item.rest_seconds !== undefined ? item.rest_seconds : (defaultRestSeconds || 90);
-      if (restSec > 0) {
+      let isLastInSuperset = true;
+      if (item.supersetId) {
+        const nextItem = workoutExercises[exIndex + 1];
+        if (nextItem && nextItem.supersetId === item.supersetId) {
+          isLastInSuperset = false;
+        }
+      }
+      if (restSec > 0 && isLastInSuperset) {
         startRestTimer(restSec, item.exercise?.name || item.exercise?.name_es || '');
       }
     }
@@ -954,8 +989,13 @@ export default function LiveWorkoutLogger({
 
                 const media = getExerciseMedia(exName);
 
+                const isNextInSameSuperset = item.supersetId && workoutExercises[exIdx + 1]?.supersetId === item.supersetId;
                 return (
-                  <Card key={item.id} className="p-4 sm:p-5 space-y-4 shadow-xs border-slate-200/90">
+                  <div key={item.id} className="relative">
+                    {isNextInSameSuperset && (
+                      <div className="absolute left-6 top-16 bottom-[-24px] w-1 bg-orange-200 z-10" />
+                    )}
+                    <Card className={`p-4 sm:p-5 space-y-4 shadow-xs ${item.supersetId ? 'border-orange-200/90' : 'border-slate-200/90'}`}>
                     {/* Hevy Exercise Header Row */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -989,13 +1029,28 @@ export default function LiveWorkoutLogger({
                         </div>
 
                         <div className="space-y-1 flex-1 min-w-0">
-                          <h4
-                            onClick={() => setSelectedExerciseForHistory(item.exercise)}
-                            className="text-base sm:text-lg font-extrabold text-indigo-600 hover:text-indigo-800 leading-snug break-words cursor-pointer hover:underline"
-                            title="Click to open Exercise History & Analytics"
-                          >
-                            {exName}
-                          </h4>
+                          <div className="flex items-center gap-2">
+                            <h4
+                              onClick={() => setSelectedExerciseForHistory(item.exercise)}
+                              className="text-base sm:text-lg font-extrabold text-indigo-600 hover:text-indigo-800 leading-snug break-words cursor-pointer hover:underline"
+                              title="Click to open Exercise History & Analytics"
+                            >
+                              {exName}
+                            </h4>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedNotes(p => ({...p, [item.id]: !p[item.id]}))}
+                              className="text-slate-400 hover:text-indigo-600 p-1 rounded-md hover:bg-slate-100 transition-colors"
+                              title="Toggle Notes"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </button>
+                            {item.supersetId && (
+                              <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-black rounded border border-orange-200" title="Linked as Superset">
+                                SS
+                              </span>
+                            )}
+                          </div>
 
                           <div className="flex items-center gap-3 flex-wrap text-xs">
                             {/* Configurable Rest Target Line */}
@@ -1051,6 +1106,18 @@ export default function LiveWorkoutLogger({
                         </button>
                       </div>
                     </div>
+
+
+                    {expandedNotes[item.id] && (
+                      <div className="pt-2 animate-in fade-in slide-in-from-top-2">
+                        <textarea
+                          value={item.notes || ''}
+                          onChange={(e) => handleUpdateExerciseNotes(exIdx, e.target.value)}
+                          placeholder="Add notes for this exercise..."
+                          className="w-full text-sm bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-y min-h-[80px]"
+                        />
+                      </div>
+                    )}
 
                     {/* Progressive Overload Smart Suggestion Card */}
                     {(() => {
@@ -1241,6 +1308,7 @@ export default function LiveWorkoutLogger({
                       </button>
                     </div>
                   </Card>
+                  </div>
                 );
               })}
 
@@ -1339,6 +1407,31 @@ export default function LiveWorkoutLogger({
               <RotateCcw className="w-5 h-5 text-slate-600" />
               <span>Replace Exercise</span>
             </button>
+
+            {/* Option 3: Link/Unlink Superset */}
+            {menuExerciseIndex < workoutExercises.length - 1 || workoutExercises[menuExerciseIndex]?.supersetId ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const idx = menuExerciseIndex;
+                  setMenuExerciseIndex(null);
+                  handleToggleSuperset(idx);
+                }}
+                className="w-full flex items-center gap-3 p-3.5 text-slate-800 hover:bg-slate-100 rounded-xl text-sm font-bold transition-colors"
+              >
+                {workoutExercises[menuExerciseIndex]?.supersetId ? (
+                  <>
+                    <Unlink className="w-5 h-5 text-slate-600" />
+                    <span>Unlink Superset</span>
+                  </>
+                ) : (
+                  <>
+                    <Link className="w-5 h-5 text-slate-600" />
+                    <span>Link as Superset</span>
+                  </>
+                )}
+              </button>
+            ) : null}
 
             {/* Option 4: Remove Exercise */}
             <button
