@@ -10,9 +10,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "setup:hooks": "git config core.hooksPath ../.githooks && chmod +x ../.githooks/*",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:build:android": "npm run build && npx cap sync android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.112.2",
     "i18next": "^26.3.6",

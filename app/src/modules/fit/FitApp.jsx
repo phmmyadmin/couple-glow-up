@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import MacroRing from './components/MacroRing';
 import DailyTimeline from './components/DailyTimeline';
+import DailyStepsCard from './components/DailyStepsCard';
 import DishesView from './components/DishesView';
 import ReportView from './components/ReportView';
 import ChatInputBar from './components/ChatInputBar';
@@ -205,6 +206,13 @@ export default function FitApp({
             activeProfileId={activeProfile?.id}
             isLoading={isLoading}
             setIsLoading={setIsLoading}
+            setToastMessage={setToastMessage}
+          />
+
+          {/* Daily Steps & Activity Card (Samsung Health / Health Connect Bridge) */}
+          <DailyStepsCard
+            selectedDate={selectedDate}
+            activeProfile={activeProfile}
             setToastMessage={setToastMessage}
           />
 
