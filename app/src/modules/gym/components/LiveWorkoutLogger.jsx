@@ -1109,9 +1109,12 @@ export default function LiveWorkoutLogger({
                           <button
                             type="button"
                             onClick={() => {
-                              // Pre-fill with the first set's weight if available
-                              const firstWeight = item.sets?.[0]?.weight_kg || '';
-                              setPlateCalcTargetWeight(firstWeight);
+                              // Pre-fill with the most recent weight entered or first set's weight
+                              const setsWithWeight = (item.sets || []).filter(s => s.weight_kg !== '' && s.weight_kg !== undefined && s.weight_kg !== null);
+                              const relevantWeight = setsWithWeight.length > 0
+                                ? setsWithWeight[setsWithWeight.length - 1].weight_kg
+                                : (item.sets?.[0]?.weight_kg || '');
+                              setPlateCalcTargetWeight(relevantWeight);
                               setIsPlateCalcOpen(true);
                             }}
                             className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-slate-100 transition-colors"
