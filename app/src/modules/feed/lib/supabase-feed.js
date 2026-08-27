@@ -55,8 +55,9 @@ export async function addFeedReactionInSupabase(eventId, emoji, profileId) {
 export function subscribeToFeedEvents(onChange) {
   if (!supabase) return () => {};
 
+  const channelName = `couple_feed_live_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const channel = supabase
-    .channel('couple_feed_live')
+    .channel(channelName)
     .on(
       'postgres_changes',
       {
