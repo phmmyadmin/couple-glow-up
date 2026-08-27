@@ -1,10 +1,10 @@
-import { Capacitor } from '@capacitor/core';
-import { saveDailyStepsToSupabase, supabase } from './supabase';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+import { saveDailyStepsToSupabase, logAppErrorToSupabase, supabase } from './supabase';
 
 /**
- * Health Connect & Steps Client Bridge
- * Bridges Android Health Connect / Samsung Health native data with React web PWA
+ * Native Capacitor Bridge for HealthConnectPlugin
  */
+export const HealthConnectNative = registerPlugin('HealthConnect');
 
 export function isNativePlatform() {
   try {
@@ -18,12 +18,13 @@ export function isNativePlatform() {
  * Checks if Physical Activity / Health permissions are granted in native Android
  */
 export async function checkNativeStepPermissions() {
-  if (isNativePlatform() && window?.Capacitor?.Plugins?.HealthConnect) {
+  if (isNativePlatform()) {
     try {
-      const res = await window.Capacitor.Plugins.HealthConnect.checkPermissions();
+      const res = await HealthConnectNative.checkPermissions();
+      logAppErrorToSupabase('info', 'step_sensor', 'checkPermissions called', res);
       return res || { granted: false, hasSensor: false };
     } catch (e) {
-      console.warn('Error checking native permissions:', e);
+      logAppErrorToSupabase('error', 'step_sensor', `checkPermissions error: ${e?.message || e}`, { stack: e?.stack });
     }
   }
   return { granted: true, hasSensor: false };
@@ -33,12 +34,13 @@ export async function checkNativeStepPermissions() {
  * Requests Physical Activity / Step permission from Android runtime
  */
 export async function requestNativeStepPermissions() {
-  if (isNativePlatform() && window?.Capacitor?.Plugins?.HealthConnect) {
+  if (isNativePlatform()) {
     try {
-      const res = await window.Capacitor.Plugins.HealthConnect.requestPermissions();
+      const res = await HealthConnectNative.requestPermissions();
+      logAppErrorToSupabase('info', 'step_sensor', 'requestPermissions result', res);
       return res || { granted: false };
     } catch (e) {
-      console.warn('Error requesting native permissions:', e);
+      logAppErrorToSupabase('error', 'step_sensor', `requestPermissions error: ${e?.message || e}`, { stack: e?.stack });
     }
   }
   return { granted: true };
@@ -48,11 +50,11 @@ export async function requestNativeStepPermissions() {
  * Opens Android system settings for app permissions
  */
 export async function openNativeHealthSettings() {
-  if (isNativePlatform() && window?.Capacitor?.Plugins?.HealthConnect) {
+  if (isNativePlatform()) {
     try {
-      await window.Capacitor.Plugins.HealthConnect.openHealthSettings();
+      await HealthConnectNative.openHealthSettings();
     } catch (e) {
-      console.warn('Error opening health settings:', e);
+      logAppErrorToSupabase('error', 'step_sensor', `openHealthSettings error: ${e?.message || e}`, { stack: e?.stack });
     }
   }
 }
@@ -103,11 +105,14 @@ export async function getStepData(dateStr, profileId = 'default') {
   if (!dateStr) return { steps: 0, date: dateStr, source: 'none' };
 
   // 1. If running on native Capacitor Android with Health Connect Plugin available:
-  if (isNativePlatform() && window?.Capacitor?.Plugins?.HealthConnect) {
+  if (isNativePlatform()) {
     try {
-      const result = await window.Capacitor.Plugins.HealthConnect.getDailySteps({
+      const result = await HealthConnectNative.getDailySteps({
         date: dateStr,
       });
+
+      logAppErrorToSupabase('info', 'step_sensor', `getDailySteps result: ${result?.steps || 0} steps`, result);
+
       if (result && typeof result.steps === 'number') {
         // Sync native steps to Supabase in background
         if (profileId && profileId !== 'default') {
@@ -121,7 +126,7 @@ export async function getStepData(dateStr, profileId = 'default') {
         };
       }
     } catch (err) {
-      console.warn('Native Health Connect query failed, falling back to local storage:', err);
+      logAppErrorToSupabase('warn', 'step_sensor', `Native getDailySteps error: ${err?.message || err}`, { stack: err?.stack });
     }
   }
 
@@ -163,4 +168,3 @@ export async function saveManualSteps(dateStr, steps, profileId = 'default') {
 
   return { steps: s, date: dateStr, source: 'local' };
 }
-

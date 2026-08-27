@@ -307,6 +307,17 @@ INSERT INTO public.exercises (name, name_es, exercise_type, muscle_group, other_
 ON CONFLICT DO NOTHING;
 
 
+CREATE TABLE IF NOT EXISTS public.app_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  level TEXT DEFAULT 'info', -- 'info', 'warn', 'error', 'debug'
+  source TEXT DEFAULT 'app',
+  message TEXT NOT NULL,
+  context JSONB DEFAULT '{}'::jsonb,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- ── 6. RLS & PUBLIC ACCESS ──
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -325,6 +336,7 @@ ALTER TABLE public.workout_sets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.personal_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feed_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feed_reactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_logs ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public Profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public Daily Logs" ON public.daily_logs FOR ALL USING (true) WITH CHECK (true);
@@ -342,6 +354,7 @@ CREATE POLICY "Public Workout Sets" ON public.workout_sets FOR ALL USING (true) 
 CREATE POLICY "Public PRs" ON public.personal_records FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public Feed Events" ON public.feed_events FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public Feed Reactions" ON public.feed_reactions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public App Logs" ON public.app_logs FOR ALL USING (true) WITH CHECK (true);
 
 -- Habilitar Realtime para la tabla shopping_items y feed_events
 ALTER PUBLICATION supabase_realtime ADD TABLE public.shopping_items;

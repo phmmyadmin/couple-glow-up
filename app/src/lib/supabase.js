@@ -840,4 +840,23 @@ export async function saveDailyStepsToSupabase(dateStr, steps, profileId) {
   }
 }
 
+export async function logAppErrorToSupabase(level = 'error', source = 'app', message = '', context = {}) {
+  if (!supabase) return;
+  try {
+    const payload = {
+      level,
+      source,
+      message: String(message),
+      context: typeof context === 'object' && context !== null ? context : { value: String(context) },
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      created_at: new Date().toISOString(),
+    };
+
+    await supabase.from('app_logs').insert(payload);
+  } catch (err) {
+    console.warn('Remote logging to app_logs error:', err);
+  }
+}
+
+
 
