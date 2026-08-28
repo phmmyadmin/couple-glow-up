@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Heart, Play, Sparkles } from 'lucide-react';
 
-import FitApp from './modules/fit/FitApp';
-import ShoppingApp from './modules/shopping/ShoppingApp';
-import GymApp from './modules/gym/GymApp';
-import FeedApp from './modules/feed/FeedApp';
+const FitApp = lazy(() => import('./modules/fit/FitApp'));
+const ShoppingApp = lazy(() => import('./modules/shopping/ShoppingApp'));
+const GymApp = lazy(() => import('./modules/gym/GymApp'));
+const FeedApp = lazy(() => import('./modules/feed/FeedApp'));
 
 import BottomNav from './shared/BottomNav';
 import Toast from './shared/Toast';
@@ -314,46 +314,54 @@ export default function App() {
       {/* Main Content Area */}
       <main className="mt-6 mb-8 space-y-6 sm:space-y-7">
         {activeModule === 'feed' && (
-          <FeedApp
-            activeProfile={activeProfile}
-            profiles={profiles}
-            setToastMessage={setToastMessage}
-          />
+          <Suspense fallback={null}>
+            <FeedApp
+              activeProfile={activeProfile}
+              profiles={profiles}
+              setToastMessage={setToastMessage}
+            />
+          </Suspense>
         )}
 
         {activeModule === 'fit' && (
-          <FitApp
-            data={data}
-            setData={setData}
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-            activeProfile={activeProfile}
-            profiles={profiles}
-            onProfileChange={handleProfileChange}
-            onNewProfileClick={() => setIsNewProfileModalOpen(true)}
-            isLoading={isLoading}
-            setIsLoading={setIsLoading}
-            loadData={loadData}
-            dateInputRef={dateInputRef}
-            setToastMessage={setToastMessage}
-            addDays={addDays}
-          />
+          <Suspense fallback={null}>
+            <FitApp
+              data={data}
+              setData={setData}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              activeProfile={activeProfile}
+              profiles={profiles}
+              onProfileChange={handleProfileChange}
+              onNewProfileClick={() => setIsNewProfileModalOpen(true)}
+              isLoading={isLoading}
+              setIsLoading={setIsLoading}
+              loadData={loadData}
+              dateInputRef={dateInputRef}
+              setToastMessage={setToastMessage}
+              addDays={addDays}
+            />
+          </Suspense>
         )}
 
         {activeModule === 'gym' && (
-          <GymApp
-            activeProfile={activeProfile}
-            profiles={profiles}
-            setToastMessage={setToastMessage}
-          />
+          <Suspense fallback={null}>
+            <GymApp
+              activeProfile={activeProfile}
+              profiles={profiles}
+              setToastMessage={setToastMessage}
+            />
+          </Suspense>
         )}
 
         {activeModule === 'shopping' && (
-          <ShoppingApp
-            activeProfile={activeProfile}
-            profiles={profiles}
-            setToastMessage={setToastMessage}
-          />
+          <Suspense fallback={null}>
+            <ShoppingApp
+              activeProfile={activeProfile}
+              profiles={profiles}
+              setToastMessage={setToastMessage}
+            />
+          </Suspense>
         )}
       </main>
 

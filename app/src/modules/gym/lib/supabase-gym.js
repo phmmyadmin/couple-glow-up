@@ -709,7 +709,8 @@ export async function fetchWorkoutsFromSupabase(profileId) {
     let query = supabase
       .from('workouts')
       .select('*, workout_sets(*, exercises(*))')
-      .order('started_at', { ascending: false });
+      .order('started_at', { ascending: false })
+      .limit(50);
 
     if (profileId) {
       query = query.or(`profile_id.eq.${profileId},profile_id.is.null`);
@@ -720,7 +721,8 @@ export async function fetchWorkoutsFromSupabase(profileId) {
       const { data: fallbackData, error: fbErr } = await supabase
         .from('workouts')
         .select('*, workout_sets(*, exercises(*))')
-        .order('started_at', { ascending: false });
+        .order('started_at', { ascending: false })
+        .limit(50);
       if (fbErr) console.error('Error fetching workouts fallback:', fbErr);
       return enrichWorkoutList(fallbackData || []);
     }

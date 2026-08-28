@@ -46,6 +46,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
     private static final String KEY_BASELINE_STEPS = "baseline_sensor_steps";
     private static final String KEY_BASELINE_DATE = "baseline_date";
     private static final String KEY_ACCUMULATED_DAILY = "accumulated_daily_steps";
+    private static final String KEY_DATE_PREFIX = "steps_date_";
     private int latestLiveSensorReading = 0;
 
     @Override
@@ -54,7 +55,6 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         Context ctx = getContext();
         sensorManager = (SensorManager) ctx.getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
-            // SENSOR_DELAY_NORMAL saves battery while accurately updating step counts
             stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
             if (stepCounterSensor != null) {
                 sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
@@ -74,7 +74,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         return sdf.format(new Date());
     }
 
-    private int calculateTodaySteps(int currentSensorSteps) {
+    private synchronized int calculateTodaySteps(int currentSensorSteps) {
         latestLiveSensorReading = currentSensorSteps;
         Context ctx = getContext();
         SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -83,22 +83,24 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         int baselineSteps = prefs.getInt(KEY_BASELINE_STEPS, -1);
 
         if (!today.equals(savedDate)) {
-            // New Day: store current odometer reading as baseline and start day at 0
+            // New day: archive yesterday and reset today's baseline
             prefs.edit()
                 .putString(KEY_BASELINE_DATE, today)
                 .putInt(KEY_BASELINE_STEPS, currentSensorSteps)
                 .putInt(KEY_LAST_STEPS, currentSensorSteps)
                 .putInt(KEY_ACCUMULATED_DAILY, 0)
+                .putInt(KEY_DATE_PREFIX + today, 0)
                 .apply();
             return 0;
         }
 
         if (baselineSteps < 0) {
-            // First time setup
             prefs.edit()
                 .putString(KEY_BASELINE_DATE, today)
                 .putInt(KEY_BASELINE_STEPS, currentSensorSteps)
                 .putInt(KEY_LAST_STEPS, currentSensorSteps)
+                .putInt(KEY_ACCUMULATED_DAILY, 0)
+                .putInt(KEY_DATE_PREFIX + today, 0)
                 .apply();
             return 0;
         }
@@ -107,6 +109,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         prefs.edit()
             .putInt(KEY_LAST_STEPS, currentSensorSteps)
             .putInt(KEY_ACCUMULATED_DAILY, dailySteps)
+            .putInt(KEY_DATE_PREFIX + today, dailySteps)
             .apply();
         return dailySteps;
     }
@@ -119,8 +122,13 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         } else if (event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR && event.values.length > 0) {
             Context ctx = getContext();
             SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            int current = prefs.getInt(KEY_ACCUMULATED_DAILY, 0);
-            prefs.edit().putInt(KEY_ACCUMULATED_DAILY, current + 1).apply();
+            String today = getTodayDateStr();
+            int current = prefs.getInt(KEY_DATE_PREFIX + today, prefs.getInt(KEY_ACCUMULATED_DAILY, 0));
+            int next = current + 1;
+            prefs.edit()
+                .putInt(KEY_ACCUMULATED_DAILY, next)
+                .putInt(KEY_DATE_PREFIX + today, next)
+                .apply();
         }
     }
 
@@ -167,28 +175,30 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
     }
 
     @PluginMethod
-    public void calibrateBaseline(PluginCall call) {
+    public synchronized void calibrateBaseline(PluginCall call) {
         int targetTodaySteps = call.getInt("todaySteps", 0);
+        String targetDate = call.getString("date", getTodayDateStr());
         Context ctx = getContext();
         SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         int currentSensor = prefs.getInt(KEY_LAST_STEPS, latestLiveSensorReading);
         int calculatedBaseline = Math.max(0, currentSensor - targetTodaySteps);
-        String today = getTodayDateStr();
 
         prefs.edit()
-            .putString(KEY_BASELINE_DATE, today)
+            .putString(KEY_BASELINE_DATE, targetDate)
             .putInt(KEY_BASELINE_STEPS, calculatedBaseline)
             .putInt(KEY_ACCUMULATED_DAILY, targetTodaySteps)
+            .putInt(KEY_DATE_PREFIX + targetDate, targetTodaySteps)
             .apply();
 
         JSObject ret = new JSObject();
         ret.put("baseline", calculatedBaseline);
         ret.put("todaySteps", targetTodaySteps);
+        ret.put("date", targetDate);
         call.resolve(ret);
     }
 
     @PluginMethod
-    public void getDailySteps(PluginCall call) {
+    public synchronized void getDailySteps(PluginCall call) {
         if (sensorManager != null) {
             try {
                 sensorManager.flush(this);
@@ -196,6 +206,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         }
 
         String reqDate = call.getString("date", getTodayDateStr());
+        String today = getTodayDateStr();
         Context ctx = getContext();
         SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
 
@@ -207,16 +218,36 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
             ) == PackageManager.PERMISSION_GRANTED;
         }
 
-        int todaySteps = prefs.getInt(KEY_ACCUMULATED_DAILY, 0);
+        int stepsResult = 0;
         int lastSensor = prefs.getInt(KEY_LAST_STEPS, latestLiveSensorReading);
         int baseline = prefs.getInt(KEY_BASELINE_STEPS, -1);
+        String savedDate = prefs.getString(KEY_BASELINE_DATE, "");
 
-        if (todaySteps == 0 && lastSensor > 0 && baseline >= 0 && lastSensor >= baseline) {
-            todaySteps = lastSensor - baseline;
+        if (reqDate.equals(today)) {
+            // Checking today
+            if (!today.equals(savedDate)) {
+                // First query on a new day: reset daily baseline
+                prefs.edit()
+                    .putString(KEY_BASELINE_DATE, today)
+                    .putInt(KEY_BASELINE_STEPS, lastSensor)
+                    .putInt(KEY_ACCUMULATED_DAILY, 0)
+                    .putInt(KEY_DATE_PREFIX + today, 0)
+                    .apply();
+                stepsResult = 0;
+                baseline = lastSensor;
+            } else {
+                stepsResult = prefs.getInt(KEY_DATE_PREFIX + today, prefs.getInt(KEY_ACCUMULATED_DAILY, 0));
+                if (stepsResult == 0 && lastSensor > 0 && baseline >= 0 && lastSensor >= baseline) {
+                    stepsResult = lastSensor - baseline;
+                }
+            }
+        } else {
+            // Historical date query: strictly use archived date steps
+            stepsResult = prefs.getInt(KEY_DATE_PREFIX + reqDate, 0);
         }
 
         JSObject ret = new JSObject();
-        ret.put("steps", todaySteps);
+        ret.put("steps", stepsResult);
         ret.put("rawSensorSteps", lastSensor);
         ret.put("baseline", baseline);
         ret.put("date", reqDate);

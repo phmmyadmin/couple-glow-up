@@ -14,7 +14,7 @@ import {
   saveExerciseNoteToSupabase
 } from '../lib/supabase-gym';
 import { detectExerciseStall } from '../lib/progressive-overload';
-import { updateRestNotificationBar, clearRestNotificationBar, startBackgroundRestTimer } from '../../../lib/rest-timer-notifications';
+import { updateRestNotificationBar, clearRestNotificationBar, startBackgroundRestTimer, playRestCompleteSound } from '../../../lib/rest-timer-notifications';
 import { requestWakeLock, releaseWakeLock } from '../../../lib/wake-lock';
 import ExerciseLibrary, { getMuscleGroupLabel } from './ExerciseLibrary';
 import ExerciseHistoryModal from './ExerciseHistoryModal';

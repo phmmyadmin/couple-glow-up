@@ -101,7 +101,8 @@ export async function fetchDailyLogsFromSupabase(profileId) {
     const { data: logs, error: logsErr } = await supabase
       .from('daily_logs')
       .select('*, intakes(*)')
-      .eq('profile_id', profileId);
+      .eq('profile_id', profileId)
+      .gte('date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
     if (logsErr) throw logsErr;
 
@@ -569,7 +570,7 @@ export async function fetchCatalog() {
 
     // Always fetch intakes to enrich catalog with any recent dishes/ingredients logged in intakes
     try {
-      const { data: intakesData } = await supabase.from('intakes').select('name, category, unit, calories, protein, carbs, fats, dish_name');
+      const { data: intakesData } = await supabase.from('intakes').select('name, category, unit, calories, protein, carbs, fats, dish_name').limit(500);
       if (intakesData && intakesData.length > 0) {
         const uniqueIngMap = new Map();
         const uniqueDishMap = new Map();

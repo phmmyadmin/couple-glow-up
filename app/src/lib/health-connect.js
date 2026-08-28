@@ -192,7 +192,7 @@ export async function saveManualSteps(dateStr, steps, profileId = 'default') {
   // Calibrate native hardware pedometer baseline so hardware step tracking matches
   if (isNativePlatform()) {
     try {
-      await StepSensorNative.calibrateBaseline({ todaySteps: s });
+      await StepSensorNative.calibrateBaseline({ todaySteps: s, date: dateStr });
     } catch (e) {}
   }
 
