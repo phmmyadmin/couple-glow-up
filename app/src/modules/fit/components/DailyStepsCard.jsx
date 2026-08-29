@@ -12,6 +12,7 @@ import {
   checkNativeStepPermissions,
   requestNativeStepPermissions,
   openSamsungHealthApp,
+  openHealthConnectPermissions,
 } from '../../../lib/health-connect';
 import { APP_VERSION, APP_BUILD } from '../../../version';
 
@@ -69,16 +70,12 @@ export default function DailyStepsCard({
   const handleSyncButton = async () => {
     if (isNative) {
       const perm = await checkNativeStepPermissions();
-      if (!perm.granted) {
-        const res = await requestNativeStepPermissions();
-        if (res.granted) {
-          setHasNativePermission(true);
-          if (setToastMessage) setToastMessage('✅ Step access granted! Reading Samsung Health...');
-          await fetchSteps(true);
-        } else {
-          if (setToastMessage) setToastMessage('⚠️ Please grant Steps permission in Health Connect / Android settings.');
-        }
+      if (!perm.granted || (perm.hasHealthConnect && !perm.healthConnectGranted)) {
+        await requestNativeStepPermissions();
+        setHasNativePermission(false);
+        if (setToastMessage) setToastMessage('⚠️ Please enable Steps permission in Health Connect.');
       } else {
+        setHasNativePermission(true);
         await fetchSteps(true);
       }
     } else {
@@ -164,13 +161,13 @@ export default function DailyStepsCard({
           <div className="flex items-center gap-2.5">
             <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
             <div>
-              <p className="font-bold">Step Tracking Permission Required</p>
-              <p className="text-[11px] text-amber-700">Grant permission to read Samsung Health step sensor.</p>
+              <p className="font-bold">Health Connect Permission Required</p>
+              <p className="text-[11px] text-amber-700">Allow OpenFit to read Samsung Health steps in Health Connect.</p>
             </div>
           </div>
           <button
             type="button"
-            onClick={handleSyncButton}
+            onClick={openHealthConnectPermissions}
             className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl text-xs transition-colors cursor-pointer shrink-0 shadow-xs"
           >
             Grant Access

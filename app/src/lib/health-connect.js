@@ -60,6 +60,19 @@ export async function openNativeHealthSettings() {
 }
 
 /**
+ * Opens Health Connect permissions screen specifically for OpenFit
+ */
+export async function openHealthConnectPermissions() {
+  if (isNativePlatform()) {
+    try {
+      await StepSensorNative.openHealthConnectPermissions();
+    } catch (e) {
+      logAppErrorToSupabase('error', 'step_sensor', `openHealthConnectPermissions error: ${e?.message || e}`);
+    }
+  }
+}
+
+/**
  * Opens Samsung Health app or Health Connect settings
  */
 export async function openSamsungHealthApp() {
