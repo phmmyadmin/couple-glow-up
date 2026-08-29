@@ -5,6 +5,7 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateRequest
+import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -49,8 +50,10 @@ class HealthConnectBridge(private val context: Context) {
     }
 
     /**
-     * Reads aggregated steps for a specific date (YYYY-MM-DD) from Health Connect
-     * Uses local system timezone to calculate start of day (00:00:00) and end of day (23:59:59.999)
+     * Reads aggregated steps for a specific date (YYYY-MM-DD) from Health Connect / Samsung Health.
+     * Uses dual-strategy:
+     * 1. aggregate(StepsRecord.COUNT_TOTAL) for deduplicated system total
+     * 2. readRecords(ReadRecordsRequest) as fallback sum
      */
     fun getDailySteps(dateStr: String): Long {
         return try {
@@ -66,14 +69,38 @@ class HealthConnectBridge(private val context: Context) {
 
                 val startInstant = parsedDate.atStartOfDay(zoneId).toInstant()
                 val endInstant = startInstant.plus(1, ChronoUnit.DAYS).minusMillis(1)
+                val timeFilter = TimeRangeFilter.between(startInstant, endInstant)
 
-                val request = AggregateRequest(
-                    metrics = setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(startInstant, endInstant)
-                )
+                var totalSteps = 0L
 
-                val response = healthConnectClient?.aggregate(request)
-                response?.get(StepsRecord.COUNT_TOTAL) ?: 0L
+                // 1. Primary strategy: Aggregate metric (deduplicated)
+                try {
+                    val request = AggregateRequest(
+                        metrics = setOf(StepsRecord.COUNT_TOTAL),
+                        timeRangeFilter = timeFilter
+                    )
+                    val response = healthConnectClient?.aggregate(request)
+                    totalSteps = response?.get(StepsRecord.COUNT_TOTAL) ?: 0L
+                } catch (e: Exception) {
+                    totalSteps = 0L
+                }
+
+                // 2. Secondary strategy: Direct records reading fallback
+                if (totalSteps <= 0L) {
+                    try {
+                        val readRequest = ReadRecordsRequest(
+                            recordType = StepsRecord::class,
+                            timeRangeFilter = timeFilter
+                        )
+                        val recordsResponse = healthConnectClient?.readRecords(readRequest)
+                        val records = recordsResponse?.records ?: emptyList()
+                        totalSteps = records.sumOf { it.count }
+                    } catch (e: Exception) {
+                        // ignore
+                    }
+                }
+
+                totalSteps
             }
         } catch (e: Exception) {
             0L
