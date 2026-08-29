@@ -121,9 +121,17 @@ export default function DailyStepsCard({
           <div>
             <CardTitle className="text-base">Daily Steps & Activity</CardTitle>
             <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-              {isNative ? (
+              {source === 'samsung_health' ? (
                 <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                  <Smartphone className="w-3.5 h-3.5" /> Samsung Health Connected
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-600" /> Samsung Health (Live Sync)
+                </span>
+              ) : source === 'manual' ? (
+                <span className="flex items-center gap-1 text-indigo-700 font-semibold">
+                  <Edit2 className="w-3.5 h-3.5 text-indigo-600" /> Manually Logged
+                </span>
+              ) : isNative ? (
+                <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-600" /> Samsung Health Connected
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-slate-500">

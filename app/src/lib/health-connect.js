@@ -2,7 +2,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { saveDailyStepsToSupabase, logAppErrorToSupabase, supabase } from './supabase';
 
 /**
- * Native Capacitor Bridge for Hardware Step Sensor & Samsung Health
+ * Native Capacitor Bridge for Samsung Health & Health Connect
  */
 export const StepSensorNative = registerPlugin('StepSensor');
 
@@ -15,7 +15,7 @@ export function isNativePlatform() {
 }
 
 /**
- * Checks if Samsung Health / Step Sensor permissions are granted
+ * Checks if Samsung Health / Health Connect / Step Sensor permissions are granted
  */
 export async function checkNativeStepPermissions() {
   if (isNativePlatform()) {
@@ -112,35 +112,22 @@ export function getStepProgressPercent(steps, target = 10000) {
 
 /**
  * Retrieves daily steps for a date and profile
- * Reads from native Samsung Health sensor, with local storage and Supabase caching
+ * Reads from native Samsung Health / Health Connect, with local storage and Supabase caching
  */
 export async function getStepData(dateStr, profileId = 'default') {
   if (!dateStr) return { steps: 0, date: dateStr, source: 'none' };
-
-  // Calculate local day start/end ISO strings (using user device timezone)
-  const dateParts = dateStr.split('-').map(Number);
-  let startOfDayIso = null;
-  let endOfDayIso = null;
-  if (dateParts.length === 3 && !isNaN(dateParts[0])) {
-    const startOfDay = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], 0, 0, 0, 0);
-    const endOfDay = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], 23, 59, 59, 999);
-    startOfDayIso = startOfDay.toISOString();
-    endOfDayIso = endOfDay.toISOString();
-  }
 
   // 1. If running on native Android:
   if (isNativePlatform()) {
     try {
       const result = await StepSensorNative.getDailySteps({
         date: dateStr,
-        startTime: startOfDayIso,
-        endTime: endOfDayIso,
       });
 
       logAppErrorToSupabase('info', 'step_sensor', `StepSensor query result: ${result?.steps || 0} steps`, result);
 
       if (result && typeof result.steps === 'number' && result.steps > 0) {
-        // Cache locally
+        // Cache locally for this specific date
         const storageKey = `openfit_steps_${profileId}_${dateStr}`;
         localStorage.setItem(storageKey, String(result.steps));
 
@@ -150,7 +137,8 @@ export async function getStepData(dateStr, profileId = 'default') {
         return {
           steps: result.steps,
           date: dateStr,
-          source: result.source || 'samsung_health_sensor',
+          source: result.source || 'samsung_health',
+          provider: result.provider || 'health_connect',
           lastSynced: new Date().toISOString(),
         };
       }
@@ -159,7 +147,7 @@ export async function getStepData(dateStr, profileId = 'default') {
     }
   }
 
-  // 2. Storage / Cache Fallback (localStorage)
+  // 2. Storage / Cache Fallback (localStorage for this specific date)
   const storageKey = `openfit_steps_${profileId}_${dateStr}`;
   const raw = localStorage.getItem(storageKey);
   if (raw !== null) {
@@ -184,7 +172,7 @@ export async function getStepData(dateStr, profileId = 'default') {
  * Persists to localStorage and syncs with Supabase in the background
  */
 export async function saveManualSteps(dateStr, steps, profileId = 'default') {
-  if (!dateStr) return { steps: 0, date: dateStr, source: 'local' };
+  if (!dateStr) return { steps: 0, date: dateStr, source: 'manual' };
   const s = Math.max(0, parseInt(steps, 10) || 0);
   const storageKey = `openfit_steps_${profileId}_${dateStr}`;
   localStorage.setItem(storageKey, String(s));
@@ -203,5 +191,5 @@ export async function saveManualSteps(dateStr, steps, profileId = 'default') {
     });
   }
 
-  return { steps: s, date: dateStr, source: 'local' };
+  return { steps: s, date: dateStr, source: 'manual' };
 }

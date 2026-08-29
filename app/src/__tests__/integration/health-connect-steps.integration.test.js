@@ -56,12 +56,27 @@ describe('Health Connect & Steps Integration', () => {
   describe('Storage & Web Fallback', () => {
     it('saves and retrieves daily steps from local storage when on web', async () => {
       const date = '2026-08-27';
-      await saveManualSteps(date, 8500, 'user_123');
+      const saved = await saveManualSteps(date, 8500, 'user_123');
+      expect(saved.source).toBe('manual');
+      expect(saved.steps).toBe(8500);
 
       const data = await getStepData(date, 'user_123');
       expect(data.steps).toBe(8500);
       expect(data.source).toBe('local');
       expect(data.date).toBe(date);
+    });
+
+    it('isolates step records strictly by date without cross-day leakage', async () => {
+      await saveManualSteps('2026-08-28', 4000, 'user_123');
+      await saveManualSteps('2026-08-29', 800, 'user_123');
+
+      const day1 = await getStepData('2026-08-28', 'user_123');
+      const day2 = await getStepData('2026-08-29', 'user_123');
+      const day3 = await getStepData('2026-08-30', 'user_123');
+
+      expect(day1.steps).toBe(4000);
+      expect(day2.steps).toBe(800);
+      expect(day3.steps).toBe(0);
     });
 
     it('returns default 0 steps for an unlogged day', async () => {

@@ -41,6 +41,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
     private SensorManager sensorManager;
     private Sensor stepCounterSensor;
     private Sensor stepDetectorSensor;
+    private HealthConnectBridge healthConnectBridge;
     private static final String PREFS_NAME = "openfit_step_prefs";
     private static final String KEY_LAST_STEPS = "last_sensor_steps";
     private static final String KEY_BASELINE_STEPS = "baseline_sensor_steps";
@@ -53,6 +54,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
     public void load() {
         super.load();
         Context ctx = getContext();
+        healthConnectBridge = new HealthConnectBridge(ctx);
         sensorManager = (SensorManager) ctx.getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
             stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
@@ -83,7 +85,6 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         int baselineSteps = prefs.getInt(KEY_BASELINE_STEPS, -1);
 
         if (!today.equals(savedDate)) {
-            // New day: archive yesterday and reset today's baseline
             prefs.edit()
                 .putString(KEY_BASELINE_DATE, today)
                 .putInt(KEY_BASELINE_STEPS, currentSensorSteps)
@@ -141,16 +142,22 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
     @PluginMethod
     public void checkPermissions(PluginCall call) {
         JSObject ret = new JSObject();
-        boolean hasPermission = true;
+        boolean hasActivityPermission = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            hasPermission = ContextCompat.checkSelfPermission(
+            hasActivityPermission = ContextCompat.checkSelfPermission(
                 getContext(),
                 Manifest.permission.ACTIVITY_RECOGNITION
             ) == PackageManager.PERMISSION_GRANTED;
         }
-        ret.put("granted", hasPermission);
+
+        boolean hasHealthConnect = healthConnectBridge != null && healthConnectBridge.isAvailable();
+        boolean hasHealthConnectPermission = healthConnectBridge != null && healthConnectBridge.hasStepsPermission();
+
+        ret.put("granted", hasActivityPermission || hasHealthConnectPermission);
         ret.put("hasSensor", (stepCounterSensor != null || stepDetectorSensor != null));
-        ret.put("provider", "samsung_sensor");
+        ret.put("hasHealthConnect", hasHealthConnect);
+        ret.put("healthConnectGranted", hasHealthConnectPermission);
+        ret.put("provider", hasHealthConnect ? "health_connect" : "samsung_sensor");
         call.resolve(ret);
     }
 
@@ -165,7 +172,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         JSObject ret = new JSObject();
         ret.put("granted", true);
         ret.put("hasSensor", (stepCounterSensor != null || stepDetectorSensor != null));
-        ret.put("provider", "samsung_sensor");
+        ret.put("provider", (healthConnectBridge != null && healthConnectBridge.isAvailable()) ? "health_connect" : "samsung_sensor");
         call.resolve(ret);
     }
 
@@ -194,6 +201,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         ret.put("baseline", calculatedBaseline);
         ret.put("todaySteps", targetTodaySteps);
         ret.put("date", targetDate);
+        ret.put("source", "manual");
         call.resolve(ret);
     }
 
@@ -210,6 +218,28 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         Context ctx = getContext();
         SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
 
+        // 1. First priority: Read official steps from Health Connect (Samsung Health)
+        if (healthConnectBridge != null && healthConnectBridge.isAvailable()) {
+            try {
+                long hcSteps = healthConnectBridge.getDailySteps(reqDate);
+                if (hcSteps > 0) {
+                    prefs.edit().putInt(KEY_DATE_PREFIX + reqDate, (int) hcSteps).apply();
+
+                    JSObject ret = new JSObject();
+                    ret.put("steps", (int) hcSteps);
+                    ret.put("rawSensorSteps", (int) hcSteps);
+                    ret.put("date", reqDate);
+                    ret.put("source", "samsung_health");
+                    ret.put("provider", "health_connect");
+                    ret.put("hasPermission", true);
+                    ret.put("hasSensor", true);
+                    call.resolve(ret);
+                    return;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // 2. Second priority: Fallback to Hardware Sensor & Cached Steps
         boolean hasPermission = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             hasPermission = ContextCompat.checkSelfPermission(
@@ -224,9 +254,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         String savedDate = prefs.getString(KEY_BASELINE_DATE, "");
 
         if (reqDate.equals(today)) {
-            // Checking today
             if (!today.equals(savedDate)) {
-                // First query on a new day: reset daily baseline
                 prefs.edit()
                     .putString(KEY_BASELINE_DATE, today)
                     .putInt(KEY_BASELINE_STEPS, lastSensor)
@@ -242,7 +270,6 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
                 }
             }
         } else {
-            // Historical date query: strictly use archived date steps
             stepsResult = prefs.getInt(KEY_DATE_PREFIX + reqDate, 0);
         }
 
@@ -252,6 +279,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         ret.put("baseline", baseline);
         ret.put("date", reqDate);
         ret.put("source", "samsung_health_sensor");
+        ret.put("provider", "samsung_sensor");
         ret.put("hasPermission", hasPermission);
         ret.put("hasSensor", (stepCounterSensor != null || stepDetectorSensor != null));
         call.resolve(ret);
