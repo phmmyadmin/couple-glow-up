@@ -167,8 +167,11 @@ export default function DailyStepsCard({
           </div>
           <button
             type="button"
-            onClick={openHealthConnectPermissions}
-            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl text-xs transition-colors cursor-pointer shrink-0 shadow-xs"
+            onClick={async () => {
+              if (setToastMessage) setToastMessage('⚙️ Opening Health Connect / Android settings...');
+              await openHealthConnectPermissions();
+            }}
+            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-black rounded-xl text-xs transition-all cursor-pointer shrink-0 shadow-xs"
           >
             Grant Access
           </button>

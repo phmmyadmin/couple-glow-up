@@ -163,6 +163,45 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         call.resolve(ret);
     }
 
+    private void launchIntentSafely(Intent intent) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (getActivity() != null) {
+            getActivity().startActivity(intent);
+        } else {
+            getContext().startActivity(intent);
+        }
+    }
+
+    private boolean openHealthConnectPermissionsDirect() {
+        // 1. Android 14+ direct app health permissions screen
+        if (Build.VERSION.SDK_INT >= 34) {
+            try {
+                Intent intent = new Intent("android.health.connect.action.MANAGE_HEALTH_PERMISSIONS");
+                intent.putExtra(Intent.EXTRA_PACKAGE_NAME, getContext().getPackageName());
+                launchIntentSafely(intent);
+                return true;
+            } catch (Exception ignored) {}
+        }
+
+        // 2. Health Connect general settings
+        try {
+            Intent hcIntent = new Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS");
+            launchIntentSafely(hcIntent);
+            return true;
+        } catch (Exception ignored) {}
+
+        // 3. Fallback: App Settings screen
+        try {
+            Intent appDetails = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            Uri uri = Uri.fromParts("package", getContext().getPackageName(), null);
+            appDetails.setData(uri);
+            launchIntentSafely(appDetails);
+            return true;
+        } catch (Exception ignored) {}
+
+        return false;
+    }
+
     @PluginMethod
     public void requestPermissions(PluginCall call) {
         boolean hasHealthConnect = healthConnectBridge != null && healthConnectBridge.isAvailable();
@@ -187,31 +226,11 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
         checkPermissions(call);
     }
 
-    private void openHealthConnectPermissionsDirect() {
-        try {
-            Intent intent = null;
-            if (Build.VERSION.SDK_INT >= 34) {
-                intent = new Intent("android.health.connect.action.MANAGE_HEALTH_PERMISSIONS");
-                intent.putExtra(Intent.EXTRA_PACKAGE_NAME, getContext().getPackageName());
-            } else {
-                intent = new Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS");
-            }
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            getContext().startActivity(intent);
-        } catch (Exception e) {
-            try {
-                Intent fallback = new Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS");
-                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                getContext().startActivity(fallback);
-            } catch (Exception ignored) {}
-        }
-    }
-
     @PluginMethod
     public void openHealthConnectPermissions(PluginCall call) {
-        openHealthConnectPermissionsDirect();
+        boolean success = openHealthConnectPermissionsDirect();
         JSObject ret = new JSObject();
-        ret.put("opened", true);
+        ret.put("opened", success);
         call.resolve(ret);
     }
 
@@ -325,8 +344,7 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
             Uri uri = Uri.fromParts("package", getContext().getPackageName(), null);
             intent.setData(uri);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            getContext().startActivity(intent);
+            launchIntentSafely(intent);
             call.resolve();
         } catch (Exception e) {
             call.reject("Could not open settings: " + e.getMessage());
@@ -339,19 +357,19 @@ public class StepSensorPlugin extends Plugin implements SensorEventListener2 {
             Intent launchIntent = getContext().getPackageManager().getLaunchIntentForPackage("com.sec.android.app.shealth");
             if (launchIntent != null) {
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                getContext().startActivity(launchIntent);
+                if (getActivity() != null) {
+                    getActivity().startActivity(launchIntent);
+                } else {
+                    getContext().startActivity(launchIntent);
+                }
                 call.resolve();
             } else {
                 openHealthConnectPermissionsDirect();
                 call.resolve();
             }
         } catch (Exception e) {
-            try {
-                openHealthConnectPermissionsDirect();
-                call.resolve();
-            } catch (Exception ex) {
-                call.reject("Could not launch Samsung Health or settings: " + ex.getMessage());
-            }
+            openHealthConnectPermissionsDirect();
+            call.resolve();
         }
     }
 }
