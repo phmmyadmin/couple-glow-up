@@ -1,0 +1,14 @@
+actions:
+  build:
+    title: "📦 Build OpenFit Web & APK"
+    description: "Compile production PWA bundle and Capacitor assets"
+    command: "npm run build --prefix app"
+  test:
+    title: "🧪 Run Test Suite"
+    description: "Execute Vitest integration test suite (101 tests)"
+    command: "npm test --prefix app"
+  import_hevy:
+    title: "🏋️ Import Hevy Workouts (CSV/JSON)"
+    description: "Convert and import exported Hevy workouts into OpenFit"
+    accepts_files: [".csv", ".json"]
+    command: "python3 scripts/convert_hevy_to_sql.py --input-file {file_path}"
