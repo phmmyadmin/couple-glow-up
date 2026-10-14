@@ -1,4 +1,4 @@
-import { supabase } from '../../../lib/supabase';
+import { supabase, SUPABASE_SCHEMA } from '../../../lib/supabase';
 
 // ── MARKETS ──
 export async function fetchMarkets() {
@@ -328,7 +328,7 @@ export function subscribeToShoppingItems(listId, onChange) {
       'postgres_changes',
       {
         event: '*',
-        schema: 'public',
+        schema: SUPABASE_SCHEMA,
         table: 'shopping_items',
         filter: `list_id=eq.${listId}`,
       },
@@ -352,7 +352,7 @@ export function subscribeToProductPrices(onChange) {
       'postgres_changes',
       {
         event: '*',
-        schema: 'public',
+        schema: SUPABASE_SCHEMA,
         table: 'product_prices',
       },
       (payload) => {
@@ -375,7 +375,7 @@ export function subscribeToMarkets(onChange) {
       'postgres_changes',
       {
         event: '*',
-        schema: 'public',
+        schema: SUPABASE_SCHEMA,
         table: 'markets',
       },
       (payload) => {

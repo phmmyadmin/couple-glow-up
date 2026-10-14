@@ -1,4 +1,4 @@
-import { supabase } from '../../../lib/supabase';
+import { supabase, SUPABASE_SCHEMA } from '../../../lib/supabase';
 import { getNotificationIcon } from '../../../lib/rest-timer-notifications';
 
 export async function fetchFeedEventsFromSupabase() {
@@ -62,7 +62,7 @@ export function subscribeToFeedEvents(onChange) {
       'postgres_changes',
       {
         event: '*',
-        schema: 'public',
+        schema: SUPABASE_SCHEMA,
         table: 'feed_events',
       },
       (payload) => {

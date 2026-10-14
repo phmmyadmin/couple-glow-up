@@ -2,9 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const SUPABASE_SCHEMA = import.meta.env.VITE_SUPABASE_SCHEMA || 'fit';
 
 export const supabase = (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('xyzcompany'))
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      db: { schema: SUPABASE_SCHEMA }
+    })
   : null;
 
 export async function fetchProfiles() {
@@ -754,7 +757,7 @@ export function subscribeToIntakes(onChange) {
       'postgres_changes',
       {
         event: '*',
-        schema: 'public',
+        schema: SUPABASE_SCHEMA,
         table: 'intakes',
       },
       (payload) => {
@@ -777,7 +780,7 @@ export function subscribeToDailyLogs(onChange) {
       'postgres_changes',
       {
         event: '*',
-        schema: 'public',
+        schema: SUPABASE_SCHEMA,
         table: 'daily_logs',
       },
       (payload) => {
@@ -800,7 +803,7 @@ export function subscribeToWeightLogs(onChange) {
       'postgres_changes',
       {
         event: '*',
-        schema: 'public',
+        schema: SUPABASE_SCHEMA,
         table: 'weight_logs',
       },
       (payload) => {

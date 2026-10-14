@@ -1,4 +1,4 @@
-import { supabase } from '../../../lib/supabase';
+import { supabase, SUPABASE_SCHEMA } from '../../../lib/supabase';
 
 // ── EXERCISES ──
 export const DEFAULT_EXERCISES = [
@@ -1071,7 +1071,7 @@ export function subscribeToWorkouts(onChange) {
     .channel('gym_workouts_live')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'workouts' },
+      { event: '*', schema: SUPABASE_SCHEMA, table: 'workouts' },
       (payload) => {
         if (onChange) onChange(payload);
       }
@@ -1089,7 +1089,7 @@ export function subscribeToPersonalRecords(onChange) {
     .channel('gym_prs_live')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'personal_records' },
+      { event: '*', schema: SUPABASE_SCHEMA, table: 'personal_records' },
       (payload) => {
         if (onChange) onChange(payload);
       }
@@ -1107,7 +1107,7 @@ export function subscribeToRoutines(onChange) {
     .channel('gym_routines_live')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'routines' },
+      { event: '*', schema: SUPABASE_SCHEMA, table: 'routines' },
       (payload) => {
         if (onChange) onChange(payload);
       }

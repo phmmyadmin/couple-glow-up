@@ -26,6 +26,7 @@ import { getFoodEmoji } from '../../../utils/emoji';
 import { getCategoryInfo } from '../../../utils/category';
 import {
   supabase,
+  SUPABASE_SCHEMA,
   saveIntakesToSupabase,
   fetchDailyLogsFromSupabase,
   saveToCatalog,
@@ -81,7 +82,7 @@ export default function DishesView({
     if (!supabase) return;
     const channel = supabase
       .channel('custom_dishes_shared_channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_dishes' }, () => {
+      .on('postgres_changes', { event: '*', schema: SUPABASE_SCHEMA, table: 'custom_dishes' }, () => {
         loadDishes();
       })
       .subscribe();
