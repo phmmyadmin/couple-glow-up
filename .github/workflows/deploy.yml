@@ -44,6 +44,11 @@ jobs:
       - name: Run Automated Tests
         run: npm test
         working-directory: app
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+          VITE_SUPABASE_SCHEMA: fit
 
       - name: Build Web Application
         run: npm run build

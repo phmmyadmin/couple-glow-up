@@ -648,14 +648,13 @@ export async function saveExerciseToSupabase(exercise) {
 export async function fetchRoutinesFromSupabase(profileId) {
   if (!supabase) return [];
   try {
-    let query = supabase
-      .from('routines')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let query = supabase.from('routines').select('*');
 
     if (profileId) {
       query = query.or(`profile_id.eq.${profileId},profile_id.is.null`);
     }
+
+    query = query.order('created_at', { ascending: false });
 
     const { data, error } = await query;
     if (error) throw error;
