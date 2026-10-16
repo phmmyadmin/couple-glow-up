@@ -95,3 +95,19 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Create or Update GitHub Release with APK
+        run: |
+          VERSION=$(node -p "require('./app/package.json').version")
+          TAG="v${VERSION}"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG exists, uploading APK assets..."
+            gh release upload "$TAG" app/dist/openfit.apk "app/dist/openfit-v${VERSION}.apk" --clobber
+          else
+            echo "Creating release $TAG..."
+            gh release create "$TAG" app/dist/openfit.apk "app/dist/openfit-v${VERSION}.apk" \
+              --title "OpenFit v${VERSION}" \
+              --notes "Automated release of OpenFit APK v${VERSION}. Includes fixes for routine creation and Supabase persistence."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

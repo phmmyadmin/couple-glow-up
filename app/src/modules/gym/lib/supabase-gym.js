@@ -646,13 +646,18 @@ export async function saveExerciseToSupabase(exercise) {
 
 // ── ROUTINES ──
 export async function fetchRoutinesFromSupabase(profileId) {
-  if (!supabase || !profileId) return [];
+  if (!supabase) return [];
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('routines')
       .select('*')
-      .eq('profile_id', profileId)
       .order('created_at', { ascending: false });
+
+    if (profileId) {
+      query = query.or(`profile_id.eq.${profileId},profile_id.is.null`);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   } catch (err) {
@@ -662,12 +667,25 @@ export async function fetchRoutinesFromSupabase(profileId) {
 }
 
 export async function saveRoutineToSupabase(routine) {
-  if (!supabase) return null;
+  if (!supabase || !routine) return null;
   try {
-    if (routine.id) {
+    const isUUID = (val) =>
+      typeof val === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+    const cleanRoutinePayload = {
+      profile_id: isUUID(routine.profile_id) ? routine.profile_id : null,
+      name: routine.name ? String(routine.name).trim() : 'Routine',
+      description: routine.description ? String(routine.description).trim() : null,
+      color: routine.color || '#6366f1',
+      exercises: Array.isArray(routine.exercises) ? routine.exercises : [],
+      updated_at: new Date().toISOString(),
+    };
+
+    if (isUUID(routine.id)) {
       const { data, error } = await supabase
         .from('routines')
-        .update(routine)
+        .update(cleanRoutinePayload)
         .eq('id', routine.id)
         .select()
         .single();
@@ -676,26 +694,34 @@ export async function saveRoutineToSupabase(routine) {
     } else {
       const { data, error } = await supabase
         .from('routines')
-        .insert(routine)
+        .insert(cleanRoutinePayload)
         .select()
         .single();
       if (error) throw error;
       return data;
     }
   } catch (err) {
-    console.error('Error saving routine:', err);
+    console.error('Error saving routine to Supabase:', err);
     return null;
   }
 }
 
 export async function deleteRoutineFromSupabase(routineId) {
-  if (!supabase) return false;
+  if (!supabase || !routineId) return false;
   try {
+    const isUUID = (val) =>
+      typeof val === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+    if (!isUUID(routineId)) {
+      return true; // Local only temporary ID
+    }
+
     const { error } = await supabase.from('routines').delete().eq('id', routineId);
     if (error) throw error;
     return true;
   } catch (err) {
-    console.error('Error deleting routine:', err);
+    console.error('Error deleting routine from Supabase:', err);
     return false;
   }
 }

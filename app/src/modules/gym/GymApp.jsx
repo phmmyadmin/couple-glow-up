@@ -268,10 +268,16 @@ export default function GymApp({ activeProfile, profiles, setToastMessage }) {
     };
     const saved = await saveRoutineToSupabase(payload);
     if (saved) {
-      setRoutines((prev) => [...prev.filter((r) => r.id !== saved.id), saved]);
+      setRoutines((prev) => [
+        ...prev.filter((r) => r.id !== saved.id && r.id !== routineObj.id),
+        saved,
+      ]);
     } else {
-      const localR = { ...routineObj, id: Date.now().toString() };
-      setRoutines((prev) => [...prev, localR]);
+      const localR = { ...routineObj, id: routineObj.id || Date.now().toString() };
+      setRoutines((prev) => [
+        ...prev.filter((r) => r.id !== localR.id),
+        localR,
+      ]);
     }
     if (setToastMessage) {
       setToastMessage('Routine saved');
